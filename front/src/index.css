@@ -1,0 +1,343 @@
+/* Polices embarquées dans l'app : aucune requête vers un service tiers au
+   lancement. Charte « Miel du Champsaur » : titres en Bricolage Grotesque,
+   interface en Figtree (toutes deux OFL, licences à côté des fichiers).
+   Les documents gardent Literata, faite pour le texte long. Noto Naskh Arabic
+   sert le texte arabe. */
+@import '@fontsource-variable/literata/opsz.css';
+@import '@fontsource-variable/literata/opsz-italic.css';
+@import '@fontsource-variable/jetbrains-mono/index.css';
+@import '@fontsource-variable/noto-naskh-arabic/index.css';
+
+@font-face {
+  font-family: 'Figtree';
+  src: url('./assets/fonts/figtree/Figtree.ttf') format('truetype');
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Figtree';
+  src: url('./assets/fonts/figtree/Figtree-Italic.ttf') format('truetype');
+  font-weight: 300 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  src: url('./assets/fonts/bricolage-grotesque/BricolageGrotesque.ttf') format('truetype');
+  font-weight: 200 800;
+  font-stretch: 75% 100%;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Jetons de la charte. Lector : encre sapin et miel. Toutes les paires
+   texte / fond sont au moins AA (4,5:1), les traits et icônes au moins 3:1. */
+:root {
+  color-scheme: light;
+
+  /* Fonds : crème miel, à plat */
+  --bg-primary: #FBF7EF;
+  --bg-secondary: #F3EDE1;
+  --bg-sidebar: #F6F1E6;
+  --surface: #FFFDF8;
+  --surface-rgb: 255, 253, 248;
+  --ink-rgb: 31, 42, 34;
+  --bg-rgb: 251, 247, 239;
+  --shadow-rgb: 31, 42, 34;
+  --info-rgb: 46, 127, 161;
+  --on-danger: #FFFFFF;
+  --on-success: #FBF7EF;
+  --on-ai: #FBF7EF;
+
+  /* Texte : encre sapin */
+  --text-primary: #1F2A22;
+  --text-secondary: #4A5A4F;
+  --text-muted: #5F6E64;
+  --border: #E5DCCB;
+  --border-strong: #D3C6AE;
+  --border-light: var(--border);
+  --bg-hover: rgba(var(--ink-rgb), 0.05);
+
+  /* Miel */
+  --accent: #E9A23B;
+  --accent-hover: #DB922A;
+  --accent-rgb: 233, 162, 59;
+  --on-accent: #1F2A22;
+  --accent-text: #8A5A12;
+  --accent-icon: #B9771C;
+  --accent-soft: #F4E3C3;
+  --on-accent-soft: #6B4A12;
+  --highlight: rgba(233, 162, 59, 0.24);
+
+  /* Couleurs sémantiques, stables */
+  --danger: #B3261E;
+  --danger-rgb: 179, 38, 30;
+  --danger-bg: #FBE9E6;
+  --danger-border: #F0C3BD;
+  --success: #2F5D46;
+  --success-rgb: 47, 93, 70;
+  --warning: #8A5A12;
+  --text-warning: var(--warning);
+  --accent-primary: var(--accent);
+  --star: #B9771C;
+  --info: #2E7FA1;
+  --color-ai: #6A5FA3;
+  --color-ai-hover: #5A4F93;
+  --ai-rgb: 122, 111, 176;
+
+  /* Coloration du code, sur --bg-secondary : toutes AA */
+  --code-text: #1F2A22;
+  --code-comment: #5F6E64;
+  --code-keyword: #8A5A12;
+  --code-function: #2F5D46;
+  --code-string: #1F6683;
+  --code-number: #5A4F93;
+  --code-tag: #9A2F22;
+
+  /* Espacements (grille de 4) */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  /* Rayons : tout arrondi. Cartes 22, boutons 14 ou pilule */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-card: 22px;
+  --radius-full: 9999px;
+
+  /* À plat : pas d'ombre sur les cartes, une ombre douce pour ce qui flotte */
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: 0 8px 28px rgba(31, 42, 34, 0.14);
+  --shadow-float: 0 6px 20px rgba(31, 42, 34, 0.12);
+  --backdrop: rgba(18, 32, 26, 0.3);
+
+  /* Surfaces flottantes : pleines, sans flou ni reflet */
+  --glass-bg: #FFFDF8;
+  --glass-blur: none;
+  --glass-border: 1px solid #E5DCCB;
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Polices */
+  --font-display: 'Bricolage Grotesque', 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: 'Figtree', 'Noto Naskh Arabic Variable', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-serif: 'Literata Variable', 'Noto Naskh Arabic Variable', Georgia, serif;
+  --font-mono: 'JetBrains Mono Variable', monospace;
+  --display-tracking: -0.02em;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    /* Sapin nuit */
+    --bg-primary: #12201A;
+    --bg-secondary: #1C2E26;
+    --bg-sidebar: #152620;
+    --surface: #1C2E26;
+    --surface-rgb: 28, 46, 38;
+    --ink-rgb: 243, 238, 227;
+    --bg-rgb: 18, 32, 26;
+    --shadow-rgb: 0, 0, 0;
+    --info-rgb: 91, 176, 211;
+    --on-danger: #1F2A22;
+    --on-success: #12201A;
+    --on-ai: #1F2A22;
+
+    --text-primary: #F3EEE3;
+    --text-secondary: #9FB3A8;
+    --text-muted: #8EA397;
+    --border: #2B4237;
+    --border-strong: #3A5548;
+
+    --accent: #E9A23B;
+    --accent-hover: #F0B456;
+    --on-accent: #1F2A22;
+    --accent-text: #F0B456;
+    --accent-icon: #E9A23B;
+    --accent-soft: #3D4129;
+    --on-accent-soft: #F3C77F;
+    --highlight: rgba(233, 162, 59, 0.26);
+
+    --danger: #F2A49C;
+    --danger-rgb: 242, 164, 156;
+    --danger-bg: #3A2522;
+    --danger-border: #6B3A34;
+    --success: #8FD0AE;
+    --success-rgb: 143, 208, 174;
+    --warning: #F0B456;
+    --star: #E9A23B;
+    --info: #5BB0D3;
+    --color-ai: #B3AAE0;
+    --color-ai-hover: #C6BFEA;
+    --ai-rgb: 179, 170, 224;
+
+    --code-text: #F3EEE3;
+    --code-comment: #8EA397;
+    --code-keyword: #F0B456;
+    --code-function: #8FD0AE;
+    --code-string: #7CC3E0;
+    --code-number: #C6BFEA;
+    --code-tag: #F2A49C;
+
+    --shadow-lg: 0 8px 28px rgba(0, 0, 0, 0.36);
+    --shadow-float: 0 6px 20px rgba(0, 0, 0, 0.3);
+    --backdrop: rgba(5, 12, 9, 0.6);
+
+    --glass-bg: #1C2E26;
+    --glass-border: 1px solid #2B4237;
+  }
+}
+
+/* Titres de l'interface : Bricolage Grotesque 700, interlettrage -2 % */
+h1, h2, h3,
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: var(--display-tracking);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+#root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Focus visible for keyboard navigation */
+:focus-visible {
+  outline: 2px solid var(--accent-icon);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+button:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Code blocks */
+pre {
+  background: var(--bg-secondary) !important;
+  border-radius: var(--radius-md);
+  padding: var(--space-md) !important;
+  overflow-x: hidden;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-wrap: break-word;
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
+code {
+  font-family: var(--font-mono);
+  background: var(--bg-secondary);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 0.9em;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+}
+
+/* Selection */
+::selection {
+  background: rgba(var(--accent-rgb), 0.35);
+  color: inherit;
+}
+
+/* Drag regions */
+.drag-region {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Global Animations */
+@keyframes springIn {
+  0% { transform: scale(0.9); opacity: 0; }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0); }
+  50% { box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.3); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes badgePop {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}

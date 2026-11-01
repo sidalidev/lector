@@ -1,0 +1,90 @@
+{
+  "name": "lector-preview",
+  "displayName": "Lector — Hybrid Markdown Editor",
+  "description": "A Bear-like hybrid Markdown editor: write Markdown and see it rendered inline, in the same pane. Typography-first, with Mermaid and live image previews.",
+  "version": "0.2.0",
+  "publisher": "sidalidev",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "markdown",
+    "editor",
+    "wysiwyg",
+    "bear",
+    "live preview",
+    "mermaid",
+    "typography"
+  ],
+  "icon": "icon.png",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sidalidev/lector"
+  },
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "lector.markdownPreview",
+        "displayName": "Lector Preview",
+        "selector": [
+          { "filenamePattern": "*.md" },
+          { "filenamePattern": "*.markdown" }
+        ],
+        "priority": "option"
+      }
+    ],
+    "commands": [
+      {
+        "command": "lector.openPreview",
+        "title": "Open in Lector Editor",
+        "category": "Lector"
+      },
+      {
+        "command": "lector.openToTheSide",
+        "title": "Open Lector Editor to the Side",
+        "category": "Lector"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "lector.openPreview",
+          "when": "resourceLangId == markdown",
+          "group": "navigation@10"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "lector.openPreview",
+          "when": "resourceLangId == markdown"
+        },
+        {
+          "command": "lector.openToTheSide",
+          "when": "resourceLangId == markdown"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build:extension": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --platform=node --target=node18 --external:vscode --format=cjs --minify",
+    "build:webview": "cd webview && npm run build",
+    "build": "npm run build:extension && npm run build:webview",
+    "watch:extension": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --platform=node --target=node18 --external:vscode --format=cjs --sourcemap --watch",
+    "package": "vsce package --allow-missing-repository --no-dependencies",
+    "install-local": "npm run build && npm run package && code --install-extension lector-preview-0.1.0.vsix --force"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.0.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.4.0"
+  }
+}

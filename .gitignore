@@ -1,0 +1,25 @@
+node_modules/
+dist/
+release/
+front/dist/
+.DS_Store
+*.log
+.env
+*.vsix
+back/node_modules/
+back/dev.db
+back/prisma/dev.db
+back/.env
+.playwright-mcp
+test-results/
+bundle-stats.html
+
+# Base et fichiers jetables des tests de la chaîne
+back/.test-data/
+back/dev-chain/
+
+# Signing keys never live in the repository
+*.keystore
+*.jks
+*.pem
+keystore.properties

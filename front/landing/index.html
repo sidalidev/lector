@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lector | Your documents, your intelligence</title>
+  <meta name="description" content="Smart Markdown reader. Summaries, flashcards and mind maps saved in your files. Free, no account, end-to-end encrypted sync.">
+
+
+  <link rel="icon" type="image/png" href="icon.png">
+  <meta name="theme-color" content="#FBF7EF" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#12201A" media="(prefers-color-scheme: dark)">
+
+  <style>
+    @font-face {
+      font-family: 'Figtree';
+      src: url('/fonts/figtree.woff') format('woff');
+      font-weight: 300 900;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: 'Bricolage Grotesque';
+      src: url('/fonts/bricolage-grotesque.woff') format('woff');
+      font-weight: 200 800;
+      font-display: swap;
+    }
+
+    /* Charte « Miel du Champsaur » : crème miel, encre sapin, miel. À plat. */
+    :root {
+      color-scheme: light;
+      --caramel: #E9A23B;
+      --caramel-light: #F4E3C3;
+      --caramel-dark: #8A5A12;
+      --cream: #FBF7EF;
+      --paper: #F3EDE1;
+      --surface: #FFFDF8;
+      --ink: #1F2A22;
+      --on-ink: #FBF7EF;
+      --ink-light: #4A5A4F;
+      --ink-faint: #5F6E64;
+      --line: #E5DCCB;
+      --accent-rgb: 233, 162, 59;
+      /* Polices embarquées (OFL), servies par ce site : rien d'un autre site. */
+      --font-sans: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-serif: 'Bricolage Grotesque', 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        --caramel-light: #3D4129;
+        --caramel-dark: #F0B456;
+        --cream: #12201A;
+        --paper: #1C2E26;
+        --surface: #1C2E26;
+        --ink: #F3EEE3;
+        --on-ink: #12201A;
+        --ink-light: #9FB3A8;
+        --ink-faint: #8EA397;
+        --line: #2B4237;
+      }
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--cream);
+      color: var(--ink);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Typography */
+    .font-serif {
+      font-family: var(--font-serif);
+    }
+
+
+    /* Layout */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Navigation */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 20px 0;
+      background: var(--cream);
+      border-bottom: 1px solid rgba(var(--accent-rgb), 0.1);
+    }
+
+    nav .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-family: var(--font-serif);
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--ink);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo span {
+      color: var(--caramel-dark);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      align-items: center;
+    }
+
+    .nav-links a {
+      color: var(--ink-light);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--caramel-dark);
+    }
+
+    .lang-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(var(--accent-rgb), 0.1);
+      border: 1px solid rgba(var(--accent-rgb), 0.2);
+      border-radius: 100px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--ink-light);
+      transition: all 0.2s;
+    }
+
+    .lang-toggle:hover {
+      background: rgba(var(--accent-rgb), 0.2);
+    }
+
+    .lang-toggle .active {
+      color: var(--caramel-dark);
+    }
+
+    .lang-toggle .sep {
+      color: var(--ink-faint);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--caramel);
+      color: #1F2A22;
+    }
+
+    .btn-primary:hover {
+      background: #DB922A;
+    }
+
+    .nav-links a.btn-primary,
+    .nav-links a.btn-primary:hover {
+      color: #1F2A22;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--ink);
+      border: 1.5px solid var(--ink);
+    }
+
+    .btn-secondary:hover {
+      background: var(--ink);
+      color: var(--on-ink);
+    }
+
+    /* Hero */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 120px 0 80px;
+      position: relative;
+    }
+
+    .hero-content {
+      text-align: center;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(var(--accent-rgb), 0.12);
+      border: 1px solid rgba(var(--accent-rgb), 0.25);
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--caramel-dark);
+      margin-bottom: 32px;
+      animation: fadeInUp 0.8s ease-out;
+    }
+
+    .hero-badge svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .hero h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(48px, 8vw, 80px);
+      font-weight: 500;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      margin-bottom: 24px;
+      animation: fadeInUp 0.8s ease-out 0.1s both;
+    }
+
+    .hero h1 em {
+      font-style: normal;
+      color: var(--caramel-dark);
+    }
+
+    .hero-subtitle {
+      font-size: 18px;
+      color: var(--ink-light);
+      max-width: 520px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+      animation: fadeInUp 0.8s ease-out 0.2s both;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+      animation: fadeInUp 0.8s ease-out 0.3s both;
+    }
+
+    .hero-buttons .btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* App Preview */
+    .app-preview {
+      margin-top: 80px;
+      position: relative;
+      animation: fadeInUp 0.8s ease-out 0.4s both;
+    }
+
+    .app-preview-wrapper {
+      position: relative;
+      max-width: 1000px;
+      margin: 0 auto;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+    }
+
+    .app-preview-wrapper::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      background: none;
+      border-radius: 17px;
+      z-index: -1;
+      opacity: 0.5;
+    }
+
+    .app-screenshot {
+      width: 100%;
+      display: block;
+      background: var(--paper);
+      aspect-ratio: 16/10;
+      object-fit: cover;
+    }
+
+    /* Placeholder for screenshot */
+    .app-mockup {
+      width: 100%;
+      aspect-ratio: 16/10;
+      background: var(--paper);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mockup-sidebar {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 220px;
+      background: var(--paper);
+      border-right: 1px solid var(--line);
+      padding: 60px 16px 16px;
+    }
+
+    .mockup-folder {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      color: var(--ink-light);
+      margin-bottom: 4px;
+    }
+
+    .mockup-folder.active {
+      background: rgba(var(--accent-rgb), 0.15);
+      color: var(--caramel-dark);
+    }
+
+    .mockup-content {
+      position: absolute;
+      left: 220px;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      padding: 60px 80px 40px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .mockup-title {
+      font-family: var(--font-serif);
+      font-size: 32px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--paper);
+    }
+
+    .mockup-summary {
+      background: rgba(var(--accent-rgb), 0.08);
+      border: 1px solid rgba(var(--accent-rgb), 0.15);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    .mockup-summary-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--caramel-dark);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mockup-line {
+      height: 10px;
+      background: var(--paper);
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+
+    .mockup-line:nth-child(2) { width: 90%; }
+    .mockup-line:nth-child(3) { width: 75%; }
+    .mockup-line:nth-child(4) { width: 85%; }
+
+    .mockup-keywords {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .mockup-keyword {
+      padding: 4px 10px;
+      background: rgba(var(--accent-rgb), 0.12);
+      border-radius: 100px;
+      font-size: 11px;
+      color: var(--caramel-dark);
+    }
+
+    /* Features */
+    .features {
+      padding: 120px 0;
+      background: var(--surface);
+      position: relative;
+    }
+
+    .features::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1px;
+      height: 80px;
+      background: var(--caramel-light);
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 80px;
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--caramel-dark);
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-family: var(--font-serif);
+      font-size: clamp(36px, 5vw, 52px);
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 40px;
+    }
+
+    .feature-card {
+      padding: 40px;
+      background: var(--cream);
+      border-radius: 20px;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--caramel);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: none;
+    }
+
+    .feature-card:hover::before {
+      opacity: 1;
+    }
+
+    .feature-icon {
+      width: 56px;
+      height: 56px;
+      background: var(--surface);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      box-shadow: none;
+    }
+
+    .feature-icon svg {
+      width: 28px;
+      height: 28px;
+      color: var(--caramel-dark);
+    }
+
+    .feature-card h3 {
+      font-family: var(--font-serif);
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--ink);
+    }
+
+    .feature-card p {
+      color: var(--ink-light);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    /* Your data */
+    .data {
+      padding: 120px 0;
+      background: var(--cream);
+    }
+
+    .data-list {
+      list-style: none;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    .data-list li {
+      padding: 16px 0;
+      font-size: 16px;
+      color: var(--ink-light);
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .data-list li:last-child {
+      border-bottom: none;
+    }
+
+    .data-list li::before {
+      content: '';
+      width: 22px;
+      height: 22px;
+      min-width: 22px;
+      margin-top: 2px;
+      border-radius: 50%;
+      background-color: rgba(var(--accent-rgb), 0.15);
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='%23b8956a' stroke-width='3' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E");
+      background-size: 12px;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    .data-list strong {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .data-more {
+      text-align: center;
+      margin-top: 32px;
+      font-size: 14px;
+    }
+
+    .data-more a {
+      color: var(--caramel-dark);
+    }
+
+    /* Philosophy */
+    .philosophy {
+      padding: 120px 0;
+      background: #1F2A22;
+      color: #FBF7EF;
+      border-radius: 32px;
+      margin: 0 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .philosophy::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 600px;
+      height: 600px;
+      background: none;
+      pointer-events: none;
+    }
+
+    .philosophy-content {
+      max-width: 700px;
+      margin: 0 auto;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .philosophy blockquote {
+      font-family: var(--font-serif);
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.3;
+      margin-bottom: 32px;
+      color: #FBF7EF;
+    }
+
+    .philosophy blockquote em {
+      color: #E9A23B;
+      font-style: normal;
+    }
+
+    .philosophy-caption {
+      font-size: 14px;
+      color: #9FB3A8;
+    }
+
+    /* CTA */
+    .cta {
+      padding: 120px 0;
+      background: var(--cream);
+      text-align: center;
+    }
+
+    .cta-content {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .cta h2 {
+      font-family: var(--font-serif);
+      font-size: clamp(36px, 5vw, 52px);
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      margin-bottom: 20px;
+    }
+
+    .cta p {
+      color: var(--ink-light);
+      font-size: 17px;
+      margin-bottom: 40px;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 32px;
+    }
+
+    .cta-buttons .btn {
+      padding: 16px 32px;
+      font-size: 15px;
+    }
+
+    .cta-coming-soon {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .coming-soon-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink-faint);
+      cursor: default;
+    }
+
+    .coming-soon-badge .badge-icon {
+      font-size: 16px;
+    }
+
+    .coming-soon-badge .badge-label {
+      font-weight: 600;
+      color: var(--ink-light);
+    }
+
+    /* Footer */
+    footer {
+      padding: 40px 0;
+      border-top: 1px solid var(--line);
+      background: var(--cream);
+    }
+
+    footer .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+    }
+
+    .footer-links a {
+      color: var(--ink-light);
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover {
+      color: var(--caramel-dark);
+    }
+
+    .footer-copy {
+      color: var(--ink-faint);
+      font-size: 13px;
+    }
+
+    /* Animations */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Scroll animations */
+    .reveal {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      nav .container {
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .nav-links {
+        gap: 20px;
+      }
+
+      .hero {
+        padding: 100px 0 60px;
+      }
+
+      .hero-buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .btn {
+        width: 100%;
+        max-width: 280px;
+        justify-content: center;
+      }
+
+      .mockup-sidebar {
+        display: none;
+      }
+
+      .mockup-content {
+        left: 0;
+        padding: 40px 24px;
+      }
+
+      .features-grid {
+        gap: 24px;
+      }
+
+      .feature-card {
+        padding: 28px;
+      }
+
+      footer .container {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav>
+    <div class="container">
+      <a href="#" class="logo"><svg class="logo-mark" width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7.2" fill="#1F2A22"/><g transform="translate(12 12) scale(0.68) translate(-12 -12)" fill="none" stroke="#E9A23B" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5A2 2 0 0 1 6 4.5h5v15H6a2 2 0 0 1-2-2z"/><path d="M20 6.5a2 2 0 0 0-2-2h-5v15h5a2 2 0 0 0 2-2z"/></g></svg>Lector</a>
+      <div class="nav-links">
+        <a href="#features" data-i18n="nav.features">Features</a>
+        <a href="#data" data-i18n="nav.data">Privacy</a>
+        <button class="lang-toggle" id="langToggle" onclick="toggleLang()">
+          <span id="langEn" class="active">EN</span>
+          <span class="sep">|</span>
+          <span id="langFr">FR</span>
+        </button>
+        <a href="/download/Lector.dmg" class="btn btn-primary" data-i18n="nav.download">Download</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+          <span data-i18n="hero.badge">Free. No account. End-to-end encrypted.</span>
+        </div>
+        <h1 data-i18n-html="hero.title">Your documents,<br>your <em>intelligence</em></h1>
+        <p class="hero-subtitle" data-i18n="hero.subtitle">Lector generates summaries, flashcards and mind maps directly in your Markdown files. Encrypted sync between your devices, without an account. Your data stays yours.</p>
+        <div class="hero-buttons">
+          <a href="/download/Lector.dmg" class="btn btn-primary">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+            </svg>
+            <span data-i18n="hero.downloadMac">Download for Mac</span>
+          </a>
+          <a href="/app/" class="btn btn-secondary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+            <span data-i18n="hero.openWeb">Open in your browser</span>
+          </a>
+          <a href="#features" class="btn btn-secondary" data-i18n="hero.learnMore">Learn more</a>
+        </div>
+      </div>
+
+      <!-- App Preview -->
+      <div class="app-preview">
+        <div class="app-preview-wrapper">
+          <div class="app-mockup">
+            <div class="mockup-sidebar">
+              <div class="mockup-folder">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+                <span data-i18n="mockup.learning">Learning</span>
+              </div>
+              <div class="mockup-folder active">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                <span data-i18n="mockup.introAi">Introduction to AI</span>
+              </div>
+              <div class="mockup-folder">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                <span data-i18n="mockup.courseNotes">Course notes</span>
+              </div>
+              <div class="mockup-folder">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+                <span data-i18n="mockup.projects">Projects</span>
+              </div>
+            </div>
+            <div class="mockup-content">
+              <div class="mockup-title" data-i18n="mockup.docTitle">Introduction to Artificial Intelligence</div>
+              <div class="mockup-summary">
+                <div class="mockup-summary-title">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                  </svg>
+                  <span data-i18n="mockup.generatedSummary">Generated summary</span>
+                </div>
+                <div class="mockup-line"></div>
+                <div class="mockup-line"></div>
+                <div class="mockup-line"></div>
+              </div>
+              <div class="mockup-keywords">
+                <span class="mockup-keyword">Machine Learning</span>
+                <span class="mockup-keyword" data-i18n="mockup.neuralNetworks">Neural networks</span>
+                <span class="mockup-keyword">Deep Learning</span>
+                <span class="mockup-keyword">NLP</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features" id="features">
+    <div class="container">
+      <div class="section-header reveal">
+        <p class="section-label" data-i18n="features.label">Features</p>
+        <h2 class="section-title" data-i18n="features.title">The essentials, nothing more</h2>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card reveal">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+          </div>
+          <h3 data-i18n="features.summaries">Smart summaries</h3>
+          <p data-i18n="features.summariesDesc">AI analyzes your document and generates a structured summary with key points, keywords and glossary, saved directly in your file. Bring your own API key: it stays on your device.</p>
+        </div>
+
+        <div class="feature-card reveal">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="2" y="4" width="20" height="16" rx="2"/>
+              <path d="M12 8v8M8 12h8"/>
+            </svg>
+          </div>
+          <h3 data-i18n="features.flashcards">Built-in flashcards</h3>
+          <p data-i18n="features.flashcardsDesc">Generate review cards from your notes. The spaced repetition system helps you memorize effectively over the long term.</p>
+        </div>
+
+        <div class="feature-card reveal">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+              <polyline points="7.5 4.21 12 6.81 16.5 4.21"/>
+              <polyline points="7.5 19.79 7.5 14.6 3 12"/>
+              <polyline points="21 12 16.5 14.6 16.5 19.79"/>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+              <line x1="12" y1="22.08" x2="12" y2="12"/>
+            </svg>
+          </div>
+          <h3 data-i18n="features.mindmaps">Visual mind maps</h3>
+          <p data-i18n="features.mindmapsDesc">Visualize concepts from your documents as interactive mind maps. Perfect for understanding relationships between ideas.</p>
+        </div>
+
+        <div class="feature-card reveal">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+              <path d="M18 12a6 6 0 1 1-12 0"/>
+              <circle cx="12" cy="12" r="2"/>
+            </svg>
+          </div>
+          <h3 data-i18n="features.sync">Encrypted sync</h3>
+          <p data-i18n="features.syncDesc">Your Markdown files follow you from one device to the next, encrypted before they leave it. Twelve words link your devices, typed or filled in by your password manager: no account, no email.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Your data -->
+  <section class="data" id="data">
+    <div class="container">
+      <div class="section-header reveal">
+        <p class="section-label" data-i18n="data.label">Privacy</p>
+        <h2 class="section-title" data-i18n="data.title">Your data is yours</h2>
+      </div>
+
+      <ul class="data-list reveal">
+        <li><span><strong data-i18n="data.1.title">No account.</strong> <span data-i18n="data.1.text">No email, no password, nothing to sign up for.</span></span></li>
+        <li><span><strong data-i18n="data.2.title">End-to-end encrypted sync.</strong> <span data-i18n="data.2.text">Your documents are encrypted on your device with a key only you hold.</span></span></li>
+        <li><span><strong data-i18n="data.3.title">The server stores only ciphertext.</strong> <span data-i18n="data.3.text">It cannot read your notes, their titles or their paths.</span></span></li>
+        <li><span><strong data-i18n="data.4.title">Verifiable.</strong> <span data-i18n="data.4.text">How the encryption works is documented in detail, and the source code will be published so that anyone can check these claims.</span></span></li>
+      </ul>
+
+      <p class="data-more reveal"><a href="/sync/" data-i18n="data.technical">How sync works, in detail (in French)</a></p>
+      <p class="data-more reveal"><a href="/privacy.html" data-i18n="data.policy">Read the privacy policy</a></p>
+    </div>
+  </section>
+
+  <!-- Philosophy -->
+  <section class="philosophy">
+    <div class="container">
+      <div class="philosophy-content reveal">
+        <blockquote data-i18n-html="philosophy.quote">&laquo; The intelligence generated stays <em>in your files</em>. You can read them, edit them, share them with any tool. No lock-in, nothing readable on our servers. &raquo;</blockquote>
+        <p class="philosophy-caption" data-i18n="philosophy.caption">The Lector philosophy</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta" id="download">
+    <div class="container">
+      <div class="cta-content reveal">
+        <h2 data-i18n="cta.title">Ready to start?</h2>
+        <p data-i18n="cta.subtitle">Download Lector and transform the way you read and learn.</p>
+        <div class="cta-buttons">
+          <a href="/download/Lector.dmg" class="btn btn-primary">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+            </svg>
+            <span data-i18n="cta.downloadMac">Download for Mac</span>
+          </a>
+          <a href="/app/" class="btn btn-secondary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+            <span data-i18n="cta.openWeb">Open in your browser</span>
+          </a>
+        </div>
+        <p style="margin-top: 12px; font-size: 13px; color: var(--ink-faint);" data-i18n="cta.otherSystems">Windows and Linux: use Lector in your browser for now.</p>
+        <div class="cta-coming-soon">
+          <div class="coming-soon-badge">
+            <span class="badge-icon">📱</span>
+            <span class="badge-label">iOS</span>
+            <span data-i18n="cta.comingSoon">Coming soon</span>
+          </div>
+          <div class="coming-soon-badge">
+            <span class="badge-icon">🤖</span>
+            <span class="badge-label">Android</span>
+            <span data-i18n="cta.comingSoon">Coming soon</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <a href="#" class="logo"><svg class="logo-mark" width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7.2" fill="#1F2A22"/><g transform="translate(12 12) scale(0.68) translate(-12 -12)" fill="none" stroke="#E9A23B" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5A2 2 0 0 1 6 4.5h5v15H6a2 2 0 0 1-2-2z"/><path d="M20 6.5a2 2 0 0 0-2-2h-5v15h5a2 2 0 0 0 2-2z"/></g></svg>Lector</a>
+      <div class="footer-links">
+        <a href="/privacy.html" data-i18n="footer.privacy">Privacy</a>
+        <a href="/sync/" data-i18n="footer.technical">How sync works</a>
+        <a href="https://sidali.dev" target="_blank">sidali.dev</a>
+      </div>
+      <p class="footer-copy">&copy; 2025 Lector. <span data-i18n="footer.by">A project by</span> <a href="https://sidali.dev" target="_blank" style="color: var(--caramel-dark); text-decoration: none;">Sid Ali</a></p>
+    </div>
+  </footer>
+
+  <!-- i18n + scroll reveal script -->
+  <script>
+    // --- i18n ---
+    const STRINGS = {
+      en: {
+        'nav.features': 'Features',
+        'nav.data': 'Privacy',
+        'nav.download': 'Download',
+        'hero.badge': 'Free. No account. End-to-end encrypted.',
+        'hero.title': 'Your documents,<br>your <em>intelligence</em>',
+        'hero.subtitle': 'Lector generates summaries, flashcards and mind maps directly in your Markdown files. Encrypted sync between your devices, without an account. Your data stays yours.',
+        'hero.downloadMac': 'Download for Mac',
+        'hero.openWeb': 'Open in your browser',
+        'hero.learnMore': 'Learn more',
+        'mockup.learning': 'Learning',
+        'mockup.introAi': 'Introduction to AI',
+        'mockup.courseNotes': 'Course notes',
+        'mockup.projects': 'Projects',
+        'mockup.docTitle': 'Introduction to Artificial Intelligence',
+        'mockup.generatedSummary': 'Generated summary',
+        'mockup.neuralNetworks': 'Neural networks',
+        'features.label': 'Features',
+        'features.title': 'The essentials, nothing more',
+        'features.summaries': 'Smart summaries',
+        'features.summariesDesc': 'AI analyzes your document and generates a structured summary with key points, keywords and glossary, saved directly in your file. Bring your own API key: it stays on your device.',
+        'features.flashcards': 'Built-in flashcards',
+        'features.flashcardsDesc': 'Generate review cards from your notes. The spaced repetition system helps you memorize effectively over the long term.',
+        'features.mindmaps': 'Visual mind maps',
+        'features.mindmapsDesc': 'Visualize concepts from your documents as interactive mind maps. Perfect for understanding relationships between ideas.',
+        'features.sync': 'Encrypted sync',
+        'features.syncDesc': 'Your Markdown files follow you from one device to the next, encrypted before they leave it. Twelve words link your devices, typed or filled in by your password manager: no account, no email.',
+        'data.label': 'Privacy',
+        'data.title': 'Your data is yours',
+        'data.1.title': 'No account.',
+        'data.1.text': 'No email, no password, nothing to sign up for.',
+        'data.2.title': 'End-to-end encrypted sync.',
+        'data.2.text': 'Your documents are encrypted on your device with a key only you hold.',
+        'data.3.title': 'The server stores only ciphertext.',
+        'data.3.text': 'It cannot read your notes, their titles or their paths.',
+        'data.4.title': 'Verifiable.',
+        'data.4.text': 'How the encryption works is documented in detail, and the source code will be published so that anyone can check these claims.',
+        'data.technical': 'How sync works, in detail (in French)',
+        'data.policy': 'Read the privacy policy',
+        'philosophy.quote': '&laquo; The intelligence generated stays <em>in your files</em>. You can read them, edit them, share them with any tool. No lock-in, nothing readable on our servers. &raquo;',
+        'philosophy.caption': 'The Lector philosophy',
+        'cta.title': 'Ready to start?',
+        'cta.subtitle': 'Download Lector and transform the way you read and learn.',
+        'cta.downloadMac': 'Download for Mac',
+        'cta.openWeb': 'Open in your browser',
+        'cta.otherSystems': 'Windows and Linux: use Lector in your browser for now.',
+        'cta.comingSoon': 'Coming soon',
+        'footer.by': 'A project by',
+        'footer.privacy': 'Privacy',
+        'footer.technical': 'How sync works',
+      },
+      fr: {
+        'nav.features': 'Fonctionnalit\u00e9s',
+        'nav.data': 'Vie priv\u00e9e',
+        'nav.download': 'T\u00e9l\u00e9charger',
+        'hero.badge': 'Gratuit. Sans compte. Chiffr\u00e9 de bout en bout.',
+        'hero.title': 'Tes documents,<br>ton <em>intelligence</em>',
+        'hero.subtitle': 'Lector g\u00e9n\u00e8re r\u00e9sum\u00e9s, flashcards et mind maps directement dans tes fichiers Markdown. Sync chiffr\u00e9e entre tes appareils, sans compte. Tes donn\u00e9es t\u2019appartiennent.',
+        'hero.downloadMac': 'T\u00e9l\u00e9charger pour Mac',
+        'hero.openWeb': 'Ouvrir dans le navigateur',
+        'hero.learnMore': 'En savoir plus',
+        'mockup.learning': 'Apprentissage',
+        'mockup.introAi': 'Introduction \u00e0 l\u2019IA',
+        'mockup.courseNotes': 'Notes de cours',
+        'mockup.projects': 'Projets',
+        'mockup.docTitle': 'Introduction \u00e0 l\u2019Intelligence Artificielle',
+        'mockup.generatedSummary': 'R\u00e9sum\u00e9 g\u00e9n\u00e9r\u00e9',
+        'mockup.neuralNetworks': 'R\u00e9seaux neuronaux',
+        'features.label': 'Fonctionnalit\u00e9s',
+        'features.title': 'L\u2019essentiel, rien de plus',
+        'features.summaries': 'R\u00e9sum\u00e9s intelligents',
+        'features.summariesDesc': 'L\u2019IA analyse ton document et g\u00e9n\u00e8re un r\u00e9sum\u00e9 structur\u00e9 avec les points cl\u00e9s, mots-cl\u00e9s et glossaire, sauvegard\u00e9 directement dans ton fichier. Avec ta propre cl\u00e9 API, qui reste sur ton appareil.',
+        'features.flashcards': 'Flashcards int\u00e9gr\u00e9es',
+        'features.flashcardsDesc': 'G\u00e9n\u00e8re des cartes de r\u00e9vision \u00e0 partir de tes notes. Le syst\u00e8me de r\u00e9p\u00e9tition espac\u00e9e t\u2019aide \u00e0 m\u00e9moriser efficacement sur le long terme.',
+        'features.mindmaps': 'Mind Maps visuelles',
+        'features.mindmapsDesc': 'Visualise les concepts de tes documents sous forme de cartes mentales interactives. Parfait pour comprendre les relations entre les id\u00e9es.',
+        'features.sync': 'Sync chiffr\u00e9e',
+        'features.syncDesc': 'Tes fichiers Markdown te suivent d\u2019un appareil \u00e0 l\u2019autre, chiffr\u00e9s avant de le quitter. Douze mots relient tes appareils, tap\u00e9s ou remplis par ton gestionnaire de mots de passe : ni compte, ni e-mail.',
+        'data.label': 'Confidentialit\u00e9',
+        'data.title': 'Tes donn\u00e9es t\u2019appartiennent',
+        'data.1.title': 'Aucun compte.',
+        'data.1.text': 'Ni e-mail, ni mot de passe, rien \u00e0 cr\u00e9er.',
+        'data.2.title': 'Sync chiffr\u00e9e de bout en bout.',
+        'data.2.text': 'Tes documents sont chiffr\u00e9s sur ton appareil avec une cl\u00e9 que toi seul d\u00e9tiens.',
+        'data.3.title': 'Le serveur ne stocke que du chiffr\u00e9.',
+        'data.3.text': 'Il ne peut lire ni tes notes, ni leurs titres, ni leurs chemins.',
+        'data.4.title': 'V\u00e9rifiable.',
+        'data.4.text': 'Le fonctionnement du chiffrement est d\u00e9crit en d\u00e9tail, et le code source sera publi\u00e9 : chacun pourra v\u00e9rifier ces promesses.',
+        'data.technical': 'Le fonctionnement de la synchro, en d\u00e9tail',
+        'data.policy': 'Lire la politique de confidentialit\u00e9',
+        'philosophy.quote': '\u00ab L\u2019intelligence g\u00e9n\u00e9r\u00e9e reste <em>dans tes fichiers</em>. Tu peux les lire, les \u00e9diter, les partager avec n\u2019importe quel outil. Pas de lock-in, rien de lisible sur nos serveurs. \u00bb',
+        'philosophy.caption': 'La philosophie Lector',
+        'cta.title': 'Pr\u00eat \u00e0 commencer ?',
+        'cta.subtitle': 'T\u00e9l\u00e9charge Lector et transforme ta fa\u00e7on de lire et d\u2019apprendre.',
+        'cta.downloadMac': 'T\u00e9l\u00e9charger pour Mac',
+        'cta.openWeb': 'Ouvrir dans le navigateur',
+        'cta.otherSystems': 'Windows et Linux : utilise Lector dans ton navigateur pour l\u2019instant.',
+        'cta.comingSoon': 'Bient\u00f4t disponible',
+        'footer.by': 'Un projet par',
+        'footer.privacy': 'Confidentialit\u00e9',
+        'footer.technical': 'Fonctionnement de la synchro',
+      }
+    };
+
+    let currentLang = localStorage.getItem('lector-locale') || 'en';
+
+    function applyLang(lang) {
+      currentLang = lang;
+      localStorage.setItem('lector-locale', lang);
+
+      // Update html lang
+      document.documentElement.lang = lang;
+
+      // Update toggle
+      document.getElementById('langEn').className = lang === 'en' ? 'active' : '';
+      document.getElementById('langFr').className = lang === 'fr' ? 'active' : '';
+
+      // Update title
+      document.title = lang === 'en'
+        ? 'Lector | Your documents, your intelligence'
+        : 'Lector | Tes documents, ton intelligence';
+
+      // Update meta description
+      const meta = document.querySelector('meta[name="description"]');
+      if (meta) {
+        meta.content = lang === 'en'
+          ? 'Smart Markdown reader. Summaries, flashcards and mind maps saved in your files. Free, no account, end-to-end encrypted sync.'
+          : 'Lecteur Markdown intelligent. R\u00e9sum\u00e9s, flashcards et mind maps sauvegard\u00e9s dans tes fichiers. Gratuit, sans compte, sync chiffr\u00e9e de bout en bout.';
+      }
+
+      // Apply data-i18n (textContent)
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        const str = STRINGS[lang]?.[key];
+        if (str) el.textContent = str;
+      });
+
+      // Apply data-i18n-html (innerHTML)
+      document.querySelectorAll('[data-i18n-html]').forEach(el => {
+        const key = el.getAttribute('data-i18n-html');
+        const str = STRINGS[lang]?.[key];
+        if (str) el.innerHTML = str;
+      });
+    }
+
+    function toggleLang() {
+      applyLang(currentLang === 'en' ? 'fr' : 'en');
+    }
+
+    // --- Scroll reveal ---
+    document.addEventListener('DOMContentLoaded', () => {
+      // Apply saved language
+      applyLang(currentLang);
+
+      const reveals = document.querySelectorAll('.reveal');
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      }, {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+      });
+
+      reveals.forEach(el => observer.observe(el));
+    });
+  </script>
+</body>
+</html>

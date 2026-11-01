@@ -1,0 +1,239 @@
+{
+  "name": "lector",
+  "version": "2.0.0",
+  "description": "Beautiful Markdown reader with mind maps",
+  "license": "MIT",
+  "main": "front/desktop/main.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "cd front && vite",
+    "build": "cd front && vite build",
+    "electron": "electron .",
+    "start": "concurrently \"npm:dev\" \"wait-on http://localhost:5173 && electron .\"",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win --x64",
+    "install-app": "npm run build && electron-builder && rm -rf /Applications/Lector.app && cp -R release/mac-universal/Lector.app /Applications/",
+    "release": "npm run build && LECTOR_RELEASE=1 electron-builder --publish always",
+    "deploy": "bash deploy/deploy.sh",
+    "cap:ios": "npm run build && cd front && npx cap sync ios",
+    "cap:android": "npm run build && cd front && npx cap sync android",
+    "test": "npx playwright test --config e2e/playwright.config.js",
+    "test:ui": "npx playwright test --ui --config e2e/playwright.config.js",
+    "test:api": "npx playwright test --project=api --config e2e/playwright.config.js",
+    "test:flows": "npx playwright test --project=flows --config e2e/playwright.config.js",
+    "test:chaine": "node --test front/src/services/chaine/*.test.mjs front/desktop/*.test.cjs"
+  },
+  "author": {
+    "name": "Sid",
+    "email": "contact@sidali.dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sidalidev/Lector.git"
+  },
+  "build": {
+    "appId": "com.lector.app",
+    "productName": "Lector",
+    "publish": {
+      "provider": "generic",
+      "url": "https://lector.dockerbop.fr/releases"
+    },
+    "afterSign": "front/desktop/build/notarize.js",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "identity": "Sid Bentifraouine (AFZ3KWB56Q)",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "front/desktop/build/entitlements.mac.plist",
+      "entitlementsInherit": "front/desktop/build/entitlements.mac.plist",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "icon": "front/desktop/build/icon.icns",
+      "fileAssociations": [
+        {
+          "ext": "md",
+          "name": "Markdown Document",
+          "role": "Editor",
+          "icon": "front/desktop/build/icon.icns"
+        },
+        {
+          "ext": "markdown",
+          "name": "Markdown Document",
+          "role": "Editor",
+          "icon": "front/desktop/build/icon.icns"
+        }
+      ],
+      "extendInfo": {
+        "CFBundleDocumentTypes": [
+          {
+            "CFBundleTypeName": "Markdown Document",
+            "CFBundleTypeRole": "Editor",
+            "LSHandlerRank": "Default",
+            "LSItemContentTypes": [
+              "net.daringfireball.markdown",
+              "public.plain-text"
+            ],
+            "CFBundleTypeExtensions": [
+              "md",
+              "markdown"
+            ]
+          }
+        ],
+        "NSDocumentsFolderUsageDescription": "Lector needs access to open your documents."
+      }
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "front/desktop/build/Lector.iconset",
+      "category": "Office",
+      "fileAssociations": [
+        {
+          "ext": "md",
+          "name": "Markdown Document",
+          "mimeType": "text/markdown"
+        }
+      ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "front/desktop/build/icon.ico",
+      "fileAssociations": [
+        {
+          "ext": "md",
+          "name": "Markdown Document"
+        }
+      ]
+    },
+    "files": [
+      "front/dist/**/*",
+      "front/desktop/**/*",
+      "!front/desktop/*.test.cjs",
+      "front/src/services/chaine/**/*",
+      "!front/src/services/chaine/*.test.mjs",
+      "!front/src/services/chaine/serveur-simule.mjs",
+      "!front/src/services/chaine/generer-vecteurs.mjs",
+      "front/src/services/fournisseurs/**/*",
+      "!node_modules",
+      "node_modules/chokidar/**/*",
+      "node_modules/readdirp/**/*",
+      "node_modules/picomatch/**/*",
+      "node_modules/normalize-path/**/*",
+      "node_modules/anymatch/**/*",
+      "node_modules/braces/**/*",
+      "node_modules/fill-range/**/*",
+      "node_modules/to-regex-range/**/*",
+      "node_modules/is-number/**/*",
+      "node_modules/binary-extensions/**/*",
+      "node_modules/is-binary-path/**/*",
+      "node_modules/is-extglob/**/*",
+      "node_modules/is-glob/**/*",
+      "node_modules/glob-parent/**/*",
+      "node_modules/fsevents/**/*",
+      "node_modules/electron-updater/**/*",
+      "node_modules/builder-util-runtime/**/*",
+      "node_modules/lazy-val/**/*",
+      "node_modules/semver/**/*",
+      "node_modules/js-yaml/**/*",
+      "node_modules/argparse/**/*",
+      "node_modules/tiny-typed-emitter/**/*",
+      "node_modules/sax/**/*",
+      "node_modules/fs-extra/**/*",
+      "node_modules/graceful-fs/**/*",
+      "node_modules/jsonfile/**/*",
+      "node_modules/universalify/**/*",
+      "node_modules/lodash.escaperegexp/**/*",
+      "node_modules/lodash.isequal/**/*",
+      "node_modules/debug/**/*",
+      "node_modules/ms/**/*"
+    ],
+    "directories": {
+      "output": "release"
+    }
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/cli": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/ios": "^8.5.3",
+    "@codemirror/lang-markdown": "^6.5.0",
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
+    "@fontsource-variable/literata": "^5.3.0",
+    "@fontsource-variable/noto-naskh-arabic": "^5.3.0",
+    "abcjs": "^6.6.0",
+    "chokidar": "^5.0.0",
+    "codemirror": "^6.0.2",
+    "d3": "^7.9.0",
+    "electron-updater": "^6.7.3",
+    "katex": "^0.18.4",
+    "lucide-react": "^0.562.0",
+    "mermaid": "^11.12.2",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "react-markdown": "^10.1.0",
+    "react-syntax-highlighter": "^16.1.0",
+    "rehype-katex": "^7.0.1",
+    "rehype-raw": "^7.0.0",
+    "rehype-sanitize": "^6.0.0",
+    "rehype-slug": "^6.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
+    "verovio": "^6.0.1",
+    "webaudiofont": "^3.0.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@vitejs/plugin-react": "^5.1.2",
+    "autoprefixer": "^10.4.23",
+    "concurrently": "^9.2.1",
+    "electron": "^45.0.0",
+    "electron-builder": "^26.18.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18",
+    "turndown": "^7.2.4",
+    "vite": "^7.3.1",
+    "wait-on": "^9.0.3"
+  },
+  "overrides": {
+    "katex": "$katex"
+  }
+}

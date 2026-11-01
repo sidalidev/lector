@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Charte « Miel du Champsaur » : fond crème miel, encre sapin, miel -->
+<resources>
+    <color name="lector_fond">#FBF7EF</color>
+    <color name="colorPrimary">#1F2A22</color>
+    <color name="colorPrimaryDark">#1F2A22</color>
+    <color name="colorAccent">#E9A23B</color>
+    <bool name="barres_claires">true</bool>
+</resources>

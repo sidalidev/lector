@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Lector</string>
+    <string name="title_activity_main">Lector</string>
+    <string name="package_name">com.lector.app</string>
+    <string name="custom_url_scheme">com.lector.app</string>
+</resources>

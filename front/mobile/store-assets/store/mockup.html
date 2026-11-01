@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lector Screenshot Mockup</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #FAF9F7;
+    width: 393px;
+    height: 852px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Ecran 1 : Lecture */
+  .screen-reader {
+    width: 393px;
+    height: 852px;
+    display: flex;
+    flex-direction: column;
+    background: #FAF9F7;
+  }
+
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: #FAF9F7;
+    border-bottom: 1px solid #E8E4DF;
+  }
+
+  .top-bar-left { display: flex; gap: 8px; align-items: center; }
+  .top-bar-right { display: flex; gap: 12px; align-items: center; }
+  .top-bar .title { font-size: 17px; font-weight: 600; color: #1a1a1a; }
+  .top-bar .lang { font-size: 13px; color: #999; font-weight: 500; }
+
+  .nav-icons {
+    display: flex;
+    background: #F0EDE8;
+    border-radius: 10px;
+    padding: 2px;
+    gap: 2px;
+  }
+
+  .nav-icon {
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 8px;
+    font-size: 16px;
+    color: #666;
+  }
+  .nav-icon.active { background: white; color: #C67B3C; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+  .content {
+    flex: 1;
+    overflow: hidden;
+    padding: 24px 20px;
+  }
+
+  .content h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 16px;
+    line-height: 1.2;
+  }
+
+  .content blockquote {
+    border-left: 3px solid #C67B3C;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    background: rgba(198, 123, 60, 0.06);
+    border-radius: 0 8px 8px 0;
+    color: #555;
+    font-style: italic;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .content h2 {
+    font-size: 22px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin: 20px 0 12px;
+  }
+
+  .content h3 {
+    font-size: 17px;
+    font-weight: 600;
+    color: #333;
+    margin: 16px 0 8px;
+  }
+
+  .content p {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #333;
+    margin-bottom: 12px;
+  }
+
+  .content ul {
+    padding-left: 20px;
+    margin-bottom: 16px;
+  }
+
+  .content li {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #333;
+    margin-bottom: 4px;
+  }
+
+  .content strong { color: #1a1a1a; }
+
+  .content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  .content th {
+    text-align: left;
+    padding: 8px 12px;
+    background: #F0EDE8;
+    color: #555;
+    font-weight: 600;
+    border-bottom: 2px solid #E0DCD6;
+  }
+  .content td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #E8E4DF;
+    color: #333;
+  }
+
+  .content pre {
+    background: #1E1E2E;
+    border-radius: 12px;
+    padding: 16px;
+    margin: 16px 0;
+    overflow: hidden;
+  }
+
+  .content code {
+    font-family: 'Menlo', monospace;
+    font-size: 13px;
+    color: #CDD6F4;
+    line-height: 1.6;
+  }
+
+  .code-keyword { color: #CBA6F7; }
+  .code-string { color: #A6E3A1; }
+  .code-func { color: #89B4FA; }
+  .code-comment { color: #6C7086; }
+
+  /* Barre de progression en bas */
+  .progress-bar {
+    height: 3px;
+    background: #E8E4DF;
+    position: relative;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    width: 35%;
+    background: linear-gradient(90deg, #C67B3C, #D4944E);
+    border-radius: 0 2px 2px 0;
+  }
+
+  /* Ecran 2 : Mind Map */
+  .screen-mindmap {
+    width: 393px;
+    height: 852px;
+    display: none;
+    flex-direction: column;
+    background: #FAF9F7;
+  }
+
+  .mindmap-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .mindmap-svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Ecran 3 : Flashcards */
+  .screen-flashcards {
+    width: 393px;
+    height: 852px;
+    display: none;
+    flex-direction: column;
+    background: #FAF9F7;
+  }
+
+  .flashcard {
+    margin: 20px;
+    padding: 40px 24px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    text-align: center;
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .flashcard-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #C67B3C;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 20px;
+  }
+
+  .flashcard-question {
+    font-size: 22px;
+    font-weight: 600;
+    color: #1a1a1a;
+    line-height: 1.4;
+  }
+
+  .flashcard-hint {
+    margin-top: 24px;
+    font-size: 14px;
+    color: #999;
+  }
+
+  .flashcard-progress {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 20px;
+    padding: 0 20px;
+  }
+
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #E0DCD6;
+  }
+  .dot.active { background: #C67B3C; }
+  .dot.done { background: #A6E3A1; }
+
+  /* Ecran 4 : Library */
+  .screen-library {
+    width: 393px;
+    height: 852px;
+    display: none;
+    flex-direction: column;
+    background: #FAF9F7;
+  }
+
+  .file-list { padding: 8px 16px; }
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 12px;
+    border-radius: 12px;
+    margin-bottom: 4px;
+    transition: background 0.2s;
+  }
+  .file-item:nth-child(1) { background: rgba(198,123,60,0.08); }
+
+  .file-icon {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, #C67B3C, #D4944E);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: white;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .file-info { flex: 1; }
+  .file-name { font-size: 15px; font-weight: 600; color: #1a1a1a; }
+  .file-meta { font-size: 12px; color: #999; margin-top: 2px; }
+
+  .file-tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: #F0EDE8;
+    color: #777;
+  }
+
+  .search-bar {
+    margin: 16px;
+    padding: 12px 16px;
+    background: #F0EDE8;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #999;
+    font-size: 15px;
+  }
+</style>
+</head>
+<body>
+
+<!-- SCREEN 1: Reader -->
+<div class="screen-reader" id="screen1">
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <span class="lang">EN</span>
+      <span class="title">Lector</span>
+    </div>
+  </div>
+
+  <div class="nav-icons" style="margin: 0 16px;">
+    <div class="nav-icon">🏠</div>
+    <div class="nav-icon active">📁</div>
+    <div class="nav-icon">⭐</div>
+    <div class="nav-icon">🕐</div>
+    <div class="nav-icon">🔖</div>
+  </div>
+
+  <div class="content">
+    <h1>The Art of Deep Work</h1>
+    <blockquote>
+      "The ability to perform deep work is becoming increasingly rare and increasingly valuable." (Cal Newport)
+    </blockquote>
+
+    <h2>Key Principles</h2>
+
+    <h3>1. Work Deeply</h3>
+    <p>Create rituals and routines that minimize the need for willpower:</p>
+    <ul>
+      <li><strong>Time blocking</strong>: Schedule deep work sessions</li>
+      <li><strong>Shutdown ritual</strong>: End each day with a clear stop</li>
+      <li><strong>Environment design</strong>: Dedicate spaces to focus</li>
+    </ul>
+
+    <h3>2. Embrace Boredom</h3>
+
+    <table>
+      <tr><th>Strategy</th><th>Difficulty</th><th>Impact</th></tr>
+      <tr><td>No-phone walks</td><td>Easy</td><td>High</td></tr>
+      <tr><td>Productive meditation</td><td>Medium</td><td>Very High</td></tr>
+      <tr><td>Memory training</td><td>Hard</td><td>Medium</td></tr>
+    </table>
+  </div>
+
+  <div class="progress-bar">
+    <div class="progress-bar-fill"></div>
+  </div>
+</div>
+
+<!-- SCREEN 2: Code -->
+<div class="screen-reader" id="screen2" style="display: none;">
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <span class="lang">EN</span>
+      <span class="title">Lector</span>
+    </div>
+  </div>
+
+  <div class="content">
+    <h2>Code Example</h2>
+    <p>Lector renders code blocks with <strong>syntax highlighting</strong> for 100+ languages:</p>
+
+    <pre><code><span class="code-keyword">def</span> <span class="code-func">pomodoro_timer</span>(minutes=<span class="code-string">25</span>):
+    <span class="code-comment">"""Simple focus timer"""</span>
+    <span class="code-keyword">import</span> time
+    <span class="code-func">print</span>(<span class="code-string">f"Focus for {minutes} min"</span>)
+    time.<span class="code-func">sleep</span>(minutes * <span class="code-string">60</span>)
+    <span class="code-func">print</span>(<span class="code-string">"Break time!"</span>)</code></pre>
+
+    <h2>Tables & Data</h2>
+
+    <table>
+      <tr><th>Strategy</th><th>Difficulty</th><th>Impact</th></tr>
+      <tr><td>No-phone walks</td><td>Easy</td><td>High</td></tr>
+      <tr><td>Productive meditation</td><td>Medium</td><td>Very High</td></tr>
+      <tr><td>Memory training</td><td>Hard</td><td>Medium</td></tr>
+    </table>
+
+    <h2>Summary</h2>
+    <p>Lector supports the full Markdown spec including <strong>GFM tables</strong>, task lists, footnotes, and more.</p>
+
+    <ul>
+      <li>✅ Schedule every minute of your day</li>
+      <li>✅ Quantify the depth of each activity</li>
+      <li>⬜ Finish work by 5:30 PM</li>
+      <li>⬜ Become hard to reach</li>
+    </ul>
+  </div>
+
+  <div class="progress-bar">
+    <div class="progress-bar-fill" style="width: 65%;"></div>
+  </div>
+</div>
+
+<!-- SCREEN 3: Flashcards -->
+<div class="screen-flashcards" id="screen3">
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <span class="lang">EN</span>
+      <span class="title">Lector</span>
+    </div>
+    <div class="top-bar-right">
+      <span style="font-size:13px; color:#C67B3C; font-weight:600;">3/8</span>
+    </div>
+  </div>
+
+  <div style="padding: 16px; text-align: center;">
+    <span style="font-size: 14px; font-weight: 600; color: #C67B3C;">🧠 AI Flashcards</span>
+    <p style="font-size: 13px; color: #999; margin-top: 4px;">Generated from "The Art of Deep Work"</p>
+  </div>
+
+  <div class="flashcard">
+    <div class="flashcard-label">Question</div>
+    <div class="flashcard-question">What is the "craftsman approach" to tool selection?</div>
+    <div class="flashcard-hint">Tap to reveal answer</div>
+  </div>
+
+  <div class="flashcard-progress">
+    <div class="dot done"></div>
+    <div class="dot done"></div>
+    <div class="dot active"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+  </div>
+
+  <div style="padding: 20px; display: flex; gap: 12px; justify-content: center; margin-top: auto; margin-bottom: 40px;">
+    <button style="padding: 14px 32px; border-radius: 14px; border: 2px solid #E8E4DF; background: white; font-size: 15px; font-weight: 600; color: #666;">Skip</button>
+    <button style="padding: 14px 32px; border-radius: 14px; border: none; background: linear-gradient(135deg, #C67B3C, #D4944E); font-size: 15px; font-weight: 600; color: white; box-shadow: 0 4px 12px rgba(198,123,60,0.3);">Reveal</button>
+  </div>
+</div>
+
+<!-- SCREEN 4: Library -->
+<div class="screen-library" id="screen4">
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <span class="title">Library</span>
+    </div>
+    <div class="top-bar-right">
+      <span style="font-size: 24px;">⚙️</span>
+    </div>
+  </div>
+
+  <div class="search-bar">
+    🔍 Search documents...
+  </div>
+
+  <div class="nav-icons" style="margin: 0 16px 12px;">
+    <div class="nav-icon active">📁</div>
+    <div class="nav-icon">⭐</div>
+    <div class="nav-icon">🕐</div>
+    <div class="nav-icon">🔖</div>
+  </div>
+
+  <div class="file-list">
+    <div class="file-item">
+      <div class="file-icon">📖</div>
+      <div class="file-info">
+        <div class="file-name">The Art of Deep Work</div>
+        <div class="file-meta">35% read · 2 min ago</div>
+      </div>
+      <div class="file-tag">Focus</div>
+    </div>
+    <div class="file-item">
+      <div class="file-icon" style="background: linear-gradient(135deg, #7C3AED, #A78BFA);">🎵</div>
+      <div class="file-info">
+        <div class="file-name">Bach: Cello Suite No. 1</div>
+        <div class="file-meta">Sheet music · ABC notation</div>
+      </div>
+      <div class="file-tag">Music</div>
+    </div>
+    <div class="file-item">
+      <div class="file-icon" style="background: linear-gradient(135deg, #059669, #34D399);">💻</div>
+      <div class="file-info">
+        <div class="file-name">React Hooks Cheatsheet</div>
+        <div class="file-meta">100% read · Yesterday</div>
+      </div>
+      <div class="file-tag">Dev</div>
+    </div>
+    <div class="file-item">
+      <div class="file-icon" style="background: linear-gradient(135deg, #DC2626, #F87171);">🧠</div>
+      <div class="file-info">
+        <div class="file-name">AI Fundamentals</div>
+        <div class="file-meta">8 flashcards · 3 days ago</div>
+      </div>
+      <div class="file-tag">AI</div>
+    </div>
+    <div class="file-item">
+      <div class="file-icon" style="background: linear-gradient(135deg, #2563EB, #60A5FA);">📝</div>
+      <div class="file-info">
+        <div class="file-name">Meeting Notes: Q1 Review</div>
+        <div class="file-meta">Mind map generated · Last week</div>
+      </div>
+      <div class="file-tag">Work</div>
+    </div>
+    <div class="file-item">
+      <div class="file-icon" style="background: linear-gradient(135deg, #EA580C, #FB923C);">📚</div>
+      <div class="file-info">
+        <div class="file-name">Atomic Habits: Notes</div>
+        <div class="file-meta">67% read · Last week</div>
+      </div>
+      <div class="file-tag">Books</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Permet de changer d'ecran via hash
+  function showScreen(n) {
+    document.querySelectorAll('[id^="screen"]').forEach(s => s.style.display = 'none');
+    const el = document.getElementById('screen' + n);
+    if (el) el.style.display = 'flex';
+  }
+
+  const hash = window.location.hash.replace('#', '') || '1';
+  showScreen(hash);
+
+  window.addEventListener('hashchange', () => {
+    showScreen(window.location.hash.replace('#', ''));
+  });
+</script>
+</body>
+</html>

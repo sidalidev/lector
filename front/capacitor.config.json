@@ -1,0 +1,16 @@
+{
+  "appId": "com.lector.app",
+  "appName": "Lector",
+  "webDir": "dist",
+  "ios": {
+    "path": "mobile/ios",
+    "scheme": "Lector",
+    "contentInset": "automatic",
+    "backgroundColor": "#FBF7EF",
+    "scrollEnabled": false
+  },
+  "android": {
+    "path": "mobile/android",
+    "backgroundColor": "#FBF7EF"
+  }
+}

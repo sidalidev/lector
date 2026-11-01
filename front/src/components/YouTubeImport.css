@@ -1,0 +1,108 @@
+.youtube-import-panel {
+  background: var(--bg-primary, #fff);
+  border-radius: 22px;
+  padding: 32px;
+  max-width: 480px;
+  width: 90vw;
+  box-shadow: 0 20px 60px rgba(var(--shadow-rgb),0.15);
+}
+
+.youtube-import-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.youtube-import-header h2 {
+  margin: 0;
+  font-size: 20px;
+  color: var(--text-primary, #2c2c2c);
+}
+
+.youtube-import-desc {
+  color: var(--text-secondary, #888);
+  font-size: 14px;
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+.youtube-import-input-group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.youtube-import-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid var(--border, var(--border));
+  border-radius: 14px;
+  font-size: 14px;
+  font-family: var(--font-mono);
+  background: var(--bg-secondary, var(--bg-primary));
+  color: var(--text-primary, #2c2c2c);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.youtube-import-input:focus {
+  border-color: var(--danger);
+}
+
+.youtube-import-paste-btn {
+  padding: 12px;
+  border: 2px solid var(--border, var(--border));
+  border-radius: 14px;
+  background: var(--bg-secondary, var(--bg-primary));
+  cursor: pointer;
+  font-size: 16px;
+  transition: background 0.2s;
+}
+
+.youtube-import-paste-btn:hover {
+  background: var(--bg-hover, var(--bg-secondary));
+}
+
+.youtube-import-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 14px;
+  background: var(--danger);
+  color: var(--on-danger);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: opacity 0.2s;
+}
+
+.youtube-import-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.youtube-import-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.youtube-import-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+

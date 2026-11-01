@@ -1,0 +1,84 @@
+name: lector
+services:
+  lector-landing:
+    image: nginx:alpine
+    container_name: lector-landing
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    volumes:
+      - ./front/landing:/usr/share/nginx/html:ro
+      - ./releases:/data/releases:ro
+      - ./webapp:/data/webapp:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.lector.rule=(Host(`lector.dockerbop.fr`) || Host(`lector.sidali.dev`)) && !PathPrefix(`/v1`) && !Path(`/.well-known/security.txt`)"
+      - "traefik.http.routers.lector.entrypoints=websecure"
+      - "traefik.http.routers.lector.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.lector-http.rule=(Host(`lector.dockerbop.fr`) || Host(`lector.sidali.dev`)) && !PathPrefix(`/v1`) && !Path(`/.well-known/security.txt`)"
+      - "traefik.http.routers.lector-http.entrypoints=web"
+      - "traefik.http.routers.lector-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+      - "traefik.http.services.lector.loadbalancer.server.port=80"
+    networks:
+      - traefik_web
+
+  lector-api:
+    build:
+      context: ./back
+      dockerfile: Dockerfile
+    container_name: lector-api
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    environment:
+      - DATABASE_URL=file:/data/lector.db
+      - CHAIN_FILES_ROOT=/data/chain
+      - CHAIN_QUOTA_BYTES=${CHAIN_QUOTA_BYTES:-20971520}
+      - CHAIN_MAX_DOC_BYTES=${CHAIN_MAX_DOC_BYTES:-524288}
+      - CHAIN_MAX_DOCS=${CHAIN_MAX_DOCS:-5000}
+      - CHAIN_MAX_CHAINS=${CHAIN_MAX_CHAINS:-10000}
+      - CHAIN_CREATE_PER_HOUR=${CHAIN_CREATE_PER_HOUR:-5}
+      - CHAIN_INACTIVE_DAYS=${CHAIN_INACTIVE_DAYS:-180}
+      - CHAIN_READ_NETWORKS_MAX=${CHAIN_READ_NETWORKS_MAX:-8}
+      - RELEASE_NOTIFY_TOKEN=${RELEASE_NOTIFY_TOKEN}
+    volumes:
+      - lector-data:/data
+    # Durcissement : utilisateur node (Dockerfile), aucune capacité, système de
+    # fichiers en lecture seule hors du volume et de /tmp, mémoire bornée.
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    pids_limit: 200
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.lector-api.rule=(Host(`lector.dockerbop.fr`) || Host(`lector.sidali.dev`)) && (PathPrefix(`/v1`) || Path(`/.well-known/security.txt`))"
+      - "traefik.http.routers.lector-api.entrypoints=websecure"
+      - "traefik.http.routers.lector-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.lector-api-http.rule=(Host(`lector.dockerbop.fr`) || Host(`lector.sidali.dev`)) && (PathPrefix(`/v1`) || Path(`/.well-known/security.txt`))"
+      - "traefik.http.routers.lector-api-http.entrypoints=web"
+      - "traefik.http.routers.lector-api-http.middlewares=redirect-to-https"
+      - "traefik.http.services.lector-api.loadbalancer.server.port=3456"
+    networks:
+      - traefik_web
+
+volumes:
+  lector-data:
+
+networks:
+  traefik_web:
+    external: true

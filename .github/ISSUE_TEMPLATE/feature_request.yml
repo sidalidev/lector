@@ -1,0 +1,30 @@
+name: Feature request
+description: Suggest an idea for Lector.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Lector says no to some things on purpose: accounts, ads, tracking, files on the relay, public sharing, imposed AI.
+        Please read [NON_GOALS.md](https://github.com/sidalidev/lector/blob/main/NON_GOALS.md) first.
+  - type: checkboxes
+    id: non-goals
+    attributes:
+      label: Non-goals
+      options:
+        - label: I read NON_GOALS.md and this request is not on that list.
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and what gets in the way today?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: How would you like it to work?
+    validations:
+      required: false

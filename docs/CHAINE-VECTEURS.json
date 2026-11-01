@@ -1,0 +1,88 @@
+{
+  "description": "Vecteurs de test de la chaîne Lector (voir docs/CHAINE.md). Valeurs binaires en hex minuscule sauf mention contraire. HKDF-SHA256 avec sel vide. Enveloppe = 01 || iv (12 octets) || chiffré || étiquette (16 octets). Générés par front/src/services/chaine/generer-vecteurs.mjs (node:crypto), vérifiés par chaine.test.mjs (WebCrypto).",
+  "S": "000102030405060708090a0b0c0d0e0f",
+  "S_base64url": "AAECAwQFBgcICQoLDA0ODw",
+  "id": "21493c49c3cb28f9041197f59f7e704e",
+  "K_enc": "fdbfeccbfc03b7473538dd92241b436619668a08d7d4e4647546319504d8d355",
+  "K_mac": "f0128558f006552669da704ec230d942a2e7f69e4d3e9c5ff2078760395b7b02",
+  "P": "44b1a8045e9ed818e8e5ea3a92d043f3e7e82205021ed5395387aa94eb88ab5b",
+  "P_base64url": "RLGoBF6e2Bjo5eo6ktBD8-foIgUCHtU5U4eqlOuIq1s",
+  "P_sha256_stocke_serveur": "7feb3cc7e05b47a0fa0ba5b395597ad592ed5a8c65acb5dec590a2c6dd0f9e30",
+  "mots": [
+    "abandon",
+    "amount",
+    "liar",
+    "amount",
+    "expire",
+    "adjust",
+    "cage",
+    "candy",
+    "arch",
+    "gather",
+    "drum",
+    "buyer"
+  ],
+  "code": "lector-chaine:AAECAwQFBgcICQoLDA0ODw",
+  "lien": "https://lector.dockerbop.fr/app/#chaine=AAECAwQFBgcICQoLDA0ODw",
+  "note_lien": "Ancien lien d'appairage : plus produit, encore accepté à la saisie.",
+  "doc": {
+    "chemin": "Pro/Notes.md",
+    "docId": "99e94d4113b8b7e5983597f288e090da3c7e6e7861702a1d33c3bc8ecbebe3c0",
+    "note_iv": "AES-GCM utilise des IV de 12 octets partout (taille recommandée par NIST SP 800-38D, seule acceptée par certaines bibliothèques natives). L'IV du contenu est formé des 12 premiers octets de 00112233445566778899aabbccddeeff.",
+    "chemin_chiffre": {
+      "iv": "0a0b0c0d0e0f101112131415",
+      "aad": "chemin:99e94d4113b8b7e5983597f288e090da3c7e6e7861702a1d33c3bc8ecbebe3c0",
+      "chiffre": "aa2159f44490207db9f01198",
+      "etiquette": "0313db0d3802368122a432a2d8914408",
+      "enveloppe_hex": "010a0b0c0d0e0f101112131415aa2159f44490207db9f011980313db0d3802368122a432a2d8914408",
+      "pathEnc": "AQoLDA0ODxAREhMUFaohWfREkCB9ufARmAMT2w04AjaBIqQyotiRRAg"
+    },
+    "contenu": {
+      "clair_utf8": "# Test\n",
+      "clair_sha256": "47dd7b50af765df240fe2514f029fc697c907fc37a3267e22060f2f9f611975c",
+      "iv": "00112233445566778899aabb",
+      "aad": "99e94d4113b8b7e5983597f288e090da3c7e6e7861702a1d33c3bc8ecbebe3c0",
+      "chiffre": "253261ababa077",
+      "etiquette": "3b182e4dc8a7afe85bd11724ee371fdd",
+      "contentEnc_hex": "0100112233445566778899aabb253261ababa0773b182e4dc8a7afe85bd11724ee371fdd",
+      "contentEnc_base64": "AQARIjNEVWZ3iJmquyUyYauroHc7GC5NyKev6FvRFyTuNx/d",
+      "contentEnc_sha256": "ded3d321da98c1c047717ce6cfd566c759af6a6c6d2cc3e2a6441c5ad3e668ba",
+      "taille_bloc": 36
+    }
+  },
+  "normalisation": {
+    "note": "Le chemin est normalisé en Unicode NFC avant le HMAC : la forme NFD (macOS) donne le même docId.",
+    "chemin_nfc_hex": "c38974c3a92f52c3a9756e696f6e2e6d64",
+    "chemin_nfd_hex": "45cc817465cc812f5265cc81756e696f6e2e6d64",
+    "docId": "e2f0c50123964ce6036ff611c84c6fb80ab5f968f000695efbea9c522fc6b7ad"
+  },
+  "chemins_invalides": [
+    "",
+    "/Pro/Notes.md",
+    "Pro//Notes.md",
+    "Pro/./Notes.md",
+    "../Notes.md",
+    "Pro/Notes.md/",
+    "a\u0000b"
+  ],
+  "mots_somme_invalide": [
+    "abandon",
+    "amount",
+    "liar",
+    "amount",
+    "expire",
+    "adjust",
+    "cage",
+    "candy",
+    "arch",
+    "gather",
+    "drum",
+    "zoo"
+  ],
+  "rotation": {
+    "note": "Nouvelle chaîne : un autre S donne un autre id et un autre docId pour le même chemin.",
+    "S": "f0e0d0c0b0a090807060504030201000",
+    "id": "7d0e0fa758df04ab21fe979b2decccfd",
+    "docId_Pro_Notes": "0140c5562854cb4e87a5c78276f701abacc6a54e4a9962d6f7c7e04ff8ca0e34"
+  }
+}

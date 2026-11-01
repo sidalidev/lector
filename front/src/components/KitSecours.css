@@ -1,0 +1,90 @@
+/* Kit de secours : invisible à l'écran, seul contenu imprimé pendant l'impression */
+
+.kit-secours {
+  display: none;
+}
+
+@media print {
+  body.impression-kit > *:not(.kit-secours) {
+    display: none !important;
+  }
+
+  body.impression-kit .kit-secours {
+    display: block;
+    color: #000;
+    background: #fff;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+
+  .kit-page {
+    padding: 12mm 14mm;
+    break-after: page;
+  }
+
+  .kit-page:last-child {
+    break-after: auto;
+  }
+
+  .kit-page h1 {
+    margin: 0 0 4mm;
+    font-size: 20pt;
+  }
+
+  .kit-page h2 {
+    margin: 6mm 0 1mm;
+    font-size: 13pt;
+  }
+
+  .kit-page p {
+    margin: 0 0 3mm;
+  }
+
+  .kit-date {
+    color: #444;
+    font-size: 10pt;
+  }
+
+  .kit-mots {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3mm 6mm;
+    margin: 6mm 0;
+    padding: 0;
+    list-style: none;
+    font-family: 'Courier New', monospace;
+    font-size: 14pt;
+  }
+
+  .kit-mots li {
+    padding: 2mm 3mm;
+    border: 1px solid #000;
+    border-radius: 2mm;
+  }
+
+  .kit-n {
+    display: inline-block;
+    min-width: 7mm;
+    color: #555;
+    font-size: 10pt;
+  }
+
+  .kit-qr {
+    display: flex;
+    align-items: center;
+    gap: 6mm;
+    margin: 4mm 0;
+  }
+
+  .kit-qr-image {
+    width: 45mm;
+    height: 45mm;
+    flex-shrink: 0;
+  }
+
+  .kit-avertissement {
+    margin-top: 6mm;
+    font-weight: bold;
+  }
+}

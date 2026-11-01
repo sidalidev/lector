@@ -1,0 +1,15 @@
+.vscode/**
+.gitignore
+src/**
+webview/src/**
+webview/node_modules/**
+webview/public/**
+webview/index.html
+webview/vite.config.js
+webview/package.json
+webview/package-lock.json
+webview/.vite/**
+node_modules/**
+tsconfig.json
+*.vsix
+.DS_Store

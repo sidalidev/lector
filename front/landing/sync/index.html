@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lector | How sync works</title>
+  <meta name="description" content="Technical specification of Lector sync: end-to-end encryption, no account, what the server sees.">
+  <style>
+@font-face { font-family: 'Figtree'; src: url('/fonts/figtree.woff') format('woff'); font-weight: 300 900; font-display: swap; }
+    @font-face { font-family: 'Bricolage Grotesque'; src: url('/fonts/bricolage-grotesque.woff') format('woff'); font-weight: 200 800; font-display: swap; }
+    /* Charte « Miel du Champsaur » */
+    :root {
+      --cream: #FBF7EF;
+      --paper: #F3EDE1;
+      --ink: #1F2A22;
+      --ink-light: #4A5A4F;
+      --line: #E5DCCB;
+      --caramel: #8A5A12;
+      --miel: #E9A23B;
+      --font-sans: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-serif: 'Bricolage Grotesque', 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--font-sans); background: var(--cream); color: var(--ink); line-height: 1.7; padding: 2rem 1rem 4rem; }
+    main { max-width: 760px; margin: 0 auto; }
+    h1, h2, h3 { font-family: var(--font-serif); font-weight: 700; letter-spacing: -0.02em; line-height: 1.25; }
+    h1 { font-size: 2.2rem; margin-bottom: 1rem; }
+    h2 { font-size: 1.5rem; margin: 2.5rem 0 0.75rem; color: var(--caramel); }
+    h3 { font-size: 1.2rem; margin: 1.75rem 0 0.5rem; }
+    p, ul, ol, table, pre { margin-bottom: 1rem; }
+    ul, ol { padding-left: 1.5rem; }
+    li { margin-bottom: 0.3rem; }
+    a { color: var(--caramel); }
+    code { font-family: var(--font-mono); font-size: 0.85em; background: var(--paper); padding: 0.1em 0.3em; border-radius: 6px; overflow-wrap: anywhere; }
+    pre { background: var(--paper); padding: 1rem; border-radius: 14px; overflow-x: auto; }
+    pre code { background: none; padding: 0; overflow-wrap: normal; }
+    table { display: block; overflow-x: auto; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { border: 1px solid var(--line); padding: 0.4rem 0.6rem; text-align: left; vertical-align: top; }
+    th { background: var(--paper); }
+    .resume { font-size: 0.95rem; color: var(--ink-light); border-left: 4px solid var(--miel); padding-left: 1rem; margin-bottom: 2rem; }
+    .retour { display: inline-block; margin-bottom: 1.5rem; text-decoration: none; font-size: 0.9rem; }
+    @media (prefers-color-scheme: dark) {
+      :root { color-scheme: dark; --cream: #12201A; --paper: #1C2E26; --ink: #F3EEE3; --ink-light: #9FB3A8; --line: #2B4237; --caramel: #F0B456; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="retour" href="/">&larr; Lector</a>
+    <p class="resume" lang="en">How Lector sync works, in detail. In short: no account; twelve words generated on your device derive every key; each Markdown file and its path are encrypted on the device (AES-256-GCM) before they leave it; the server keeps only encrypted blocks and cannot read them. The full specification below is in French.</p>
+<h1 id="chaîne-de-sync-de-lector--spécification">Chaîne de sync de Lector : spécification</h1>
+<p>Lector 2.0 est gratuit et sans compte. La synchronisation entre appareils passe par une <strong>chaîne</strong> : un secret tiré sur un appareil de l&#x27;utilisateur, d&#x27;où sortent toutes les clés. Le serveur ne garde que des blocs chiffrés qu&#x27;il ne sait pas ouvrir.</p>
+<p>Statut : implémenté (serveur <code>back/</code>, clients <code>front/src/services/chaine/</code>, <code>front/desktop/</code>, écrans <code>front/src/components/ChaineSync.jsx</code>) et testé (<code>docs/CHAINE-TESTS.md</code>). Mise en production : <code>docs/BASCULE-PROD.md</code>.</p>
+<h2 id="0-en-bref">0. En bref</h2>
+<ul>
+<li><strong>Pas de compte.</strong> Ni e-mail, ni mot de passe, ni licence. La chaîne est l&#x27;identité : qui a le secret <code>S</code> a accès au casier ; qui ne l&#x27;a pas n&#x27;a rien.</li>
+<li><strong><code>S</code> ne quitte jamais les appareils.</strong> 16 octets aléatoires, écrits en 12 mots (BIP39) ou dans un QR. Le serveur ne connaît que l&#x27;identifiant public <code>id</code> et l&#x27;empreinte de la preuve <code>P</code>, tous deux dérivés de <code>S</code>.</li>
+<li><strong>Serveur aveugle.</strong> Il range des blocs chiffrés (AES-256-GCM) sous des identifiants opaques. Il ne voit ni le contenu, ni les chemins, ni les titres.</li>
+<li><strong>Markdown seulement.</strong> Seuls les fichiers <code>.md</code> et <code>.markdown</code> voyagent. Images, PDF et autres restent sur l&#x27;appareil où ils sont.</li>
+<li><strong>Un casier par chaîne</strong>, avec un quota (20 Mo, 512 Ko de clair par document, 5 000 documents par défaut). Le casier est petit exprès : Lector est fait pour du texte, et 20 Mo le rendent inutile pour stocker des images ou des fichiers.</li>
+<li><strong>Premier appareil : créer. Les suivants : rejoindre</strong> avec les 12 mots, tapés ou remplis par le gestionnaire de mots de passe (le QR, seulement dans un navigateur qui sait le lire, § 3.6). Rejoindre ne crée jamais de casier.</li>
+<li><strong>Les documents restent des <code>.md</code> en clair sur le disque</strong> de chaque appareil. Le chiffrement concerne ce qui part vers le serveur.</li>
+</ul>
+<h2 id="1-vocabulaire">1. Vocabulaire</h2>
+<table><thead><tr><th>Terme</th><th>Sens</th></tr></thead><tbody><tr><td><code>S</code></td><td>Secret de chaîne, 16 octets aléatoires (128 bits). Écrit en 12 mots ou en code d&#x27;appairage (QR).</td></tr><tr><td>Chaîne</td><td>Les appareils qui connaissent <code>S</code>.</td></tr><tr><td>Casier</td><td>Ce que le serveur garde pour une chaîne : une ligne <code>Chain</code>, une ligne <code>ChainDoc</code> par document, les blocs sur disque.</td></tr><tr><td><code>id</code></td><td>Identifiant public de la chaîne, dérivé de <code>S</code> (32 hex). Le serveur range le casier sous cet <code>id</code>.</td></tr><tr><td>Preuve <code>P</code></td><td>Valeur dérivée de <code>S</code>, présentée à chaque requête. Le serveur n&#x27;en garde que <code>hex(SHA-256(P))</code>.</td></tr><tr><td><code>docId</code></td><td>Identifiant opaque d&#x27;un document : HMAC de son chemin. Stable tant que le chemin ne change pas.</td></tr><tr><td>Bloc</td><td>Contenu chiffré d&#x27;un document (<code>contentEnc</code>).</td></tr><tr><td>Pierre tombale</td><td>Trace d&#x27;un document supprimé, gardée 30 jours, avec la marque de suppression chiffrée <code>tombEnc</code>.</td></tr><tr><td>Appareil</td><td>Une installation de Lector. Il tire au hasard un identifiant (UUID) qui sert seulement à reconnaître ses propres échos dans le flux temps réel ; le serveur ne le stocke pas.</td></tr></tbody></table>
+<h3 id="un-seul-secret">Un seul secret</h3>
+<table><thead><tr><th>Ce que possède quelqu&#x27;un</th><th>Ce qu&#x27;il obtient</th></tr></thead><tbody><tr><td><code>S</code> (12 mots, QR, un appareil de la chaîne)</td><td>Tout : lire, écrire, effacer le casier, renouveler la chaîne.</td></tr><tr><td><code>P</code> seule (fuite d&#x27;en-têtes)</td><td>Écrire, supprimer ou effacer des blocs ; jamais les lire (<code>P</code> ne donne ni <code>S</code>, ni les clés).</td></tr><tr><td>L&#x27;<code>id</code> seul</td><td>Savoir si le casier existe (404 pour un <code>id</code> inconnu, 403 pour une fausse preuve), rien d&#x27;autre : sans <code>P</code>, toutes les routes refusent (400 sans preuve) et ne disent même pas la taille du casier. L&#x27;<code>id</code> fait 128 bits dérivés de <code>S</code> : il ne se devine pas.</td></tr><tr><td>Rien</td><td>Rien sur le casier.</td></tr><tr><td>Le serveur (hébergeur, intrus sur la machine)</td><td>Blocs chiffrés et métadonnées listées au § 2.</td></tr></tbody></table>
+<h3 id="pourquoi-pas-de-compte">Pourquoi pas de compte</h3>
+<p>Rien à réinitialiser, rien à facturer, rien qui relie le casier à une personne. Le prix : perdre <code>S</code> partout (tous les appareils et la fiche des 12 mots) rend le casier illisible pour tout le monde, définitivement. Chaque appareil garde son vault en clair sur son disque et peut recréer une chaîne (§ 11).</p>
+<h2 id="2-ce-que-le-serveur-voit-ce-quil-ne-voit-pas">2. Ce que le serveur voit, ce qu&#x27;il ne voit pas</h2>
+<p><strong>Il voit</strong> :</p>
+<ul>
+<li>l&#x27;<code>id</code> de la chaîne et l&#x27;empreinte de <code>P</code> ;</li>
+<li>par document : <code>docId</code>, taille du bloc (taille du fichier + 29 octets), date de modification fournie par le client, date de dépôt, date de suppression, marque de suppression chiffrée ;</li>
+<li>la longueur approximative du chemin (taille de <code>pathEnc</code>, sans remplissage) ;</li>
+<li>le nombre de documents, la place occupée, le rythme des écritures, la date de création du casier et sa dernière activité (à l&#x27;heure près) ;</li>
+<li>au passage, l&#x27;adresse IP des requêtes (limiteurs anti-abus en mémoire, journaux d&#x27;accès du proxy) et l&#x27;identifiant aléatoire d&#x27;appareil (<code>X-Lector-Device</code>), qui n&#x27;est pas stocké ;</li>
+<li>en mémoire seulement, pendant 24 heures, l&#x27;empreinte salée du préfixe réseau de chaque appareil qui lit la chaîne (§ 13.1).</li>
+</ul>
+<p><strong>Il ne voit pas</strong> : le contenu, les chemins, les titres, les noms de dossiers, l&#x27;arborescence, les extensions, <code>S</code>, les 12 mots, les clés. Les surlignages et fiches vivent dans le <code>.md</code> (bloc <code>&lt;!-- lector-generated --&gt;</code>), donc dans le bloc chiffré.</p>
+<p><strong>Il ne journalise jamais</strong> : la preuve, <code>pathEnc</code>, un corps de requête, une IP, un <code>id</code> de chaîne complet (8 premiers caractères au plus). Les tests le vérifient dans la sortie du serveur.</p>
+<p><strong>Rien d&#x27;autre ne passe par lui.</strong> L&#x27;assistant IA et la lecture à voix haute utilisent la clé API personnelle de l&#x27;utilisateur et appellent Anthropic ou ElevenLabs directement depuis l&#x27;appareil (§ 10). L&#x27;export EPUB se fait sur l&#x27;appareil.</p>
+<h2 id="3-cryptographie">3. Cryptographie</h2>
+<p>Tout est dans <code>front/src/services/chaine/crypto.js</code> : HKDF-SHA256, HMAC-SHA256, AES-256-GCM, BIP39. Un seul module ES, sans DOM, qui tourne dans le navigateur, la vue web Capacitor, le processus principal d&#x27;Electron (import dynamique) et Node 22. Il est vérifié contre <code>docs/CHAINE-VECTEURS.json</code>, produits par une implémentation indépendante (<code>node:crypto</code>, <code>generer-vecteurs.mjs</code>).</p>
+<h3 id="31-secret">3.1 Secret</h3>
+<p><code>S</code> = 16 octets de <code>crypto.getRandomValues</code>. Jamais envoyé au serveur, jamais journalisé, jamais placé dans une URL.</p>
+<h3 id="32-dérivations">3.2 Dérivations</h3>
+<p>HKDF-SHA256, sel vide, <code>S</code> comme matériau d&#x27;entrée :</p>
+<table><thead><tr><th>Nom</th><th>info HKDF</th><th>Taille</th><th>Usage</th></tr></thead><tbody><tr><td><code>id</code></td><td><code>lector-id</code></td><td>16 octets, écrit en hex (32 caractères)</td><td>Identifiant public du casier, en-tête <code>X-Lector-Chain-Id</code>.</td></tr><tr><td><code>K_enc</code></td><td><code>lector-enc</code></td><td>32 octets</td><td>Clé AES-256-GCM des chemins, contenus et marques de suppression.</td></tr><tr><td><code>K_mac</code></td><td><code>lector-mac</code></td><td>32 octets</td><td>Clé HMAC-SHA256 des <code>docId</code>.</td></tr><tr><td><code>P</code></td><td><code>lector-proof</code></td><td>32 octets</td><td>Preuve, envoyée en base64url (43 caractères) dans <code>X-Lector-Chain-Proof</code>. Le serveur stocke <code>hex(SHA-256(P))</code>. HKDF est à sens unique : <code>P</code> ne donne ni <code>S</code>, ni <code>K_enc</code>, ni <code>K_mac</code>.</td></tr></tbody></table>
+<p>Dans le code : <code>preparer(S)</code> renvoie <code>{ id, preuve, cleEnc, cleMac }</code>, avec <code>cleEnc</code> et <code>cleMac</code> en <code>CryptoKey</code> <strong>non exportables</strong>.</p>
+<h3 id="33-chemin-normalisé-et-docid">3.3 Chemin normalisé et <code>docId</code></h3>
+<p>Chemin canonique (<code>normaliserChemin</code>) : relatif à la racine du vault, séparateur <code>/</code>, Unicode <strong>NFC</strong> (macOS rend souvent du NFD : <code>Été</code> donne le même <code>docId</code> sous les deux formes), casse conservée, aucun segment vide, <code>.</code> ou <code>..</code>, pas de <code>/</code> initial ni final, pas de NUL, 1024 octets UTF-8 au plus. Convertir <code>\</code> (Windows) en <code>/</code> est le rôle de la couche vault.</p>
+<pre><code>docId = hex(HMAC-SHA256(K_mac, UTF-8(chemin normalisé)))      64 caractères hex
+</code></pre>
+<p>Renommer un fichier revient à supprimer l&#x27;ancien <code>docId</code> et à créer le nouveau.</p>
+<h3 id="34-enveloppe">3.4 Enveloppe</h3>
+<p>Format unique pour les chemins, les contenus et les marques de suppression :</p>
+<pre><code>enveloppe = 0x01 (version) ‖ iv (12 octets) ‖ chiffré ‖ étiquette (16 octets)
+</code></pre>
+<ul>
+<li>AES-256-GCM, <code>K_enc</code>, étiquette de 128 bits. Surcoût fixe : 29 octets.</li>
+<li>IV de 12 octets aléatoires, nouveau à chaque chiffrement (taille recommandée par NIST SP 800-38D). Avec des IV aléatoires de 96 bits, la limite prudente est 2^32 chiffrements par clé, très au-delà de la vie d&#x27;un vault. Une nouvelle chaîne change de clé. Recréer un casier avec le même <code>S</code> après un effacement est sans risque pour la même raison.</li>
+<li>Une version inconnue est refusée. Le premier octet n&#x27;est pas dans l&#x27;AAD : le modifier ne peut que faire échouer la lecture.</li>
+</ul>
+<h3 id="35-pathenc-contentenc-tombenc">3.5 <code>pathEnc</code>, <code>contentEnc</code>, <code>tombEnc</code></h3>
+<table><thead><tr><th>Champ</th><th>Clair</th><th>AAD</th><th>Encodage</th></tr></thead><tbody><tr><td><code>contentEnc</code></td><td>octets du fichier</td><td><code>UTF-8(docId)</code></td><td>binaire : corps du <code>PUT</code>, réponse du <code>GET</code></td></tr><tr><td><code>pathEnc</code></td><td><code>UTF-8(chemin normalisé)</code></td><td><code>UTF-8(&quot;chemin:&quot; + docId)</code></td><td>base64url sans remplissage : en-tête <code>X-Lector-Path-Enc</code>, champ du manifeste</td></tr><tr><td><code>tombEnc</code></td><td><code>UTF-8(&quot;supprime:&quot; + docId + &quot;:&quot; + sha256 du bloc supprimé)</code></td><td><code>UTF-8(&quot;tombe:&quot; + docId)</code></td><td>base64url : en-tête <code>X-Lector-Tomb-Enc</code> du <code>DELETE</code>, champ du manifeste</td></tr></tbody></table>
+<p>Les AAD différentes empêchent le serveur d&#x27;échanger le chemin et le contenu d&#x27;un document ; le <code>docId</code> dans l&#x27;AAD empêche d&#x27;attacher le bloc d&#x27;un document à un autre. <code>dechiffrerCheminAvec</code> recalcule en plus <code>HMAC(K_mac, chemin)</code> et refuse un résultat différent du <code>docId</code>.</p>
+<h3 id="36-12-mots-et-code-dappairage">3.6 12 mots et code d&#x27;appairage</h3>
+<ul>
+<li><strong>12 mots</strong> : BIP39 anglais standard sur les 128 bits de <code>S</code> (11 bits par mot, 4 bits de somme de contrôle = premier quartet de SHA-256(S)). Saisie insensible à la casse, espaces et virgules acceptés.</li>
+<li><strong>Code d&#x27;appairage</strong> (contenu du QR) : <code>lector-chaine:&lt;base64url(S)&gt;</code> (36 caractères). Ce n&#x27;est pas une adresse web : l&#x27;appareil photo d&#x27;un téléphone ne l&#x27;ouvre pas dans un navigateur, il se lit avec le scanner de Lector. Il vaut les 12 mots : l&#x27;interface ne propose de copier ni le code ni les mots (presse-papiers universel, historiques de presse-papiers).</li>
+<li><strong>Qui peut scanner</strong> : le scanner exige <code>BarcodeDetector</code> et une caméra, donc l&#x27;app web dans un navigateur qui les offre (Chrome sur Android ou sur macOS, par exemple). L&#x27;app de bureau (pas d&#x27;accès à la caméra) et les apps iOS et Android (vue web sans <code>BarcodeDetector</code>, pas de permission caméra) ne le scannent pas ; l&#x27;onglet « Scanner » n&#x27;apparaît que là où il marche. Partout ailleurs : les 12 mots, tapés ou remplis par le gestionnaire de mots de passe. Les textes de l&#x27;app, du kit de secours et du site le disent.</li>
+<li><strong>Ancien lien</strong> <code>https://lector.dockerbop.fr/app/#chaine=&lt;base64url(S)&gt;</code> : plus jamais produit (une page ouverte entre dans l&#x27;historique du navigateur, fragment compris, puis dans sa synchronisation). Collé dans le champ, il est encore lu.</li>
+<li><code>lireSaisie(texte)</code> accepte les 12 mots, le code ou un ancien lien, sans aucun appel réseau.</li>
+</ul>
+<h3 id="37-vecteurs">3.7 Vecteurs</h3>
+<p><code>docs/CHAINE-VECTEURS.json</code>, pour <code>S = 000102030405060708090a0b0c0d0e0f</code> :</p>
+<table><thead><tr><th>Valeur</th><th>Résultat</th></tr></thead><tbody><tr><td><code>id</code></td><td><code>21493c49c3cb28f9041197f59f7e704e</code></td></tr><tr><td><code>docId(&quot;Pro/Notes.md&quot;)</code></td><td><code>99e94d4113b8b7e5983597f288e090da3c7e6e7861702a1d33c3bc8ecbebe3c0</code></td></tr><tr><td>12 mots</td><td><code>abandon amount liar amount expire adjust cage candy arch gather drum buyer</code></td></tr><tr><td>code d&#x27;appairage</td><td><code>lector-chaine:AAECAwQFBgcICQoLDA0ODw</code></td></tr></tbody></table>
+<p>Ils contiennent aussi <code>K_enc</code>, <code>K_mac</code>, <code>P</code>, l&#x27;empreinte stockée par le serveur, <code>pathEnc</code> (iv <code>0a0b0c0d0e0f101112131415</code>) et <code>contentEnc</code> de <code>&quot;# Test\n&quot;</code> (iv <code>00112233445566778899aabb</code>), un cas NFC/NFD, des chemins invalides, des mots à somme fausse et un second <code>S</code>.</p>
+<pre><code class="language-bash">npm run test:chaine                                   # vérifie crypto.js contre les vecteurs (et le reste)
+node front/src/services/chaine/generer-vecteurs.mjs   # régénère le JSON avec node:crypto
+</code></pre>
+<h2 id="4-stockage-serveur">4. Stockage serveur</h2>
+<h3 id="41-schéma-prisma-backprismaschemaprisma">4.1 Schéma Prisma (<code>back/prisma/schema.prisma</code>)</h3>
+<pre><code class="language-prisma">model Chain {
+  id         String     @id                 // 32 hex, dérivé de S côté client
+  proofHash  String                         // hex(SHA-256(P)), jamais la preuve
+  bytesUsed  Int        @default(0)         // somme des size des blocs vivants
+  docCount   Int        @default(0)         // blocs vivants
+  createdAt  DateTime   @default(now())
+  lastSeenAt DateTime   @default(now())     // écrit au plus une fois par heure
+  docs       ChainDoc[]
+}
+
+model ChainDoc {
+  id        String    @id @default(uuid())
+  chainId   String
+  chain     Chain     @relation(fields: [chainId], references: [id], onDelete: Cascade)
+  docId     String    // 64 hex
+  pathEnc   String    // enveloppe du chemin, base64url
+  sha256    String    // SHA-256 du BLOC (&#x27;&#x27; pour une pierre tombale)
+  size      Int       // taille du bloc (0 pour une pierre tombale)
+  mtime     DateTime  // fournie par le client
+  deletedAt DateTime?
+  tombEnc   String?
+  updatedAt DateTime  @updatedAt
+  @@unique([chainId, docId])
+  @@index([chainId, deletedAt])
+}
+</code></pre>
+<p>Aucune table d&#x27;utilisateurs, d&#x27;appareils ni de licences. Le conteneur applique le schéma au démarrage (<code>prisma db push</code>) : sur une base qui contient encore les tables de la version avec compte, il refuse (perte de données) et redémarre en boucle. D&#x27;où la bascule sur une base neuve (<code>docs/BASCULE-PROD.md</code>).</p>
+<h3 id="42-fichiers">4.2 Fichiers</h3>
+<ul>
+<li>Racine <code>CHAIN_FILES_ROOT</code> (production : <code>/data/chain</code>, dans le volume <code>lector-data</code> ; développement : <code>back/dev-chain</code>).</li>
+<li>Chemin d&#x27;un bloc : <code>CHAIN_FILES_ROOT/&lt;id&gt;/&lt;docId[0:2]&gt;/&lt;docId&gt;</code>. Aucun nom fourni par le client n&#x27;entre dans un chemin disque : seulement un <code>id</code> et un <code>docId</code> validés en hex.</li>
+<li>Écriture atomique (fichier temporaire puis renommage).</li>
+</ul>
+<h3 id="43-compteurs-et-quota">4.3 Compteurs et quota</h3>
+<p><code>bytesUsed</code> et <code>docCount</code> sont tenus à jour dans la ligne <code>Chain</code>. Un dépôt écrit d&#x27;abord le bloc dans un fichier temporaire, à côté de sa place. La réservation de place, une mise à jour conditionnelle (<code>bytesUsed &lt;= quota - delta</code>, atomique dans SQLite : deux dépôts parallèles ne dépassent pas le quota ensemble), et la ligne <code>ChainDoc</code> passent ensuite dans une seule transaction, liée au casier lu à l&#x27;authentification (même <code>createdAt</code>). Le bloc n&#x27;est renommé à sa place qu&#x27;après la transaction. En cas d&#x27;échec, le temporaire est supprimé et rien ne change, ni sur le disque, ni en base. Un dépôt qui croise un effacement du casier reçoit 404 <code>CHAIN_UNKNOWN</code>. Un dépôt qui remplace un bloc ne compte que la différence ; une suppression libère la place du bloc. <code>scripts/verifier-chaine.js</code> recalcule ces compteurs à partir des lignes et du disque (§ 5.3).</p>
+<h2 id="5-contrat-des-routes-v1chain">5. Contrat des routes (<code>/v1/chain</code>)</h2>
+<h3 id="51-en-têtes-et-authentification">5.1 En-têtes et authentification</h3>
+<table><thead><tr><th>En-tête</th><th>Valeur</th></tr></thead><tbody><tr><td><code>X-Lector-Chain-Id</code></td><td><code>id</code>, 32 hex minuscules</td></tr><tr><td><code>X-Lector-Chain-Proof</code></td><td><code>P</code> en base64url, 43 caractères</td></tr><tr><td><code>X-Lector-Device</code></td><td>facultatif : identifiant aléatoire de l&#x27;installation (1 à 64 caractères parmi <code>[A-Za-z0-9_-]</code>), sert seulement à marquer les événements du flux ; jamais stocké</td></tr></tbody></table>
+<p>Ordre des contrôles, sur toutes les routes (création comprise) :</p>
+<ol>
+<li>en-têtes absents ou mal formés : <strong>400</strong> <code>CHAIN_ID_INVALID</code>, puis <code>CHAIN_PROOF_MISSING</code> ;</li>
+<li>casier inconnu : <strong>404</strong> <code>CHAIN_UNKNOWN</code> (jamais créé, effacé, ou renouvelé ailleurs) ;</li>
+<li>preuve fausse : <strong>403</strong> <code>CHAIN_PROOF_INVALID</code>, puis <strong>429</strong> <code>CHAIN_PROOF_LIMITED</code> (§ 13) ; la bonne preuve passe toujours ;</li>
+<li><code>lastSeenAt</code> mis à jour au plus une fois par heure ;</li>
+<li>lectures (<code>GET</code>) seulement : un nouveau réseau alors que la chaîne a déjà été lue depuis 8 réseaux distincts en 24 heures, <strong>429</strong> <code>CHAIN_READ_LIMITED</code> avec <code>Retry-After</code> (§ 13.1) ; les réseaux déjà vus passent.</li>
+</ol>
+<p>La preuve n&#x27;est jamais dans une URL : toutes les requêtes, flux compris, la portent dans les en-têtes. Toutes les réponses portent <code>Cache-Control: no-store</code>. CORS expose <code>ETag</code>, <code>X-Lector-Path-Enc</code> et <code>X-Lector-Mtime</code>.</p>
+<h3 id="52-routes">5.2 Routes</h3>
+<table><thead><tr><th>Route</th><th>Requête</th><th>Réponse</th><th>Refus</th></tr></thead><tbody><tr><td><code>POST /v1/chain</code></td><td>aucun corps : l&#x27;<code>id</code> et la preuve viennent des en-têtes</td><td>201 créé, 200 s&#x27;il existe déjà avec la même preuve (reprise après coupure) ; <code>{ chainId, bytesUsed, quotaBytes, maxDocBytes, maxDocs, docCount }</code></td><td>403 <code>CHAIN_PROOF_INVALID</code> (existe avec une autre preuve) ; 429 <code>CHAIN_CREATE_LIMITED</code> ; 503 <code>CHAIN_CAPACITY</code></td></tr><tr><td><code>GET /v1/chain</code></td><td></td><td>mêmes champs</td><td>404, 403, 429 (<code>CHAIN_PROOF_LIMITED</code>, <code>CHAIN_READ_LIMITED</code>)</td></tr><tr><td><code>DELETE /v1/chain</code></td><td></td><td>204 : la ligne <code>Chain</code> d&#x27;abord, qui emporte ses documents (tout dépôt en vol échoue), puis le dossier ; les flux ouverts sont fermés, et un lecteur qui n&#x27;a pas tout lu est coupé net</td><td>404, 403</td></tr><tr><td><code>GET /v1/chain/manifest</code></td><td></td><td>mêmes champs + <code>docs: [{ docId, pathEnc, sha256, size, mtime, deletedAt, tombEnc }]</code>, pierres tombales de moins de 30 jours comprises</td><td>404, 403</td></tr><tr><td><code>PUT /v1/chain/docs/:docId</code></td><td>corps binaire = bloc ; <code>X-Lector-Path-Enc</code> ; <code>X-Lector-Mtime</code> (date ISO entre les années 0000 et 9999, sinon 400 <code>MTIME_INVALID</code> ; absent : la date du serveur) ; <code>If-Match: &lt;sha256 du bloc attendu&gt;</code> (guillemets, <code>W/</code> et <code>*</code> acceptés) ou <code>If-None-Match: *</code> pour une création, y compris par-dessus une pierre tombale ; sans les deux, écriture inconditionnelle</td><td>200 <code>{ docId, sha256, size, bytesUsed }</code> et <code>ETag</code></td><td>412 <code>{ code: CONFLICT, current }</code> ; 413 <code>DOC_TOO_LARGE { maxDocBytes }</code>, <code>QUOTA_EXCEEDED { bytesUsed, quotaBytes, size }</code>, <code>TOO_MANY_DOCS { docCount, maxDocs }</code> ; 400 <code>DOC_ID_INVALID</code>, <code>PATH_ENC_INVALID</code>, <code>MTIME_INVALID</code>, <code>ENVELOPE_INVALID</code></td></tr><tr><td><code>GET /v1/chain/docs/:docId</code></td><td></td><td>bloc brut ; <code>ETag</code> = SHA-256 du bloc (sans guillemets), <code>X-Lector-Path-Enc</code>, <code>X-Lector-Mtime</code></td><td>404 <code>DOC_UNKNOWN</code> ; 410 <code>DOC_DELETED { deletedAt }</code></td></tr><tr><td><code>DELETE /v1/chain/docs/:docId</code></td><td><code>X-Lector-Tomb-Enc</code> obligatoire ; <code>If-Match</code> facultatif (les clients l&#x27;envoient dès qu&#x27;ils connaissent l&#x27;empreinte du bloc)</td><td>204, aussi quand le document est déjà supprimé ; bloc effacé du disque, place rendue. Au plus <code>maxDocs</code> pierres tombales par casier : les plus anciennes partent d&#x27;abord (un appareil qui l&#x27;a manquée renvoie le document, comme après 30 jours)</td><td>400 <code>TOMB_ENC_INVALID</code> ; 404 <code>DOC_UNKNOWN</code> ; 412 <code>CONFLICT</code></td></tr><tr><td><code>GET /v1/chain/verify</code></td><td></td><td><code>{ chain (8 caractères), blocs, octets, blocsManquants, empreintesFausses, versionsInconnues, blocsSuspects, orphelins, compteurs, attendu, ok }</code></td><td>404, 403</td></tr><tr><td><code>GET /v1/chain/stream</code></td><td>lu par <code>fetch</code> (en-têtes), jamais par <code>EventSource</code></td><td>SSE : <code>: connected</code>, puis <code>event: vault-change</code> avec <code>{ kind: &#x27;put&#x27; | &#x27;delete&#x27;, docId, actorDevice }</code>, et <code>: ping</code> toutes les 25 s</td><td>503 <code>STREAM_CAPACITY</code> (20 flux par chaîne, 10 par IP, un /64 en IPv6, 500 au total) ; un flux qui laisse plus de 64 Kio non lus est coupé, et le client se reconnecte</td></tr><tr><td><code>GET /v1/health</code>, <code>/v1/releases/*</code></td><td></td><td>inchangées</td><td></td></tr></tbody></table>
+<p><code>maxDocBytes</code> est la taille maximale du <strong>clair</strong> d&#x27;un document : un bloc est accepté jusqu&#x27;à <code>maxDocBytes + 29</code> octets. <code>ENVELOPE_INVALID</code> couvre un bloc de moins de 29 octets, une version différente de 1, et un bloc qui ressemble à du clair (partie chiffrée de 32 octets ou plus qui se lit en UTF-8 valide, ou entropie inférieure à 7,5 bits par octet sur un bloc d&#x27;au moins 1 Kio) : garde-fou contre un client bogué, pas une preuve.</p>
+<p>Toutes les routes de l&#x27;ancienne version (<code>/v1/auth/*</code>, <code>/v1/sync/*</code>, <code>/v1/licenses/*</code>, <code>/v1/webhooks/*</code>, <code>/v1/chat/*</code>, <code>/v1/tts/*</code>, <code>/v1/reader/*</code>) répondent 404. Une ancienne app lit le manifeste en premier : elle s&#x27;arrête en erreur avant toute action, sans rien effacer.</p>
+<h3 id="53-vérification">5.3 Vérification</h3>
+<p><code>GET /v1/chain/verify</code> (pour l&#x27;appareil, avec la preuve) et <code>node scripts/verifier-chaine.js --chain &lt;id&gt; | --all [--recount]</code> (sur le serveur, sortie JSON <code>{ chaines, problemes, fantomes, rapports }</code>, code de sortie 0 si tout va bien, 1 s&#x27;il reste un problème, 2 pour une erreur d&#x27;usage ou une chaîne inconnue) contrôlent : chaque bloc vivant existe, a la bonne taille, la bonne empreinte, commence par <code>0x01</code>, ne ressemble pas à du clair ; aucun fichier orphelin ; compteurs égaux à la somme des lignes ; avec <code>--all</code>, aucun dossier de casier sans ligne en base (fantôme). <code>--recount</code> recalcule les compteurs et supprime orphelins et fantômes ; à lancer API arrêtée.</p>
+<h2 id="6-synchronisation-côté-client">6. Synchronisation côté client</h2>
+<h3 id="61-base-locale">6.1 Base locale</h3>
+<p><code>&lt;vault&gt;/.lector-sync/chaine.json</code> :</p>
+<pre><code class="language-json">{
+  &quot;version&quot;: 2,
+  &quot;chainId&quot;: &quot;2149...&quot;,
+  &quot;docs&quot;: { &quot;Pro/Notes.md&quot;: { &quot;docId&quot;: &quot;99e9...&quot;, &quot;sha256Clair&quot;: &quot;47dd...&quot;, &quot;sha256Bloc&quot;: &quot;ded3...&quot;, &quot;size&quot;: 7, &quot;mtime&quot;: &quot;...&quot; } }
+}
+</code></pre>
+<p>Deux empreintes : celle du clair (comparée au disque) et celle du bloc (comparée au manifeste). Rien de dérivé du clair ne part au serveur. Champ facultatif <code>horsDisque: true</code> : document du casier gardé sans fichier sur ce disque, parce qu&#x27;un fichier local occupe déjà son nom à la casse près (§ 6.2) ; il n&#x27;est jamais supprimé depuis cet appareil. Une base d&#x27;une autre version (dont la <code>version: 1</code> de la branche avec compte) est ignorée et reconstruite : la synchro suivante se comporte comme une adoption (§ 6.3), sans rien supprimer.</p>
+<h3 id="62-trois-voies-synchroniserchaine-frontsrcserviceschainesynchrojs">6.2 Trois voies (<code>synchroniserChaine</code>, <code>front/src/services/chaine/synchro.js</code>)</h3>
+<ul>
+<li>Index local par chemin, index serveur par <code>docId</code>. Le lien vient de <code>HMAC(K_mac, chemin)</code> (mis en cache dans la base) ou, pour un <code>docId</code> inconnu, du déchiffrement de <code>pathEnc</code>.</li>
+<li><code>localModifie = L.sha256 ≠ B.sha256Clair</code> ; <code>serveurModifie = S.sha256 ≠ B.sha256Bloc</code>.</li>
+<li>Décisions : envoi, téléchargement, suppression sur le serveur, retrait local, résurrection, conflit. Si les deux côtés ont changé, le bloc est téléchargé ; clair identique : pas de conflit ; sinon la version locale reste et celle du serveur devient une copie <code>nom (conflict AAAA-MM-JJ-HH-MM).md</code>, envoyée elle aussi.</li>
+<li>Chaque dépôt porte <code>If-Match</code> (empreinte du bloc que l&#x27;appareil croit remplacer) ou <code>If-None-Match: *</code>, et chaque <code>DELETE</code> porte <code>If-Match</code> quand l&#x27;empreinte est connue. Un 412 relance un cycle au lieu d&#x27;écraser : le dernier qui écrit ne gagne pas en silence.</li>
+<li>Toute écriture ou tout retrait local vérifie que le fichier est encore celui du scan. Sinon le vault ne touche à rien (<code>ECHANGED</code>), le cycle est relancé, puis la version du serveur devient une copie de conflit si les deux ont changé.</li>
+<li>Un fichier que le scan n&#x27;a pas vu mais que le disque a encore à ce nom (absence fausse) ne donne jamais de pierre tombale.</li>
+<li>Les chemins que le vault refuse (<code>EINVALIDPATH</code> : nom invalide ou réservé) et les liens symboliques (<code>ESYMLINK</code> : jamais suivis, et jamais d&#x27;écriture hors du vault une fois le chemin résolu par <code>realpath</code>) sont sautés, comme un fichier verrouillé ; ces documents sont comptés (<code>notWritten</code>) et l&#x27;écran Synchronisation les annonce.</li>
+<li>Un bloc vivant au manifeste mais absent au <code>GET</code> (404) est signalé, sans relance.</li>
+<li>Disques insensibles à la casse (macOS, Windows par défaut) : un renommage qui ne change que la casse reste le même document (le chemin de la base est gardé), sans envoi ni suppression. Un document du casier dont le nom ne diffère que par la casse d&#x27;un fichier local n&#x27;écrase jamais ce fichier : copie de conflit si les contenus diffèrent, et la base le retient en <code>horsDisque</code>.</li>
+<li>Un document supprimé ailleurs n&#x27;est retiré du disque que si le local est inchangé <strong>et</strong> que <code>tombEnc</code> se vérifie pour ce <code>docId</code> et l&#x27;empreinte de bloc de la base. Sinon il est renvoyé. Le serveur ne peut donc pas faire effacer un fichier en posant une fausse pierre tombale.</li>
+<li>Un bloc ou un chemin qui ne se déchiffre pas : rien n&#x27;est touché localement, l&#x27;indicateur de synchro le signale.</li>
+<li>Ordre d&#x27;un cycle : retraits locaux (un document renommé ailleurs libère son nom), téléchargements, suppressions (elles libèrent de la place), envois, comparaisons.</li>
+</ul>
+<h3 id="63-adoption">6.3 Adoption</h3>
+<p>Un appareil qui rejoint une chaîne avec un vault déjà rempli (ou après une nouvelle chaîne) n&#x27;a pas de base pour ce casier. Pour un document présent des deux côtés, il télécharge le bloc : même clair, la base est enregistrée ; seul le local a bougé depuis la base de la chaîne précédente, il part ; seul le serveur a bougé, il est pris ; sinon, copie de conflit. Les fichiers présents d&#x27;un seul côté sont envoyés ou téléchargés, avec la règle de casse du § 6.2. <strong>Rien n&#x27;est supprimé pendant l&#x27;adoption.</strong></p>
+<h3 id="64-ordinateur-electron">6.4 Ordinateur (Electron)</h3>
+<p>La synchro tourne dans le processus principal (<code>front/desktop/sync-manager.js</code>) : au démarrage, à chaque changement d&#x27;un fichier markdown du vault, toutes les 30 s, et dès qu&#x27;un autre appareil annonce une écriture dans le flux (<code>GET /v1/chain/stream</code>, lu par <code>fetch</code> avec les en-têtes ; ses propres échos sont filtrés par <code>actorDevice</code>). Une réponse <code>CHAIN_UNKNOWN</code> ou <code>CHAIN_PROOF_INVALID</code> arrête la boucle (<code>chain-unknown</code>, <code>chain-proof</code>) sans rien toucher au disque. Un cycle à relancer (412, fichier changé pendant le cycle) repart après 1 s, puis 2 s, 4 s... jusqu&#x27;à 30 s. <code>stop()</code> interrompt le cycle avant sa prochaine écriture et l&#x27;attend (5 s au plus) ; après <code>stop()</code>, rien ne repart, et un <code>stop()</code> pendant <code>start()</code> laisse la synchro arrêtée. <code>getStatus()</code> donne aussi <code>notWritten</code>, le nombre de documents que le disque refuse (§ 6.2). Lector écrit <code>LECTOR-FORMATS.md</code> à la racine du vault ; il voyage comme les autres documents.</p>
+<h3 id="65-navigateur-et-mobile">6.5 Navigateur et mobile</h3>
+<p>Pas de vault local : <code>fileSystem.listDirectoryFiles(&#x27;cloud://&#x27;)</code> lit le manifeste et déchiffre les <code>pathEnc</code> pour construire l&#x27;arbre ; <code>openFileByPath</code> télécharge puis déchiffre ; <code>writeFile</code> chiffre puis dépose avec <code>If-Match</code> = empreinte du bloc <strong>lu</strong> par cette session (<code>VaultWebChaine</code>, une instance par session). Un document modifié ailleurs après sa lecture donne 412, jamais un écrasement. L&#x27;app iOS et Android (Capacitor) utilise le même module que le navigateur. Le web n&#x27;écoute pas le flux temps réel : il relit le manifeste chaque fois que l&#x27;arbre est rechargé.</p>
+<h2 id="7-markdown-seulement-limite-par-document-et-quota">7. Markdown seulement, limite par document et quota</h2>
+<p><strong>Filtre client, dans les deux sens</strong> (<code>estMarkdown</code>) :</p>
+<ul>
+<li>seuls <code>.md</code> et <code>.markdown</code> (casse indifférente) partent ; un fichier local d&#x27;un autre type n&#x27;est jamais lu, envoyé ni supprimé (il est compté comme ignoré) ;</li>
+<li>les fichiers et dossiers cachés (<code>.lector-sync/</code>, <code>.obsidian/</code>, tout ce qui commence par <code>.</code>) sont ignorés ;</li>
+<li>un bloc dont le chemin déchiffré n&#x27;est pas markdown (déposé par un client bogué) n&#x27;est <strong>jamais écrit</strong> sur le disque, ni supprimé : il est signalé (<code>notMarkdown</code>) et la vérification de l&#x27;appareil le compte (<code>horsFormat</code>) ;</li>
+<li>sur le web, écrire un fichier d&#x27;un autre type est refusé avant tout envoi (<code>NOT_MARKDOWN</code>).</li>
+</ul>
+<p>Le serveur ne peut pas faire ce contrôle : chemins et contenus sont chiffrés. Ses seules gardes sont la taille d&#x27;un bloc et le quota.</p>
+<p><strong>Limite par document</strong> : un fichier de plus de <code>maxDocBytes</code> octets (512 Ko par défaut) n&#x27;est pas envoyé et n&#x27;entraîne aucune requête refusée ; il est signalé (<code>tooLarge</code>) et reste sur l&#x27;appareil.</p>
+<p><strong>Quota</strong> : le client lit la place libre dans le manifeste et n&#x27;envoie pas ce qui serait refusé. Casier plein : les documents en attente sont comptés (<code>quotaPending</code>), un seul événement <code>quota</code> est émis à l&#x27;entrée dans cet état, la synchro continue pour le reste (téléchargements, suppressions). Si le serveur répond quand même 413 (un autre appareil a pris la place entre-temps), le cycle cesse d&#x27;envoyer et se termine normalement : ce n&#x27;est jamais une erreur fatale, rien n&#x27;est supprimé localement. Une suppression rend la place ; les documents en attente partent au cycle suivant.</p>
+<p>À la création, l&#x27;écran montre avant l&#x27;envoi le nombre de fichiers markdown et la taille des blocs ; l&#x27;envoi est partiel si la place manque, la chaîne est créée quand même.</p>
+<h2 id="8-écrans">8. Écrans</h2>
+<p>Un seul écran, <strong>Synchronisation</strong> (<code>ChaineSync.jsx</code>), textes <code>sync.*</code> et codes <code>cloud.chain.err.*</code> en anglais et en français. Chaque vue a une explication courte, un « Pourquoi ? » et un lien « Détails techniques » vers ce document, publié par le site de Lector (<a href="https://lector.dockerbop.fr/sync/">https://lector.dockerbop.fr/sync/</a>, page <code>front/landing/sync/index.html</code> produite par <code>node tools/page-sync.mjs</code>).</p>
+<table><thead><tr><th>Vue</th><th>Contenu</th></tr></thead><tbody><tr><td>Proposer</td><td>« Protéger et synchroniser » (créer) ou « Rejoindre ». Jamais bloquant.</td></tr><tr><td>12 mots</td><td>Grille numérotée, avertissement de perte, formulaire du gestionnaire de mots de passe (§ 9), kit de secours à imprimer, case « Je les ai notés ». Sur le web : ce navigateur ne les montrera plus. Pas de bouton copier.</td></tr><tr><td>Vérification</td><td>Trois mots demandés au hasard. « Vérifier plus tard » est possible : un rappel discret reste dans l&#x27;état tant que les mots ne sont pas confirmés.</td></tr><tr><td>Progression (ordinateur)</td><td>Estimation (fichiers, taille, place du casier), puis barre d&#x27;envoi.</td></tr><tr><td>Rejoindre</td><td>Onglets « Scanner » (si <code>BarcodeDetector</code> et une caméra sont disponibles) et « 12 mots » (champ masqué <code>autocomplete=&quot;current-password&quot;</code>), bouton « Depuis mon gestionnaire de mots de passe » quand le navigateur sait le faire. Erreurs distinctes : mots invalides (mot inconnu, somme fausse, nombre de mots) et « aucune chaîne ne correspond à ces mots » (404). Jamais de création depuis cet écran.</td></tr><tr><td>État</td><td>Place utilisée et nombre de documents, état de la synchro (documents trop gros, casier plein, blocs illisibles ou d&#x27;un autre type, documents que le disque refuse), rappel de sauvegarde. Ordinateur : dossier du vault, « Ajouter un appareil », « Nouvelle chaîne », « Vérifier ». Partout : « Quitter la chaîne sur cet appareil », « Tout effacer ».</td></tr><tr><td>Ajouter un appareil (ordinateur)</td><td>Derrière le verrou (Touch ID, 5 min ; sans Touch ID, confirmation, 60 s) : QR du code et 12 mots, masqués après 60 s. L&#x27;explication dit qui peut scanner le QR (§ 3.6).</td></tr><tr><td>Opération coupée</td><td>Création ou renouvellement interrompu : reprendre ou abandonner. Un renouvellement refusé par <code>ROTATION_INCOMPLETE</code> (§ 11.1) liste les documents en cause.</td></tr><tr><td>Chaîne inconnue</td><td>« Cette chaîne n&#x27;existe plus : renouvelée ou effacée depuis un autre appareil. » Rejoindre avec les nouveaux mots ; sur ordinateur, créer une chaîne depuis ce vault.</td></tr><tr><td>Nouvelle chaîne</td><td>§ 11, avec ce que ça garantit et ne garantit pas. Derrière le verrou : tirer les nouveaux mots et lancer le renouvellement.</td></tr><tr><td>Tout effacer</td><td>Il faut taper le mot affiché (<code>ERASE</code> ou <code>EFFACER</code>) ; sur ordinateur, verrou ouvert, et une case décochée par défaut « Also move my local folder to the Trash ». Sur le web et le mobile, l&#x27;explication dit que le casier est peut-être la seule copie des documents sur cet appareil, et que l&#x27;appareil oublie aussi ses clés API et ses données locales. Détail au § 11.2.</td></tr><tr><td>Clés API (écran à part)</td><td>§ 10.</td></tr></tbody></table>
+<p><strong>Kit de secours</strong> (<code>KitSecours.jsx</code>, <code>window.print</code>, sans dépendance) : les 12 mots numérotés, le QR du code, et une page « Pour un proche » (où est la clé, quelle app, comment récupérer et lire les documents, adresse de ce document sur le site de Lector).</p>
+<p><strong>Médias</strong> : sur l&#x27;appareil qui a le fichier, les images relatives s&#x27;affichent ; ailleurs, un encart « Image non synchronisée : seul le markdown voyage entre les appareils ».</p>
+<h2 id="9-gestionnaire-de-mots-de-passe">9. Gestionnaire de mots de passe</h2>
+<ul>
+<li><strong>Web et mobile, enregistrer</strong> : <code>navigator.credentials.store(new PasswordCredential({ id: &#x27;lector-sync-chain&#x27;, name: &#x27;Lector sync chain&#x27;, password: &lt;12 mots&gt; }))</code> quand le navigateur l&#x27;offre (Chromium), <strong>et</strong> un vrai <code>&lt;form&gt;</code> soumis par <code>requestSubmit()</code> avec <code>&lt;input name=&quot;username&quot; id=&quot;lector-sync-chain&quot; autocomplete=&quot;username&quot; value=&quot;lector-sync-chain&quot;&gt;</code> et <code>&lt;input type=&quot;password&quot; autocomplete=&quot;new-password&quot; value=&quot;&lt;12 mots&gt;&quot;&gt;</code>, pour les extensions (Proton Pass, Bitwarden) et Safari. Si rien n&#x27;est proposé, l&#x27;écran explique comment créer l&#x27;entrée à la main (nom <code>lector-sync-chain</code>, les 12 mots séparés par des espaces).</li>
+<li><strong>Web et mobile, rejoindre</strong> : <code>navigator.credentials.get({ password: true, mediation: &#x27;optional&#x27; })</code>, et le champ <code>autocomplete=&quot;current-password&quot;</code> que le gestionnaire sait remplir.</li>
+<li><strong>Ordinateur</strong> : pas de <code>PasswordCredential</code> dans Electron. Le QR, les 12 mots derrière le verrou et le kit de secours ; l&#x27;entrée se crée à la main dans le gestionnaire.</li>
+<li>Jamais de presse-papiers.</li>
+</ul>
+<h2 id="10-stockage-local-du-secret-et-des-clés-api">10. Stockage local du secret et des clés API</h2>
+<table><thead><tr><th>Plateforme</th><th>Secret de chaîne</th><th>Clés API (Anthropic, ElevenLabs)</th></tr></thead><tbody><tr><td>Ordinateur (Electron)</td><td><code>S</code> en hex dans <code>userData/cloud-secrets.dat</code> (<code>{ vaultPath, serverUrl, deviceId, chainSecret, chainId, chainPendingSecret, chainSaved }</code>), chiffré par <code>safeStorage</code> (Trousseau macOS, DPAPI, libsecret). Sans chiffrement système (Linux sans trousseau) : JSON en mode 0600 et avertissement dans l&#x27;écran. Le renderer ne reçoit jamais <code>S</code> : seulement <code>hasChain</code>, et les mots pour affichage, à la création ou verrou ouvert. Nouvelle chaîne (mots et lancement) et Tout effacer exigent aussi le verrou ouvert (<code>LOCKED</code> sinon) : un script qui tournerait dans le renderer ne peut ni faire passer la chaîne sur des mots qu&#x27;il connaît, ni effacer le casier, sans Touch ID là où il existe.</td><td><code>userData/api-keys.dat</code>, <code>safeStorage</code>. Sans trousseau : fichier 0600 en clair, et l&#x27;écran le dit au lieu d&#x27;annoncer un chiffrement (<code>keys:get</code> renvoie <code>secure</code>). Les appels partent du processus principal (<code>net.fetch</code>) : la clé ne va pas au renderer, qui ne voit que les 4 derniers caractères. Le Claude CLI local reste la voie par défaut quand il est installé.</td></tr><tr><td>Navigateur, iOS, Android</td><td>IndexedDB <code>lector-chaine</code> : <code>{ version, chainId, preuve, cleEnc, cleMac }</code>, clés <code>CryptoKey</code> non exportables ; <code>S</code> est effacé de la mémoire après <code>preparer</code>. Un script qui s&#x27;exécuterait sur la page pourrait utiliser les clés sur place, pas emporter <code>S</code>. La preuve est lisible (il faut l&#x27;envoyer) : elle permet d&#x27;écrire ou d&#x27;effacer, pas de lire.</td><td>IndexedDB <code>lector-keys</code>, chiffrées en AES-GCM par une <code>CryptoKey</code> non exportable rangée dans la même base. Appels directs (<code>anthropic-dangerous-direct-browser-access: true</code>, <code>xi-api-key</code>). L&#x27;écran le dit : « Ta clé reste sur cet appareil. Sur le web, elle est lisible par tout script de la page : ne l&#x27;utilise que sur un appareil de confiance. »</td></tr></tbody></table>
+<p>Les anciennes données locales de la version avec compte (jeton, licence, identifiants d&#x27;appareil, entrée IndexedDB liée à un compte) sont effacées au premier démarrage de la 2.0. Le vault reste.</p>
+<h2 id="11-nouvelle-chaîne-tout-effacer-quitter">11. Nouvelle chaîne, tout effacer, quitter</h2>
+<h3 id="111-nouvelle-chaîne-rotation-côté-client">11.1 Nouvelle chaîne (rotation côté client)</h3>
+<p>À faire quand un appareil est perdu ou volé, ou qu&#x27;on n&#x27;a plus confiance dans quelqu&#x27;un qui a vu les 12 mots. Disponible sur ordinateur (appareil qui a tout le vault), verrou ouvert. <code>renouvelerChaine</code> :</p>
+<ol>
+<li>tire un nouveau <code>S&#x27;</code> et affiche ses 12 mots ;</li>
+<li>synchronise avec l&#x27;ancien casier jusqu&#x27;à un cycle sans changement ;</li>
+<li>crée le nouveau casier (<code>POST /v1/chain</code>) et y envoie tout le vault, rechiffré : tous les <code>docId</code> changent ;</li>
+<li>relit le manifeste de l&#x27;ancien casier : si un autre appareil y a écrit entre-temps, récupère et renvoie, jusqu&#x27;à stabilité (5 passes au plus, sinon <code>ROTATION_UNSTABLE</code>) ;</li>
+<li>efface l&#x27;ancien casier (<code>DELETE /v1/chain</code>), seulement si le nouveau a tout reçu et que chaque document markdown du dernier manifeste de l&#x27;ancien est dans le nouveau casier ou sur le disque. Sinon 409 <code>ROTATION_INCOMPLETE { missing: [chemins] }</code> : rien n&#x27;est effacé, le secret reste en attente et l&#x27;écran liste ces documents (les corriger ou les retirer, puis reprendre, ou abandonner). Les blocs illisibles ou absents du serveur ne bloquent pas. Faute de place, le nouveau casier est retiré et l&#x27;ancien reste la chaîne.</li>
+</ol>
+<p>Création et reprise (<code>envoyerTout</code>) : un bloc du casier inconnu de la base n&#x27;est ni supprimé ni écrasé. Même clair, il est gardé ; sinon la synchro suivante en fait une copie de conflit.</p>
+<p><code>S&#x27;</code> est gardé « en attente » (<code>chainPendingSecret</code>) pendant l&#x27;opération : une coupure se reprend, ou s&#x27;abandonne (le casier en cours est effacé ; si l&#x27;ancien n&#x27;existe déjà plus, le nouveau devient la chaîne). Les autres appareils reçoivent 404 <code>CHAIN_UNKNOWN</code>, s&#x27;arrêtent sans rien effacer, et rejoignent avec les nouveaux mots (adoption, § 6.3).</p>
+<p><strong>Garantit</strong> : les anciens mots n&#x27;ouvrent plus rien (l&#x27;ancien casier est effacé du serveur) ; les nouveaux <code>docId</code> ne se relient pas aux anciens. <strong>Ne garantit pas</strong> : ce qu&#x27;un ancien appareil a déjà sur son disque ; les sauvegardes du serveur antérieures, qui gardent les anciens blocs, lisibles avec l&#x27;ancienne clé, jusqu&#x27;à 30 jours sur le serveur et jusqu&#x27;à 6 mois dans les archives mensuelles ; l&#x27;effacement physique des blocs sur le disque du serveur ; un appareil espionné pendant qu&#x27;il était dans la chaîne.</p>
+<h3 id="112-tout-effacer">11.2 Tout effacer</h3>
+<p>Depuis n&#x27;importe quel appareil qui a la chaîne (<code>DELETE /v1/chain</code>, sur ordinateur verrou ouvert) : la ligne du casier d&#x27;abord, qui emporte ses documents (tout dépôt en vol échoue), puis le dossier ; les flux ouverts sont fermés, un lecteur qui n&#x27;a pas tout lu est coupé net, les autres appareils reçoivent 404 et s&#x27;arrêtent. Les sauvegardes du serveur gardent les blocs chiffrés jusqu&#x27;à 30 jours, et jusqu&#x27;à 6 mois dans les archives mensuelles. Recréer ensuite une chaîne, même avec le même <code>S</code>, est possible.</p>
+<p>Ce qui est effacé, et où, une fois le casier effacé (ou déjà inconnu du serveur) :</p>
+<table><thead><tr><th>Où</th><th>Effacé</th><th>Gardé</th></tr></thead><tbody><tr><td>Serveur</td><td>Ligne <code>Chain</code>, lignes <code>ChainDoc</code>, dossier des blocs du casier.</td><td>Sauvegardes chiffrées (30 jours, archives mensuelles 6 mois).</td></tr><tr><td>Ordinateur (Electron), dans l&#x27;ordre</td><td>1. <code>S</code> et les champs de chaîne de <code>userData/cloud-secrets.dat</code> (<code>chainSecret</code>, <code>chainId</code>, <code>chainPendingSecret</code>, <code>chainSaved</code>) ; 2. la base de synchro du vault ; 3. les clés API de <code>userData/api-keys.dat</code> (tous les services). 4. Seulement si la case « Also move my local folder to the Trash » est cochée (décochée par défaut) : le dossier du vault part à la <strong>corbeille du système</strong> (<code>shell.trashItem</code>, jamais de suppression définitive ; refusé pour la racine, le dossier personnel et <code>userData</code>), <code>vaultPath</code> est retiré, puis la page vide son propre stockage (comme le web, ligne suivante) et repart sur le choix de la source.</td><td>Sans la case : le dossier du vault et ses fichiers, intacts, ainsi que le stockage de la page (surlignages, fiches, historique, réglages). Si la corbeille refuse, tout le reste est effacé, le dossier reste le vault et l&#x27;écran le dit. Les vaults des autres ordinateurs ne sont jamais touchés.</td></tr><tr><td>Navigateur, iOS, Android (vue web)</td><td>Tout le stockage de l&#x27;origine, par <code>effacerDonneesLocales</code> (<code>front/src/services/effacementLocal.js</code>) : IndexedDB <code>lector-chaine</code> (clés de la chaîne) et <code>lector-keys</code> (clés API et leur clé de chiffrement), toute autre base IndexedDB de l&#x27;origine, <code>localStorage</code> en entier (surlignages, fiches, étiquettes, positions de lecture, historique, favoris, conversations, réglages, session, identifiant d&#x27;appareil, <code>lector-sync-saved</code>), <code>sessionStorage</code>, Cache Storage et service workers. La page se recharge ensuite sur le choix de la source.</td><td>Rien de Lector dans la vue web. Hors de la vue web, sur mobile : les fichiers natifs éventuels de l&#x27;app (non couverts par cette version).</td></tr></tbody></table>
+<p>Le web et le mobile n&#x27;ont pas de vault local (§ 6.5) : le casier y est peut-être la seule copie des documents, et l&#x27;écran le dit. L&#x27;effacement réel des documents en clair restés sur un ordinateur (crypto-shredding) attend le chiffrement local, hors périmètre de la 2.0.</p>
+<h3 id="113-quitter-sur-cet-appareil">11.3 Quitter sur cet appareil</h3>
+<p><code>S</code> (ou les clés, sur le web) est oublié et la synchro s&#x27;arrête. Le casier et les autres appareils ne changent pas ; la base locale est gardée pour une adoption plus tard.</p>
+<h3 id="114-s-perdu-partout">11.4 <code>S</code> perdu partout</h3>
+<p>Si plus aucun appareil ne garde <code>S</code> et que la fiche est perdue, les blocs sont illisibles pour tout le monde, définitivement, et le casier ne peut plus être effacé par l&#x27;utilisateur (il faudrait <code>P</code>). La purge des casiers inactifs le supprime au bout de 180 jours (§ 14). Un appareil qui a encore le vault en clair crée une nouvelle chaîne.</p>
+<h2 id="12-limites-assumées">12. Limites assumées</h2>
+<ul>
+<li>Le serveur peut <strong>cacher</strong> un document, <strong>resservir une ancienne version</strong> d&#x27;un bloc ou refuser une écriture. Il ne peut ni lire, ni fabriquer, ni modifier un bloc sans que le client le détecte (AES-GCM authentifié), ni déplacer un bloc d&#x27;un document à un autre (AAD), ni faire supprimer un fichier local (marque <code>tombEnc</code>, § 6.2). Un manifeste authentifié contre le retour en arrière n&#x27;existe pas encore.</li>
+<li>Le <code>docId</code> étant stable, le serveur sait que « le même document » a été modifié dix fois, sans savoir lequel. La taille des blocs et des <code>pathEnc</code> n&#x27;est pas masquée.</li>
+<li>Qui obtient <code>P</code> (sans <code>S</code>) peut écrire, supprimer ou effacer le casier, pas le lire. Les clients détectent un bloc ou une marque fabriqués.</li>
+<li>Le web garde des clés utilisables sur place par un script de la page (pas exportables). Les clés API y sont lisibles par un tel script.</li>
+<li>Les sauvegardes du serveur gardent les blocs (chiffrés) et les métadonnées du § 2 jusqu&#x27;à 30 jours sur le serveur, et jusqu&#x27;à 6 mois dans les archives mensuelles, hors de la machine. La politique de confidentialité le dit.</li>
+<li>Les journaux d&#x27;accès du proxy gardent l&#x27;IP et le chemin des requêtes (des <code>docId</code>, jamais la preuve ni l&#x27;<code>id</code>) 7 jours au plus.</li>
+<li>Un appareil compromis lit tout ce qu&#x27;il voit passer.</li>
+</ul>
+<h2 id="13-anti-abus">13. Anti-abus</h2>
+<p>Sans compte, les seules défenses hors quota sont en mémoire, par IP (<code>back/services/limiteurs.js</code>) :</p>
+<ul>
+<li><strong>créations</strong> : 5 casiers par IP et par heure (<code>CHAIN_CREATE_PER_HOUR</code>), 429 <code>CHAIN_CREATE_LIMITED</code> ; une reprise idempotente (même <code>id</code>, même preuve) passe toujours. Les créations passent une à une : la limite par IP et <code>CHAIN_MAX_CHAINS</code> sont exactes même en rafale ;</li>
+<li><strong>preuves fausses</strong> : 10 par 15 minutes par couple (IP, chaîne), puis 429 <code>CHAIN_PROOF_LIMITED</code> pour ce couple seulement. Jamais de blocage par chaîne seule : sinon n&#x27;importe qui connaissant un <code>id</code> gèlerait la synchro de son propriétaire. La bonne preuve passe toujours (<code>P</code> fait 256 bits, la force brute est exclue) ;</li>
+<li><strong>capacité</strong> : <code>CHAIN_MAX_CHAINS</code> casiers au total (10 000 par défaut), puis 503 <code>CHAIN_CAPACITY</code> ; 20 flux par chaîne, 10 par IP et 500 au total, puis 503 <code>STREAM_CAPACITY</code> ; un flux qui laisse plus de 64 Kio non lus est coupé ; au plus <code>CHAIN_MAX_DOCS</code> pierres tombales par casier ;</li>
+<li>toutes les limites par IP prennent le /64 pour une adresse IPv6 (un seul abonné en a souvent des milliards) ;</li>
+<li><code>trust proxy 1</code> : derrière le proxy, l&#x27;IP vient de <code>X-Forwarded-For</code>, sinon les limiteurs deviendraient globaux ;</li>
+<li><strong>réseaux lecteurs</strong> : au plus 8 réseaux distincts lisent une chaîne en 24 heures (§ 13.1) ;</li>
+<li><code>CHAIN_RATE_LIMITS=off</code> les désactive (tests seulement).</li>
+</ul>
+<h3 id="131-limite-anti-partage">13.1 Limite anti-partage</h3>
+<p>Une chaîne sert aux appareils d&#x27;une même personne. Pour qu&#x27;elle ne devienne pas un casier de partage entre inconnus (les 12 mots postés quelque part), le serveur compte, pour chaque chaîne, les <strong>réseaux distincts qui lisent</strong> sur une fenêtre glissante de 24 heures (<code>back/services/reseauxLecteurs.js</code>) :</p>
+<ul>
+<li>un réseau est le préfixe de l&#x27;adresse : /24 en IPv4 (adresses <code>::ffff:a.b.c.d</code> comprises), /48 en IPv6 ;</li>
+<li>le préfixe n&#x27;est gardé que sous forme d&#x27;empreinte HMAC-SHA256 avec un <strong>sel aléatoire tiré au démarrage et remplacé toutes les 24 heures</strong> ; l&#x27;ancien sel reste 24 heures de plus pour reconnaître un réseau vu juste avant la rotation, puis il est oublié et plus aucune empreinte ne se relie à un réseau ;</li>
+<li>tout vit dans une <code>Map</code> du processus : <strong>jamais sur le disque, jamais dans les journaux</strong>, tout disparaît au redémarrage. Au plus 20 empreintes par chaîne (avec la date de leur dernière lecture) ;</li>
+<li>seules les requêtes <code>GET</code> (état, manifeste, blocs, flux) <strong>à la bonne preuve</strong> comptent : sans <code>P</code>, personne ne peut user le budget d&#x27;une chaîne et bloquer son propriétaire ;</li>
+<li>un réseau sort du compte 24 heures après sa dernière lecture ;</li>
+<li>au-delà de <strong>8 réseaux distincts</strong> (<code>CHAIN_READ_NETWORKS_MAX</code>), une lecture depuis un <strong>nouveau</strong> réseau répond <strong>429</strong> <code>CHAIN_READ_LIMITED</code> avec <code>Retry-After</code> (le temps avant que le plus ancien réseau sorte du compte) ; les réseaux déjà vus continuent, les écritures ne sont pas concernées. Le journal note une fois par jour et par chaîne <code>[chain &lt;8 hex&gt;] read refused: too many networks today</code>, sans adresse ;</li>
+<li>l&#x27;effacement du casier oublie ses empreintes.</li>
+</ul>
+<p>Un usage normal en reste très loin : un ordinateur à la maison, un téléphone qui change d&#x27;adresse en 4G ou 5G (souvent dans quelques /24 de l&#x27;opérateur), le Wi-Fi d&#x27;un lieu de travail, un hôtel. Les clients affichent un message en clair (« This chain was opened from too many different networks today, so new ones are paused for now… »), jamais le code ; dans le navigateur, l&#x27;écran de la chaîne s&#x27;ouvre pour l&#x27;expliquer, sans rien oublier.</p>
+<p><code>CHAIN_READ_NETWORKS_WINDOW_MS</code> (86400000) règle la durée de la fenêtre et de la rotation du sel ; seuls les tests la raccourcissent.</p>
+<p>Variables du serveur : <code>DATABASE_URL</code>, <code>PORT</code>, <code>CHAIN_FILES_ROOT</code>, <code>CHAIN_QUOTA_BYTES</code> (20971520), <code>CHAIN_MAX_DOC_BYTES</code> (524288), <code>CHAIN_MAX_DOCS</code> (5000), <code>CHAIN_MAX_CHAINS</code> (10000), <code>CHAIN_INACTIVE_DAYS</code> (180), <code>CHAIN_CREATE_PER_HOUR</code> (5), <code>CHAIN_READ_NETWORKS_MAX</code> (8), <code>CHAIN_READ_NETWORKS_WINDOW_MS</code> (86400000), <code>CHAIN_RATE_LIMITS</code>, <code>RELEASE_NOTIFY_TOKEN</code>. Exemple : <code>back/.env.example</code>.</p>
+<h2 id="14-purge-des-orphelins">14. Purge des orphelins</h2>
+<p>La purge tourne au démarrage de l&#x27;API puis toutes les 24 heures (<code>back/services/casiers.js</code>) :</p>
+<ul>
+<li>les pierres tombales de plus de 30 jours sont supprimées (ligne) ;</li>
+<li>les casiers sans aucune requête depuis 180 jours, environ 6 mois (<code>CHAIN_INACTIVE_DAYS</code>, <code>lastSeenAt</code>, écrit au plus une fois par heure par une requête authentifiée) sont effacés entièrement, lignes et dossier ; <code>lastSeenAt</code> est revérifié au moment de la suppression, et un casier redevenu actif entre-temps reste ;</li>
+<li>les dossiers de casier sans ligne en base (fantômes) sont supprimés.</li>
+</ul>
+<p>C&#x27;est le sort des casiers dont tous les appareils et la fiche ont disparu (§ 11.4). Un appareil qui synchronise même une fois tous les six mois garde son casier. <code>verifier-chaine.js --all</code> signale aussi les fantômes et les fichiers sans ligne (orphelins, après un arrêt brutal entre l&#x27;écriture du bloc et celle de la ligne) ; <code>--recount</code> les supprime.</p>
+<h2 id="15-modèle-de-menace-en-10-lignes">15. Modèle de menace en 10 lignes</h2>
+<ol>
+<li>Le serveur, son hébergeur et un intrus sur la machine ne lisent ni contenus, ni chemins, ni titres : ils n&#x27;ont que des blocs AES-256-GCM.</li>
+<li>Ils voient des métadonnées : nombre et taille des blocs, dates, rythme, IP au passage (§ 2).</li>
+<li>Ils peuvent cacher, refuser ou resservir un ancien bloc ; pas fabriquer, modifier, déplacer, ni faire effacer un fichier local.</li>
+<li>Qui a les 12 mots ou le QR a tout : ils se gardent comme une clé de coffre, jamais en photo ni dans un message.</li>
+<li>Qui a seulement la preuve peut abîmer le casier, pas le lire ; les appareils gardent leurs fichiers.</li>
+<li>Qui connaît seulement l&#x27;<code>id</code> apprend si le casier existe (404 ou 403), rien d&#x27;autre, pas même sa taille ; ses fausses preuves ne bloquent pas le propriétaire.</li>
+<li>Un appareil perdu se coupe par « Nouvelle chaîne » ; ce qu&#x27;il a déjà sur son disque reste lisible par qui le tient.</li>
+<li>Les sauvegardes du serveur gardent les anciens blocs jusqu&#x27;à 6 mois, lisibles avec l&#x27;ancienne clé.</li>
+<li>Sur le web, un script hostile dans la page pourrait utiliser les clés sur place ; il ne peut pas emporter <code>S</code>. La politique de sécurité du contenu et l&#x27;assainissement des documents le rendent improbable (<code>docs/SECURITE.md</code>).</li>
+<li>Les mots perdus partout, le casier est perdu pour tout le monde, et purgé après 180 jours sans activité.</li>
+</ol>
+<h2 id="16-tests">16. Tests</h2>
+<p>Suites, commandes et résultats : <code>docs/CHAINE-TESTS.md</code>.</p>
+  </main>
+</body>
+</html>

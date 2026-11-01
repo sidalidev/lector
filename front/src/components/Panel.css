@@ -1,0 +1,223 @@
+/* Panneaux de réglages (Synchronisation, Clés API) : base commune */
+
+.fullscreen-overlay-content.panel-overlay {
+  width: min(540px, 95vw);
+  height: auto;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 32px 28px;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+}
+
+.panel-loading {
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.panel-header h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  letter-spacing: var(--display-tracking);
+  font-size: 1.5em;
+  font-weight: 700;
+}
+
+.panel-intro {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.panel-note {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.panel-input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.panel-input:focus {
+  border-color: var(--accent);
+}
+
+.panel-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s, transform 0.1s;
+}
+
+.panel-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.panel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.panel-btn.primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.panel-btn.primary:hover:not(:disabled) {
+  background: var(--accent-hover, var(--accent-hover));
+}
+
+.panel-btn.ghost {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--on-accent-soft);
+}
+
+.panel-btn.ghost:hover:not(:disabled) {
+  background: rgba(var(--accent-rgb), 0.3);
+}
+
+.panel-btn.danger {
+  background: transparent;
+  border-color: rgba(var(--danger-rgb), 0.3);
+  color: var(--danger, var(--danger));
+}
+
+.panel-btn.danger:hover:not(:disabled) {
+  background: rgba(var(--danger-rgb), 0.08);
+}
+
+.panel-feedback {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.panel-feedback svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.panel-feedback.error {
+  background: rgba(var(--danger-rgb), 0.08);
+  color: var(--danger, var(--danger));
+}
+
+.panel-feedback.warn {
+  background: rgba(var(--accent-rgb), 0.1);
+  color: var(--accent-text);
+}
+
+.panel-feedback.success {
+  background: rgba(var(--success-rgb), 0.08);
+  color: var(--success);
+}
+
+.panel-feedback.idle {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+}
+
+.panel-link {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.panel-link:hover:not(:disabled) {
+  color: var(--text-primary);
+}
+
+.panel-link:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.panel-link.danger {
+  color: var(--danger, var(--danger));
+}
+
+/* Explication en trois étages : une phrase, un « pourquoi », un lien technique */
+.panel-explication {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.panel-simple {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.panel-explication details {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.panel-explication summary {
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.panel-explication details p {
+  margin: 6px 0 0;
+  line-height: 1.5;
+}
+
+.panel-explication a {
+  align-self: flex-start;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}

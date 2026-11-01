@@ -1,0 +1,73 @@
+name: Bug report
+description: Something does not work as expected.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. Never paste your 12 words, your API keys or private documents here.
+        Security issues go through SECURITY.md, not a public issue.
+  - type: input
+    id: version
+    attributes:
+      label: Lector version
+      description: Shown in the About screen.
+      placeholder: "2.0.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - macOS
+        - Android
+        - iOS
+        - Web
+        - Other (built from source)
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      placeholder: "Pixel 9, MacBook Air M2, iPhone 15..."
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS and version (and browser for the web)
+      placeholder: "Android 16, macOS 26.1, iOS 26, Firefox 145..."
+    validations:
+      required: true
+  - type: dropdown
+    id: grapheneos
+    attributes:
+      label: GrapheneOS
+      options:
+        - "No"
+        - "Yes"
+        - Not Android
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what happened instead.
+      placeholder: |
+        1. Open Sync
+        2. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: Does it happen every time?
+      options:
+        - Every time
+        - Sometimes
+        - Once
+    validations:
+      required: true

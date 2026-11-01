@@ -1,0 +1,47 @@
+/* Réglages « Clés API » */
+
+.cles-carte {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.cles-carte h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.cles-etat {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.cles-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cles-champ {
+  -webkit-text-security: disc;
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+
+.cles-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cles-console {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+}

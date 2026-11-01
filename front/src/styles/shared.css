@@ -1,0 +1,276 @@
+/* ============================================================
+   Lector: Shared CSS patterns
+   Eliminates duplication across overlays, modals, buttons, inputs
+   ============================================================ */
+
+/* --- Overlay Backdrop --- */
+.overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: overlay-fadeIn 0.2s ease-out;
+}
+
+.overlay-backdrop--dim {
+  background: rgba(var(--shadow-rgb), 0.5);
+  z-index: 1500;
+}
+
+.overlay-backdrop--light {
+  background: rgba(var(--shadow-rgb), 0.3);
+  z-index: 1000;
+  align-items: flex-start;
+  padding-top: 80px;
+}
+
+.overlay-backdrop--blur {
+  background: rgba(var(--shadow-rgb), 0.6);
+  z-index: 9999;
+}
+
+@keyframes overlay-fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes overlay-scaleIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* --- Modal Container --- */
+.modal-container {
+  background: var(--bg-primary);
+  border-radius: 22px;
+  max-width: 90%;
+  box-shadow: 0 10px 40px rgba(var(--shadow-rgb), 0.3);
+}
+
+.modal-container--flex {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Search/palette variant */
+.search-modal {
+  max-width: 90vw;
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  box-shadow: 0 8px 32px rgba(var(--shadow-rgb), 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* --- Modal Header --- */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+/* --- Close Buttons --- */
+.close-btn {
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn--rect {
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 16px;
+  transition: all 0.15s;
+}
+
+.close-btn--rect:hover {
+  background: rgba(var(--danger-rgb), 0.2);
+  color: var(--danger);
+}
+
+.close-btn--circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  box-shadow: 0 2px 12px rgba(var(--shadow-rgb), 0.15);
+}
+
+.close-btn--circle:hover {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* --- Search Input (transparent header variant) --- */
+.search-input-header {
+  flex: 1;
+  padding: 14px 16px;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  color: var(--text-primary);
+  outline: none;
+  font-family: inherit;
+}
+
+.search-input-header::placeholder {
+  color: var(--text-muted);
+  font-size: 12.5px;
+}
+
+/* --- Input Field (bordered variant) --- */
+.input-bordered {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.input-bordered:focus {
+  border-color: var(--accent);
+}
+
+/* --- Scrollable List Container --- */
+.list-scrollable {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+/* --- List Item (selectable) --- */
+.list-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.list-item.selected {
+  background: rgba(var(--accent-rgb), 0.15);
+  color: var(--text-primary);
+}
+
+.list-item-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+}
+
+.list-item.selected .list-item-icon {
+  color: var(--accent-text);
+}
+
+/* --- Buttons --- */
+.btn-primary {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 14px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.btn-secondary {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-secondary:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.btn-icon {
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  transition: all 0.15s;
+}
+
+.btn-icon:hover {
+  color: var(--accent-text);
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
+/* --- Badge --- */
+.badge-accent {
+  flex-shrink: 0;
+  font-size: 10px;
+  background: var(--accent);
+  color: var(--on-accent);
+  padding: 1px 6px;
+  border-radius: 14px;
+  font-weight: 600;
+}
+
+/* --- Empty State Text --- */
+.empty-state {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12.5px;
+}
+
+/* --- Section Label --- */
+.section-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin: 0 0 8px 0;
+}
+
+/* --- Modal Footer --- */
+.modal-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: center;
+}

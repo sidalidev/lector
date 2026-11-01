@@ -1,0 +1,216 @@
+/* Lector hybrid editor — Bear-like live-preview styling for CodeMirror 6.
+   Classes are applied by editor/livePreview.js. */
+
+.cm-editor {
+  height: 100%;
+  background: var(--bg-primary);
+}
+.cm-editor .cm-content {
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+}
+.cm-editor .cm-line {
+  padding: 1px 0;
+}
+
+/* ── Headings (no underlines — clean note feel) ──────────────────────────── */
+.cm-line.cm-lp-h1,
+.cm-line.cm-lp-h2,
+.cm-line.cm-lp-h3,
+.cm-line.cm-lp-h4,
+.cm-line.cm-lp-h5,
+.cm-line.cm-lp-h6 {
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+/* Generous space above each heading so sections "breathe" like in Bear, and a
+   distinct size step between each level so structure reads at a glance. */
+.cm-line.cm-lp-h1 { font-size: 2.05em; font-weight: 800; padding: 0.2em 0 0.28em; letter-spacing: -0.028em; }
+.cm-line.cm-lp-h2 { font-size: 1.62em; font-weight: 800; padding: 1.05em 0 0.22em; }
+.cm-line.cm-lp-h3 { font-size: 1.32em; font-weight: 750; padding: 0.85em 0 0.18em; }
+.cm-line.cm-lp-h4 { font-size: 1.12em; font-weight: 700; padding: 0.7em 0 0.12em; color: var(--text-secondary); }
+.cm-line.cm-lp-h5 { font-size: 1em; font-weight: 700; padding: 0.55em 0 0.1em; color: var(--text-secondary); }
+.cm-line.cm-lp-h6 {
+  font-size: 0.82em; font-weight: 700; padding: 0.55em 0 0.1em;
+  color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em;
+}
+
+/* ── Dimmed syntax markers (#, **, `, [], () …) ──────────────────────────── */
+/* Always amber, never the code-syntax green — override the highlight style. */
+.cm-lp-mark,
+.cm-lp-mark span,
+.cm-lp-fence,
+.cm-lp-hr-src {
+  color: var(--accent) !important;
+  opacity: 0.5;
+  font-weight: 400 !important;
+}
+
+/* ── Inline emphasis ─────────────────────────────────────────────────────── */
+.cm-lp-strong { font-weight: 800; color: var(--text-primary); }
+.cm-lp-em { font-style: italic; }
+.cm-lp-strike { text-decoration: line-through; color: var(--text-muted); }
+
+.cm-lp-code-inline {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: var(--bg-secondary);
+  color: #a35a2a;
+  border-radius: 5px;
+  padding: 0.12em 0.4em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* ── Links ───────────────────────────────────────────────────────────────── */
+.cm-lp-link { color: var(--accent-hover); font-weight: 500; }
+.cm-lp-url { color: var(--accent-hover); text-decoration: underline; }
+
+/* ── Blockquote ──────────────────────────────────────────────────────────── */
+.cm-line.cm-lp-quote {
+  border-left: 3px solid var(--accent);
+  padding-left: 0.85em;
+  margin-left: 0.1em;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+.cm-lp-quotemark { color: var(--accent); opacity: 0.45; }
+
+/* ── Lists & tasks ───────────────────────────────────────────────────────── */
+/* The bullet replaces the raw "-"/"*". A fixed-width box + small right gap give
+   the dot a tidy gutter and a consistent gap before the text, Bear-style. */
+.cm-lp-bullet {
+  color: var(--accent);
+  opacity: 0.85;
+  font-weight: 700;
+  display: inline-block;
+  width: 1.1em;
+  margin-right: 0.15em;
+  text-align: center;
+  font-size: 1.08em;
+  line-height: 1;
+  transform: translateY(-0.02em);
+}
+.cm-lp-listmark { color: var(--accent); opacity: 0.5; }
+.cm-lp-listmark-ordered { color: var(--accent-hover); font-weight: 600; }
+
+.cm-lp-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.12em;
+  height: 1.12em;
+  border: 1.5px solid var(--accent);
+  border-radius: 6px;
+  vertical-align: -0.2em;
+  margin-right: 0.4em;
+  cursor: pointer;
+  position: relative;
+  background: transparent;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.cm-lp-checkbox:hover {
+  border-color: var(--accent-hover);
+}
+.cm-lp-checkbox:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.cm-lp-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 0.37em;
+  top: 0.1em;
+  width: 0.2em;
+  height: 0.46em;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* ── Fenced code blocks ──────────────────────────────────────────────────── */
+/* Each source line gets the grey background; rounding the first/last lines
+   makes the whole run read as one soft "card". */
+.cm-line.cm-lp-codeblock-line {
+  font-family: var(--font-mono);
+  font-size: 0.84em;
+  background: var(--bg-secondary);
+  line-height: 1.65;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+.cm-line.cm-lp-codeblock-line:first-of-type,
+.cm-line.cm-lp-codeblock-line.cm-lp-codeblock-first {
+  border-top-left-radius: var(--radius-md);
+  border-top-right-radius: var(--radius-md);
+  padding-top: 6px;
+}
+.cm-line.cm-lp-codeblock-line.cm-lp-codeblock-last {
+  border-bottom-left-radius: var(--radius-md);
+  border-bottom-right-radius: var(--radius-md);
+  padding-bottom: 6px;
+}
+
+/* ── Horizontal rule widget ──────────────────────────────────────────────── */
+.cm-lp-hr {
+  border: none;
+  border-top: 2px solid var(--border);
+  margin: 0.7em 0;
+  width: 100%;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* ── Inline image widget ─────────────────────────────────────────────────── */
+.cm-lp-img-wrap {
+  display: inline-block;
+  max-width: 100%;
+  text-align: center;
+  margin: 0.4em 0;
+}
+.cm-lp-img {
+  max-width: 100%;
+  border-radius: 12px;
+  display: block;
+  box-shadow: 0 4px 18px rgba(42, 38, 32, 0.12);
+}
+.cm-lp-img-cap {
+  display: block;
+  font-size: 0.8em;
+  color: var(--text-secondary);
+  margin-top: 0.4em;
+}
+.cm-lp-img-broken {
+  font-size: 0.9em;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 0.4em 0.7em;
+}
+
+/* ── Mermaid widget ──────────────────────────────────────────────────────── */
+.cm-lp-mermaid {
+  display: flex;
+  justify-content: center;
+  padding: 1.1em 0;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  margin: 0.7em 0;
+  color: var(--text-secondary);
+}
+.cm-lp-mermaid svg { max-width: 100%; height: auto; }
+.cm-lp-mermaid-error {
+  flex-direction: column;
+  align-items: stretch;
+  color: var(--danger);
+}
+.cm-lp-mermaid-msg { font-size: 0.85em; margin-bottom: 0.5em; }
+.cm-lp-mermaid-error pre {
+  font-family: var(--font-mono);
+  font-size: 0.82em;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  margin: 0;
+}

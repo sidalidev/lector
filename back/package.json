@@ -1,0 +1,21 @@
+{
+  "name": "lector-api",
+  "version": "2.0.0",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "scripts": {
+    "start": "node index.js",
+    "db:push": "prisma db push",
+    "db:generate": "prisma generate",
+    "verify": "node scripts/verifier-chaine.js --all"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "prisma": "^6.19.3"
+  },
+  "overrides": {
+    "qs": "^6.16.1"
+  }
+}

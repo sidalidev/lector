@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lector | Privacy Policy</title>
+  <style>
+@font-face { font-family: 'Figtree'; src: url('/fonts/figtree.woff') format('woff'); font-weight: 300 900; font-display: swap; }
+    @font-face { font-family: 'Bricolage Grotesque'; src: url('/fonts/bricolage-grotesque.woff') format('woff'); font-weight: 200 800; font-display: swap; }
+    /* Charte « Miel du Champsaur » ; polices servies par ce site, rien d'un autre site. */
+    :root {
+      --cream: #FBF7EF;
+      --ink: #1F2A22;
+      --ink-light: #4A5A4F;
+      --caramel: #8A5A12;
+      --font-sans: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-serif: 'Bricolage Grotesque', 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { color-scheme: dark; --cream: #12201A; --ink: #F3EEE3; --ink-light: #9FB3A8; --caramel: #F0B456; }
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--cream);
+      color: var(--ink);
+      line-height: 1.8;
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: 2.4rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+    .updated {
+      color: var(--ink-light);
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+    }
+    h2 {
+      font-family: var(--font-serif);
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-top: 2rem;
+      margin-bottom: 0.5rem;
+      color: var(--caramel);
+    }
+    p, li { margin-bottom: 0.8rem; }
+    ul { padding-left: 1.5rem; }
+    a { color: var(--caramel); }
+    code { font-size: 0.9em; }
+    .back {
+      display: inline-block;
+      margin-top: 2rem;
+      color: var(--caramel);
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    .back:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: November 1, 2026</p>
+
+    <p>Lector ("the App") is a free Markdown reader developed by Sid (<a href="https://sidali.dev">sidali.dev</a>). There is no account: no email, no password, no profile. This policy explains what leaves your device, what our server can and cannot see, and how to delete it.</p>
+
+    <h2>1. Your documents</h2>
+    <p>Lector reads and renders your files on your device. Nothing is sent anywhere unless you turn on sync (section 2) or use a feature that calls a provider with your own API key (section 3).</p>
+
+    <h2>2. Sync</h2>
+    <p>Sync is optional. When you create a sync chain, your device generates twelve words. From them it derives, on the device, a chain identifier, a proof of ownership and the encryption keys. We never receive the twelve words or the keys, and we cannot recover them for you.</p>
+    <p>Only Markdown files are synced. Each file, and its path, is encrypted on your device (AES-256-GCM) before it is uploaded. Other devices join the chain with the same twelve words, or by scanning a pairing QR code shown by a device of the chain (in browsers that can scan one). That code holds the same secret as the twelve words: keep it as private as them.</p>
+    <p><strong>What the server sees:</strong></p>
+    <ul>
+      <li>the chain identifier, a value derived from your twelve words, and a hash (SHA-256) of the proof your devices send with each request;</li>
+      <li>for each document: an opaque document identifier (an HMAC of its path, unreadable without your keys), the encrypted path, the encrypted block and its SHA-256 hash, the size of the block, and an encrypted deletion marker when it is deleted;</li>
+      <li>the number of documents and the space used;</li>
+      <li>timestamps: when the chain was created and last used (to the hour), and for each document the modification time sent by your device, when it was last updated on the server and when it was deleted;</li>
+      <li>the IP address of each request, transiently: the server uses it in memory for rate limiting and never writes it to its database or its application logs. To stop a chain from being used to share files between strangers, the server also counts how many different networks read each chain over the last 24 hours, keeping only a hash of the network prefix made with a random key that is replaced every day; this count stays in memory and is never written down. The reverse proxy writes the IP address to its access log, with the address requested, for security and troubleshooting. Today that log keeps every request for 7 days, and copies of it may be in the server backups until they expire. While that log exists, whoever runs the server could connect an IP address to a chain, because document requests name an opaque document identifier that the database links to its chain. Keeping only errors, for 3 days, and out of backups is planned, not done.</li>
+    </ul>
+    <p><strong>What the server does not see:</strong> the content of your documents, their titles, their file names or folder paths, your twelve words and your keys.</p>
+    <p>A random identifier generated by each installation travels with sync requests so that a device can ignore its own changes in the live update stream. It is not stored on the server.</p>
+    <p>Each chain has a storage quota (20 MB). When you delete a document, an encrypted deletion marker is kept for 30 days so that your other devices remove it too. A chain that receives no request for 180 days (about 6 months) is deleted automatically, with all its blocks.</p>
+    <p><strong>Where:</strong> the server is a machine rented from Hetzner Online GmbH in Germany. Off-site backup copies (below) are kept on the developer's computer in France and in Apple iCloud Drive.</p>
+    <p><strong>Backups:</strong> the server is backed up automatically. Backups contain the encrypted blocks and the metadata listed above, never your twelve words or your keys. They are kept for up to 30 days on the server, and as monthly archives for up to 6 months in separate backup storage (this is server configuration, outside the open source code). A deleted document or an erased chain can therefore remain in these backups, still encrypted, until they expire.</p>
+
+    <h2>3. AI and voice features</h2>
+    <p>Summaries, mind maps, flashcards, chat and text to speech are optional and use your own API keys (Anthropic for text, ElevenLabs for voice). Your keys stay on your device: on desktop, encrypted with the operating system's secure storage when it is available (otherwise in a file only your user account can read, and the App says so); on the web and on mobile, encrypted with a non-exportable key in the browser storage. Requests go directly from your device to the provider and never pass through our servers. The provider's privacy policy applies to the text you send: <a href="https://www.anthropic.com/legal/privacy" target="_blank">Anthropic</a>, <a href="https://elevenlabs.io/privacy-policy" target="_blank">ElevenLabs</a>.</p>
+    <p>On the web, a key stored in the browser can be read by any script running on the page: only add it on a device you trust. On desktop, if Anthropic's Claude command line tool is installed, Lector can use it instead; it then follows that tool's own settings and terms.</p>
+
+    <h2>4. iCloud</h2>
+    <p>On Apple devices, if you open files stored in iCloud Drive, they are managed by Apple and subject to <a href="https://www.apple.com/legal/privacy/" target="_blank">Apple's Privacy Policy</a>. We have no access to your iCloud data.</p>
+
+    <h2>5. Content loaded by your documents</h2>
+    <p>Some content is loaded from a third party only when a document needs it, and that third party then sees your IP address:</p>
+    <ul>
+      <li>an embedded video: the player comes from YouTube, Vimeo or Rumble;</li>
+      <li>an image whose address points to another website: it comes from that website;</li>
+      <li>playing a music score: the instrument sounds come from <code>paulrosen.github.io</code> (ABC scores) and <code>surikov.github.io</code> (guitar scores), both hosted by GitHub Pages.</li>
+    </ul>
+    <p>Desktop and iOS apps check <code>lector.dockerbop.fr</code> for updates, and the Android app checks <code>github.com</code>; these requests carry no identifier. On desktop, the "Search the web" menu opens Google in your browser with the selected text, and importing a YouTube transcript contacts YouTube.</p>
+
+    <h2>6. This website</h2>
+    <p>This website uses no analytics, no cookies and no tracking, and loads nothing from other websites: its fonts are served from this site. The language you choose is remembered in your browser's local storage. Like any web server, ours keeps access logs (IP address, page requested, time) for security and troubleshooting: the reverse proxy log of section 2, kept 7 days today. The web server itself keeps no access log; its error log can record the IP address of a failed request and is kept until the server rotates it.</p>
+
+    <h2>7. Data stored on your device</h2>
+    <p>The App stores your preferences, reading progress, sync state and API keys on your device. On desktop, the sync secret and the API keys are encrypted with the operating system's secure storage when it is available. On the web and on mobile, the twelve words are never kept: only non-exportable encryption keys are stored in the browser. Your documents themselves are not encrypted by Lector on your device: your system protects them like any other file.</p>
+
+    <h2>8. Children's privacy</h2>
+    <p>Lector is not directed at children under 13. We do not knowingly collect personal information from children.</p>
+
+    <h2>9. Deleting your data</h2>
+    <p>In the App, open the sync screen and choose <strong>Erase everything</strong>: the chain and every encrypted block are deleted from the server immediately, for all your devices. Encrypted copies remain in the server backups until they expire: up to 30 days, and up to 6 months for monthly archives (section 2). In a browser or the mobile app, the server may hold the only copy of your documents: erasing it loses them unless a computer of the chain keeps them in its vault folder. Because there is no account, we cannot find your data from your name or email address: erasing must be done from a device linked to the chain. To remove local data, uninstall the App or clear its storage.</p>
+
+    <h2>10. Who is responsible, and on what basis</h2>
+    <p>The controller is Sid, an individual developer based in France. Sync data (section 2) is processed to provide the service you turn on (GDPR art. 6(1)(b)). IP addresses in logs and rate limits, update requests and backups are processed for the security and continuity of the service (legitimate interest, art. 6(1)(f)). There is no account, so we cannot identify you from what the server holds (art. 11): you exercise your rights from a device of the chain, or by writing to us. You can complain to the CNIL (<a href="https://www.cnil.fr">cnil.fr</a>).</p>
+
+    <h2>11. Changes</h2>
+    <p>We may update this policy. The "Last updated" date at the top reflects the latest revision.</p>
+
+    <h2>12. Contact</h2>
+    <p>For any question about this policy: <a href="mailto:contact@sidali.dev">contact@sidali.dev</a></p>
+
+    <a class="back" href="/">&larr; Back to Lector</a>
+  </div>
+</body>
+</html>

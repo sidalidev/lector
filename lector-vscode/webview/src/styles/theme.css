@@ -1,0 +1,70 @@
+/* Lector editor — fixed warm "paper" palette (Bear-like), independent of the
+   VS Code theme so the writing surface stays calm and light. */
+
+:root {
+  /* Warm paper surface */
+  --bg-primary: #faf8f3;
+  --bg-secondary: #f0ece2;
+
+  /* Ink */
+  --text-primary: #2a2620;
+  --text-secondary: #6c665b;
+  --text-muted: #ada594;
+
+  /* Hairlines */
+  --border: #e7e1d4;
+
+  /* Warm amber accent (markers, bullets, links) */
+  --accent: #c0883a;
+  --accent-hover: #9c6a26;
+
+  /* Danger */
+  --danger: #c2453b;
+
+  /* Typography — clean sans, Bear-style */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Avenir Next', 'Segoe UI', system-ui, 'Helvetica Neue', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgba(192, 136, 58, 0.22);
+}
+
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(42, 38, 32, 0.18);
+  border-radius: 6px;
+  border: 3px solid var(--bg-primary);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(42, 38, 32, 0.3);
+}

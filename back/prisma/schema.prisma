@@ -1,0 +1,39 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Un casier par chaîne. Aucun compte : le casier n'est connu que par l'id
+// public de la chaîne et l'empreinte de la preuve.
+model Chain {
+  id         String     @id // 32 hex, dérivé de S côté client
+  proofHash  String // hex(SHA-256(P)), jamais la preuve elle-même
+  bytesUsed  Int        @default(0) // somme des size des blocs vivants
+  docCount   Int        @default(0) // blocs vivants
+  createdAt  DateTime   @default(now())
+  lastSeenAt DateTime   @default(now()) // écrit au plus une fois par heure
+  docs       ChainDoc[]
+}
+
+// Bloc chiffré d'un document. Le serveur ne voit ni le chemin ni le contenu :
+// docId est un HMAC du chemin, pathEnc et le bloc sont chiffrés côté client.
+model ChainDoc {
+  id        String    @id @default(uuid())
+  chainId   String
+  chain     Chain     @relation(fields: [chainId], references: [id], onDelete: Cascade)
+  docId     String // 64 hex
+  pathEnc   String
+  sha256    String // '' pour une pierre tombale
+  size      Int // 0 pour une pierre tombale
+  mtime     DateTime
+  deletedAt DateTime?
+  tombEnc   String?
+  updatedAt DateTime  @updatedAt
+
+  @@unique([chainId, docId])
+  @@index([chainId, deletedAt])
+}
