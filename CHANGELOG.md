@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0 (not released yet)
+## 2.0.0 (2026-11-01)
 
 ### New
 - Lector is free, with no account: no email, no password, no subscription, no license key. Purchases and accounts are gone (see [docs/REMOVED.md](docs/REMOVED.md)).

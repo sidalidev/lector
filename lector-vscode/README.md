@@ -1,4 +1,4 @@
-# Lector — Beautiful Markdown Preview
+# Lector: Beautiful Markdown Preview
 
 A typography-first Markdown preview for VS Code, with **first-class Mermaid rendering** and the warm reading experience of the [Lector](https://lector.dockerbop.fr) app.
 
