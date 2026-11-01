@@ -795,6 +795,58 @@ ipcMain.handle('open-folder-dialog', async () => {
   return false;
 });
 
+// ----- Premier lancement : « Lector Vault » dans Documents -----
+// Le dossier proposé est celui de la synchro s'il existe déjà, sinon
+// Documents/Lector Vault. L'adopter l'ouvre dans la barre latérale et en fait
+// le dossier que la synchro utilisera (tant qu'aucune chaîne n'est en place).
+const NOM_VAULT = 'Lector Vault';
+
+function estDossier(p) {
+  try { return !!p && fs.statSync(p).isDirectory(); } catch { return false; }
+}
+
+function suggestionVault() {
+  const parDefaut = path.join(app.getPath('documents'), NOM_VAULT);
+  const existant = [cloudCreds.vaultPath, parDefaut].find(estDossier);
+  const chemin = existant || parDefaut;
+  return { path: chemin, name: path.basename(chemin), exists: !!existant };
+}
+
+function adopterVault(dossier) {
+  acces.autoriser(dossier);
+  if (!cloudCreds.chainSecret && cloudCreds.vaultPath !== dossier) {
+    saveCloudCreds({ ...cloudCreds, vaultPath: dossier });
+  }
+  mainWindow.webContents.send('set-root-dir', dossier);
+  watchDirectory(dossier);
+}
+
+ipcMain.handle('vault:suggest', () => suggestionVault());
+
+ipcMain.handle('vault:create', () => {
+  try {
+    const { path: dossier, exists } = suggestionVault();
+    if (!exists) fs.mkdirSync(dossier, { recursive: true });
+    adopterVault(dossier);
+    return { ok: true, path: dossier, created: !exists };
+  } catch (err) {
+    debugLog('vault:create error: ' + err.message);
+    return { ok: false, code: err.code || 'CREATE_FAILED' };
+  }
+});
+
+ipcMain.handle('vault:choose', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Choose your notes folder',
+    buttonLabel: 'Use this folder',
+    defaultPath: app.getPath('documents'),
+    properties: ['openDirectory', 'createDirectory'],
+  });
+  if (result.canceled || !result.filePaths[0]) return { ok: false, canceled: true };
+  adopterVault(result.filePaths[0]);
+  return { ok: true, path: result.filePaths[0] };
+});
+
 ipcMain.handle('read-local-file', async (event, relativePath, basePath) => {
   try {
     // Nettoyer le chemin relatif (enlever ./ au début si présent)

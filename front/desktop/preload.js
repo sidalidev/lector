@@ -70,6 +70,13 @@ contextBridge.exposeInMainWorld('electron', {
   installUpdate: () => ipcRenderer.invoke('install-update'),
   ytDlpTranscript: (videoId) => ipcRenderer.invoke('yt-dlp-transcript', videoId),
 
+  // --- Premier lancement : le dossier des notes (Documents/Lector Vault) ---
+  vault: {
+    suggest: () => ipcRenderer.invoke('vault:suggest'),
+    create: () => ipcRenderer.invoke('vault:create'),
+    choose: () => ipcRenderer.invoke('vault:choose'),
+  },
+
   // --- Lector Vault : synchro par la chaîne (aucun compte) ---
   // S ne traverse jamais ce pont : le renderer ne voit que hasChain, et les 12
   // mots ou le code seulement pour les afficher (docs/CHAINE.md § 10).

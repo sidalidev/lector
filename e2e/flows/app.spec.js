@@ -23,8 +23,7 @@ test.describe('Lector : bases de l\'app', () => {
   test("l'interface reste en anglais, sans bouton de langue", async ({ page }) => {
     // Un ancien choix « fr » enregistré n'a plus d'effet.
     await page.evaluate(() => { localStorage.clear(); localStorage.setItem('locale', 'fr'); localStorage.setItem('lector-locale', '"fr"') })
-    await page.reload()
-    await page.locator('.source-card-demo').click()
+    await page.goto('/?demo')
     await expect(page.locator('h1').first()).toHaveText(/Welcome to Lector/)
     await page.locator('.mobile-fab-center').click()
     await expect(page.locator('.lang-compact-btn')).toHaveCount(0)

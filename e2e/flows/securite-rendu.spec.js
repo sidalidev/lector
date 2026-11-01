@@ -72,7 +72,7 @@ export function getDemoFile(locale, name) { return DOCS.find(f => f.name === nam
 `
 
 async function ouvrirDemo(page) {
-  await page.locator('.source-card-demo').click()
+  await page.goto('/?demo')
   await expect(page.locator('h1').first()).toContainText('Hostile')
 }
 

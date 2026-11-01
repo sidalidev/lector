@@ -1,50 +1,38 @@
 import { test, expect } from '@playwright/test'
 
-// Mode démo : le scénario exact du rejet store de mars.
-// Un reviewer sur appareil vierge doit voir le produit sans compte ni service externe.
+// Mode démo (?demo) : contenu embarqué, rien n'est persisté. Sert aux captures
+// et de repli au premier lancement quand aucun dossier ne peut être créé
+// (iOS sans iCloud Drive, navigateur sans stockage de fichiers).
 test.describe('Mode démo', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
-    // Appareil vierge : aucun localStorage
     await page.evaluate(() => localStorage.clear())
-    await page.reload()
-  })
-
-  test('le picker propose la carte démo sur appareil vierge', async ({ page }) => {
-    await expect(page.locator('.source-card-demo')).toBeVisible()
+    await page.goto('/?demo')
   })
 
   test('la démo ouvre un document lisible immédiatement', async ({ page }) => {
-    await page.locator('.source-card-demo').click()
-    await expect(page.locator('h1').first()).toContainText(/Welcome to Lector|Bienvenue dans Lector/)
+    await expect(page.locator('h1').first()).toContainText(/Welcome to Lector/)
   })
 
   test('la démo liste ses documents dans la sidebar', async ({ page }) => {
-    await page.locator('.source-card-demo').click()
     await expect(page.locator('h1').first()).toBeVisible()
-    // Les deux docs démo sont listés dans l'arborescence
-    const items = page.locator('.file-tree-item')
-    await expect(items).toHaveCount(2)
+    await expect(page.locator('.file-tree-item')).toHaveCount(2)
   })
 
   test('naviguer vers le second doc rend mermaid et katex', async ({ page }) => {
-    await page.locator('.source-card-demo').click()
     await expect(page.locator('h1').first()).toBeVisible()
-    await page.locator('.file-tree-item', { hasText: /Diagrams|Diagrammes/ }).click()
-    await expect(page.locator('h1').first()).toContainText(/Diagrams|Diagrammes/)
-    // KaTeX rendu (chargé à la demande)
+    await page.locator('.file-tree-item', { hasText: /Diagrams/ }).click()
+    await expect(page.locator('h1').first()).toContainText(/Diagrams/)
     await expect(page.locator('.katex').first()).toBeVisible({ timeout: 10000 })
   })
 
-  test('rien nest persisté : le picker revient après reload', async ({ page }) => {
-    await page.locator('.source-card-demo').click()
+  test("rien n'est persisté : le premier lancement revient sans ?demo", async ({ page }) => {
     await expect(page.locator('h1').first()).toBeVisible()
-    // Aucune clé de source/session ne doit avoir fuité
     const leaked = await page.evaluate(() =>
       Object.keys(localStorage).filter(k => /source-type|last-session/.test(k))
     )
     expect(leaked).toEqual([])
-    await page.reload()
-    await expect(page.locator('.source-card-demo')).toBeVisible()
+    await page.goto('/')
+    await expect(page.getByRole('heading', { name: 'Where should your notes live?' })).toBeVisible()
   })
 })

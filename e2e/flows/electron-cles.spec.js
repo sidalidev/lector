@@ -34,9 +34,9 @@ test('sans trousseau, l\'écran des clés dit que la clé n\'est pas chiffrée p
   test.setTimeout(120000)
   expect(await page.evaluate(() => window.electron.keys.get('anthropic'))).toMatchObject({ present: false, secure: false })
 
-  // Le clic déclenche des imports dynamiques ; Playwright croit à une
-  // navigation sous Electron et l'attend sans fin.
-  await page.locator('.source-card-demo').click({ noWaitAfter: true })
+  // La démo (?demo), jamais « Create my Lector folder » : le test ne crée
+  // rien dans les Documents de la machine.
+  await page.evaluate(() => { location.search = '?demo' })
   await expect(page.locator('h1').first()).toBeVisible()
   await page.keyboard.press('Meta+Shift+p')
   await page.locator('.command-palette-input').fill('api keys')

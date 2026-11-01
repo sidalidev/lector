@@ -18,8 +18,14 @@ async function relierApi(page) {
   })
 }
 
+// Premier lancement : créer le dossier du navigateur, puis « Set up sync ».
+// Le premier lancement déjà passé, la synchro s'ouvre depuis la palette.
 async function ouvrirSynchro(page) {
-  await page.locator('.source-card-featured').click()
+  await page.locator('.onboarding-primary').click()
+  const setUp = page.getByRole('button', { name: 'Set up sync' })
+  await expect(setUp.or(page.locator('.titlebar'))).toBeVisible()
+  if (await setUp.isVisible()) await setUp.click()
+  else await ouvrirSynchroDepuisLaPalette(page)
   await expect(page.locator('.panel h2')).toHaveText('Sync')
 }
 
@@ -116,7 +122,7 @@ test.describe('Synchronisation dans le navigateur', () => {
     // Au redémarrage, l'app ouvre directement le vault de la chaîne, relu depuis le casier.
     await page.reload()
     await expect(page.locator('.titlebar')).toBeVisible()
-    await expect(page.locator('.source-card-featured')).toHaveCount(0)
+    await expect(page.locator('.onboarding')).toHaveCount(0)
     await expect(page.locator('.file-tree-item.file', { hasText: 'Notes' })).toBeVisible()
 
     // État : place utilisée, sauvegarde confirmée (aucun rappel).
@@ -160,7 +166,7 @@ test.describe('Synchronisation dans le navigateur', () => {
     await page.getByPlaceholder('ERASE').fill('ERASE')
     await effacer.click()
     // Le stockage local est vidé et l'app repart sur le choix de la source.
-    await expect(page.locator('.source-picker')).toBeVisible()
+    await expect(page.locator('.onboarding')).toBeVisible()
     expect(await page.evaluate(() => localStorage.getItem('lector-sync-saved'))).toBeNull()
 
     // Le casier n'existe plus : les mêmes mots ne rejoignent plus rien.

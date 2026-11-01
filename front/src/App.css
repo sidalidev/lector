@@ -1254,7 +1254,6 @@ button,
 .mobile-tool-btn,
 .mobile-popover-header,
 .mobile-popover-close,
-.source-card,
 .sidebar-tab,
 .file-tree-item,
 .nav-btn {
@@ -1264,8 +1263,7 @@ button,
 
 /* Prevent callout menus on long-press for buttons */
 button,
-.mobile-fab,
-.source-card {
+.mobile-fab {
   -webkit-touch-callout: none;
 }
 
@@ -1299,11 +1297,6 @@ button,
 
 /* Active state feedback: subtle scale for native feel */
 @media (max-width: 768px) {
-  .source-card:active {
-    transform: scale(0.97);
-    transition: transform 0.1s ease;
-  }
-
   .file-tree-item:active {
     background: var(--highlight) !important;
     transition: background 0.1s ease;

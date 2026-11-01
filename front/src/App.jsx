@@ -19,7 +19,7 @@ import CommandPalette from './components/CommandPalette';
 import RightSidebar from './components/FloatingTOC';
 import ErrorBoundary from './components/ErrorBoundary';
 import Tooltip from './components/Tooltip';
-import SourcePicker from './components/SourcePicker';
+import { OnboardingWhere, OnboardingSync } from './components/Onboarding';
 import CloudStatusIndicator from './components/CloudStatusIndicator';
 import { getMasteryScore } from './services/spacedRepetition';
 import fileSystem from './services/fileSystem';
@@ -64,6 +64,22 @@ const haptic = (style = 'light') => {
 // --- History helpers ---
 const SESSION_KEY = 'lector-last-session';
 const SOURCE_TYPE_KEY = 'lector-source-type';
+// Premier lancement en cours : { step: 'sync', welcome } tant que l'écran
+// « Sync your devices? » n'a pas reçu de réponse (l'app tuée y revient).
+const ONBOARDING_KEY = 'lector-onboarding';
+const ONBOARDING_DONE_KEY = 'lector-onboarding-done';
+
+// Utilisateur d'avant cet écran (une source déjà choisie) : le premier
+// lancement est derrière lui, l'écran « Sync your devices? » ne s'impose pas.
+try {
+  if (localStorage.getItem(SOURCE_TYPE_KEY) && !localStorage.getItem(ONBOARDING_KEY)) {
+    localStorage.setItem(ONBOARDING_DONE_KEY, '1');
+  }
+} catch { /* stockage indisponible */ }
+
+function lireOnboarding() {
+  try { return JSON.parse(localStorage.getItem(ONBOARDING_KEY) || 'null'); } catch { return null; }
+}
 const MAX_HISTORY = 50;
 
 function loadHistory() {
@@ -139,6 +155,7 @@ function App() {
   });
   const [syncRevision, setSyncRevision] = useState(0);
   const [showSourcePicker, setShowSourcePicker] = useState(() => !localStorage.getItem(SOURCE_TYPE_KEY));
+  const [onboarding, setOnboarding] = useState(() => lireOnboarding());
   const [updateReady, setUpdateReady] = useState(null); // version string or null
   const [updateDismissed, setUpdateDismissed] = useState(false);
   const [editMode, setEditMode] = useState(() => storage.get('editMode', false));
@@ -355,6 +372,12 @@ function App() {
           return
         }
 
+        // ?demo : la démo embarquée, sans rien persister (captures, tests).
+        if (urlParams.has('demo') && !localStorage.getItem(SOURCE_TYPE_KEY)) {
+          handleSourceDemo();
+          return;
+        }
+
         // Ordinateur : avec une chaîne, on démarre toujours sur le vault synchronisé.
         if (fileSystem.isElectron() && window.electron?.cloud?.status) {
           try {
@@ -444,6 +467,13 @@ function App() {
             // Android SAF : restaurer le rootDirPath depuis la session
             try {
               const session = JSON.parse(localStorage.getItem(SESSION_KEY))
+              // Accès rendu (réglages, autre appareil restauré) : l'écran du dossier revient.
+              const { accesAndroid } = await import('./services/vaultSetup')
+              if (session?.rootDirPath?.startsWith('content://') && !(await accesAndroid(session.rootDirPath))) {
+                localStorage.removeItem(SOURCE_TYPE_KEY)
+                setShowSourcePicker(true)
+                return
+              }
               if (session?.rootDirPath) {
                 setRootDirPath(session.rootDirPath)
                 setShowSourcePicker(false)
@@ -459,6 +489,23 @@ function App() {
               localStorage.removeItem(SOURCE_TYPE_KEY)
               setShowSourcePicker(true)
             }
+          }
+          return;
+        }
+
+        // Navigateur : le dossier de notes du navigateur. Un dossier du disque
+        // dont la permission est oubliée attend un clic sur l'écran du dossier.
+        if (!fileSystem.isElectron() && sourceType === 'browser') {
+          const bv = await import('./services/browserVault');
+          if (await bv.ouvrir()) {
+            setRootDirPath(bv.RACINE);
+            setShowSourcePicker(false);
+            try {
+              const session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+              if (session?.filePath?.startsWith(bv.RACINE)) await fileSystem.openFileByPath(session.filePath);
+            } catch {}
+          } else {
+            setShowSourcePicker(true);
           }
           return;
         }
@@ -549,10 +596,25 @@ function App() {
     return () => window.removeEventListener('lector-chaine-requise', ouvrir);
   }, [quitterVaultWeb]);
 
+  // « Set up sync » depuis le premier lancement, sur le web ou un téléphone :
+  // le dossier local d'où l'on vient, dont les notes suivent dans la chaîne.
+  const copieVersChaine = useRef(null);
+
   // Écran Synchronisation : ouvrir le vault (dossier sur ordinateur, cloud:// dans le navigateur)
   const ouvrirVaultSynchronise = useCallback(async (vaultPath) => {
     if (!vaultPath) return;
     sourceChoisie.current = true;
+    const source = copieVersChaine.current;
+    copieVersChaine.current = null;
+    if (vaultPath === 'cloud://' && source && source !== 'cloud://') {
+      try {
+        const { copierVersChaine } = await import('./services/vaultSetup');
+        const r = await copierVersChaine(source);
+        if (r.echecs > 0) alert(t(`onboarding.copyFailed.${new Intl.PluralRules('en').select(r.echecs) === 'one' ? 'one' : 'other'}`, { n: r.echecs }));
+      } catch (err) {
+        console.error('Copy to the sync chain failed:', err);
+      }
+    }
     try {
       if (window.electron?.setRootDir && vaultPath !== 'cloud://') {
         await window.electron.setRootDir(vaultPath);
@@ -567,6 +629,7 @@ function App() {
   }, []);
 
   const fermerSynchro = useCallback(() => {
+    copieVersChaine.current = null;
     setShowCloudPanel(false);
     setCloudPanelReason(null);
   }, []);
@@ -932,47 +995,45 @@ function App() {
     await fileSystem.openFolderDialog();
   };
 
-  // --- Source Picker callbacks ---
-  const handleSourceICloud = useCallback(async () => {
-    await fileSystem.ensurePlatform();
-    if (fileSystem.isCapacitor()) {
-      // Appareil sans iCloud Drive (cas typique d'un device de review Apple) :
-      // ne pas persister une source inutilisable: l'ancien code laissait
-      // l'app démarrer sur un écran vide sans issue au prochain lancement.
-      const available = await fileSystem.isAvailable();
-      if (!available) {
-        alert(t('source.icloudUnavailable'));
-        return;
-      }
-      setRootDirPath('icloud://');
-    } else if (fileSystem.isElectron() && window.electron) {
-      const homePath = window.electron.getHomePath();
-      const iCloudDir = `${homePath}/Library/Mobile Documents/iCloud~com~lector~app/Documents`;
-      // setRootDir IPC will trigger onRootDirSet → setRootDirPath + start watcher
-      await window.electron.setRootDir(iCloudDir);
-    }
+  // Écran 1 : le dossier des notes est prêt (créé, rouvert ou choisi).
+  const handleVaultReady = useCallback(async ({ rootDirPath: dossier, sourceType }) => {
     sourceChoisie.current = true;
-    localStorage.setItem(SOURCE_TYPE_KEY, 'icloud');
+    localStorage.setItem(SOURCE_TYPE_KEY, sourceType);
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ rootDirPath: dossier }));
+    setCurrentDoc(null);
+    setRootDirPath(dossier);
+    const { bienvenue } = await import('./services/vaultSetup');
+    const welcome = await bienvenue(dossier);
+    setSidebarRefreshKey(k => k + 1);
     setShowSourcePicker(false);
+    // Écran 2 au premier lancement seulement, et jamais avec une chaîne déjà en place.
+    let aUneChaine = false;
+    try {
+      if (window.electron?.cloud?.status) aUneChaine = !!(await window.electron.cloud.status())?.hasChain;
+      else aUneChaine = await (await import('./services/chaineWeb')).aUneChaine();
+    } catch {}
+    if (!localStorage.getItem(ONBOARDING_DONE_KEY) && !aUneChaine) {
+      const etat = { step: 'sync', welcome };
+      localStorage.setItem(ONBOARDING_KEY, JSON.stringify(etat));
+      setOnboarding(etat);
+      return;
+    }
+    localStorage.setItem(ONBOARDING_DONE_KEY, '1');
+    if (welcome) fileSystem.openFileByPath(welcome).catch(() => {});
   }, []);
 
-  const handleSourceFolder = useCallback(async () => {
-    const result = await fileSystem.openFolderDialog();
-    if (result) {
-      sourceChoisie.current = true;
-      localStorage.setItem(SOURCE_TYPE_KEY, 'folder');
-      setShowSourcePicker(false);
+  // Écran 2 : réponse à « Sync your devices? ».
+  const terminerOnboarding = useCallback((synchro) => {
+    const welcome = onboarding?.welcome;
+    localStorage.removeItem(ONBOARDING_KEY);
+    localStorage.setItem(ONBOARDING_DONE_KEY, '1');
+    setOnboarding(null);
+    if (welcome) fileSystem.openFileByPath(welcome).catch(() => {});
+    if (synchro) {
+      if (!fileSystem.isElectron()) copieVersChaine.current = rootDirPathRef.current;
+      setShowCloudPanel(true);
     }
-  }, []);
-
-  const handleSourceFile = useCallback(async () => {
-    const result = await fileSystem.openFileDialog();
-    if (result) {
-      sourceChoisie.current = true;
-      localStorage.setItem(SOURCE_TYPE_KEY, 'file');
-      setShowSourcePicker(false);
-    }
-  }, []);
+  }, [onboarding]);
 
   const handleReturnToSourcePicker = useCallback(() => {
     setCurrentDoc(null);
@@ -1068,29 +1129,23 @@ function App() {
     setTimeout(() => printWin.print(), 500);
   }, [currentDoc?.dirPath, rootDirPath]);
 
-  const openRecentFile = async (filePath) => {
-    sourceChoisie.current = true;
-    await fileSystem.openFileByPath(filePath);
-    // Dismiss picker if open
-    if (!localStorage.getItem(SOURCE_TYPE_KEY)) {
-      localStorage.setItem(SOURCE_TYPE_KEY, 'file');
-    }
-    setShowSourcePicker(false);
-  };
-
   if (showSourcePicker) {
     return (
       <div className="app">
-        <SourcePicker
-          onSelectICloud={handleSourceICloud}
-          onSelectFolder={handleSourceFolder}
-          onSelectFile={handleSourceFile}
-          onSelectLectorCloud={() => setShowCloudPanel(true)}
-          onSelectDemo={handleSourceDemo}
-          recentFiles={recentFiles}
-          onOpenRecent={openRecentFile}
+        <OnboardingWhere
+          onReady={handleVaultReady}
+          onDemo={handleSourceDemo}
+          firstRun={!localStorage.getItem(ONBOARDING_DONE_KEY)}
         />
         {panneauSynchro}
+      </div>
+    );
+  }
+
+  if (onboarding?.step === 'sync') {
+    return (
+      <div className="app">
+        <OnboardingSync onSetUp={() => terminerOnboarding(true)} onSkip={() => terminerOnboarding(false)} />
       </div>
     );
   }

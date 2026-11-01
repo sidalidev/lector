@@ -1,29 +1,63 @@
 import { test, expect } from '@playwright/test'
 
-// Au démarrage, la restauration de session est asynchrone (le navigateur lit
-// sa chaîne dans IndexedDB). Une source choisie entre-temps reste affichée :
-// le choix de la source ne revient pas par-dessus.
+// Premier lancement : deux écrans au plus, l'état survit à un rechargement,
+// et un utilisateur qui a déjà une source ne voit jamais l'onboarding.
 
 test.use({ locale: 'en-US' })
 
-test('la démo choisie pendant la restauration de session reste affichée', async ({ page }) => {
+async function appareilVierge(page) {
   await page.goto('/')
-  await page.evaluate(() => localStorage.clear())
-
-  // Restauration lente : le module de la chaîne du navigateur arrive 1,5 s plus tard.
-  let retarde = false
-  await page.route(/\/src\/services\/chaineWeb\.js/, async (route) => {
-    retarde = true
-    await new Promise((r) => setTimeout(r, 1500))
-    await route.continue()
+  await page.evaluate(async () => {
+    localStorage.clear()
+    const opfs = await navigator.storage.getDirectory()
+    try { await opfs.removeEntry('Lector Vault', { recursive: true }) } catch {}
+    await new Promise((resolve) => {
+      const req = indexedDB.deleteDatabase('lector-browser-vault')
+      req.onsuccess = req.onerror = req.onblocked = () => resolve()
+    })
   })
   await page.reload()
+}
 
-  await page.locator('.source-card-demo').click()
+test('créer le dossier, passer la synchro, arriver sur le document de bienvenue', async ({ page }) => {
+  await appareilVierge(page)
+  await expect(page.getByRole('heading', { name: 'Where should your notes live?' })).toBeVisible()
+  await page.getByRole('button', { name: 'Create my Lector folder' }).click()
+
+  await expect(page.getByRole('heading', { name: 'Sync your devices?' })).toBeVisible()
+  await expect(page.getByText('Markdown notes up to 20 MB in total')).toBeVisible()
+  // App tuée sur le deuxième écran : elle y revient.
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Sync your devices?' })).toBeVisible()
+  await page.getByRole('button', { name: 'Not now' }).click()
+
   await expect(page.locator('h1').first()).toContainText('Welcome to Lector')
-  await expect.poll(() => retarde).toBe(true)
-  // Bien après la fin de la restauration : toujours la démo, pas le choix de la source.
-  await page.waitForTimeout(2500)
-  await expect(page.locator('.source-card-demo')).toHaveCount(0)
+  await expect(page.locator('.file-tree-item', { hasText: 'Welcome to Lector' })).toBeVisible()
+
+  // Ensuite, plus jamais d'onboarding.
+  await page.reload()
   await expect(page.locator('h1').first()).toContainText('Welcome to Lector')
+  await expect(page.locator('.onboarding')).toHaveCount(0)
+})
+
+test('un dossier Lector Vault existant est proposé', async ({ page }) => {
+  await appareilVierge(page)
+  await page.getByRole('button', { name: 'Create my Lector folder' }).click()
+  await page.getByRole('button', { name: 'Not now' }).click()
+  await expect(page.locator('h1').first()).toContainText('Welcome to Lector')
+
+  await page.evaluate(() => { localStorage.removeItem('lector-source-type'); localStorage.removeItem('lector-last-session') })
+  await page.reload()
+  await page.getByRole('button', { name: 'Open Lector Vault' }).click()
+  // Le premier lancement est passé : pas de second écran, le dossier s'ouvre.
+  await expect(page.locator('.titlebar')).toBeVisible()
+  await expect(page.locator('.file-tree-item', { hasText: 'Welcome to Lector' })).toHaveCount(1)
+})
+
+test("un utilisateur d'avant l'onboarding ne le voit pas", async ({ page }) => {
+  await appareilVierge(page)
+  await page.evaluate(() => localStorage.setItem('lector-source-type', 'file'))
+  await page.reload()
+  await expect(page.locator('.titlebar')).toBeVisible()
+  await expect(page.locator('.onboarding')).toHaveCount(0)
 })

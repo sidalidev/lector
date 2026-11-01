@@ -225,6 +225,27 @@ class FileSystemService {
         return null
       }
     }
+    // Vault du navigateur (dossier privé ou dossier du disque choisi)
+    if (filePath?.startsWith('browser://')) {
+      const bv = await import('./browserVault');
+      try {
+        const content = await bv.lire(filePath);
+        const fileName = filePath.split('/').pop();
+        const lower = fileName.toLowerCase();
+        const data = {
+          content,
+          fileName,
+          filePath,
+          dirPath: bv.parent(filePath),
+          type: lower.endsWith('.md') || lower.endsWith('.markdown') ? 'markdown' : 'text',
+        };
+        this._emit('fileOpened', data);
+        return data;
+      } catch (err) {
+        console.error('openFileByPath browser error:', err);
+        return null;
+      }
+    }
     // Lector Vault (navigateur) : le bloc est téléchargé puis déchiffré ici.
     if (filePath?.startsWith('cloud://')) {
       const relPath = filePath.replace('cloud://', '');
@@ -345,6 +366,13 @@ class FileSystemService {
         }))
       } catch { return [] }
     }
+    if (dirPath?.startsWith('browser://')) {
+      const bv = await import('./browserVault');
+      try { return await bv.lister(dirPath); } catch (err) {
+        console.error('listDirectoryFiles browser error:', err);
+        return [];
+      }
+    }
     // Lector Vault (navigateur) : l'arbre vient du déchiffrement des chemins
     // du casier (le serveur ne les connaît pas).
     if (dirPath === 'cloud://' || dirPath?.startsWith('cloud://')) {
@@ -416,6 +444,10 @@ class FileSystemService {
 
   async readFile(filePath) {
     await this.ensurePlatform();
+    if (filePath?.startsWith('browser://')) {
+      const bv = await import('./browserVault');
+      try { return await bv.lire(filePath); } catch { return null; }
+    }
     // Lector Vault (navigateur) : recherche, ouverture rapide et contexte du chat
     // lisent le texte déchiffré (mis en cache pour la session).
     if (filePath?.startsWith('cloud://')) {
@@ -464,6 +496,10 @@ class FileSystemService {
 
   async writeFile(filePath, content) {
     await this.ensurePlatform();
+    if (filePath?.startsWith('browser://')) {
+      const bv = await import('./browserVault');
+      return bv.ecrire(filePath, content);
+    }
     // Lector Vault (navigateur) : chiffré ici, déposé avec If-Match (412 si
     // modifié ailleurs). Markdown seulement : un autre type est refusé
     // (ErreurChaine 400 NOT_MARKDOWN), comme un document trop gros (413).
@@ -503,6 +539,12 @@ class FileSystemService {
   // Créer un nouveau fichier dans un dossier SAF (Android) ou iCloud (iOS)
   async createNewFile(dirPath, fileName, content = '') {
     await this.ensurePlatform()
+    if (dirPath?.startsWith('browser://')) {
+      const bv = await import('./browserVault')
+      const uri = dirPath.endsWith('://') ? `${dirPath}${fileName}` : `${dirPath}/${fileName}`
+      await bv.ecrire(uri, content)
+      return { uri, fileName, success: true }
+    }
     if (this.isElectron()) {
       const filePath = `${dirPath}/${fileName}`
       await window.electron.saveFile?.(filePath, content)
@@ -532,6 +574,10 @@ class FileSystemService {
 
   async deleteFile(filePath) {
     await this.ensurePlatform();
+    if (filePath?.startsWith('browser://')) {
+      const bv = await import('./browserVault');
+      return bv.supprimer(filePath);
+    }
     if (this.isElectron()) {
       return window.electron.deleteFile?.(filePath);
     }
@@ -543,6 +589,10 @@ class FileSystemService {
 
   async createFolder(folderPath) {
     await this.ensurePlatform();
+    if (folderPath?.startsWith('browser://')) {
+      const bv = await import('./browserVault');
+      return bv.creerDossier(folderPath);
+    }
     if (this.isElectron()) {
       return window.electron.createFolder?.(folderPath);
     }
@@ -572,7 +622,7 @@ class FileSystemService {
     await this.ensurePlatform();
     // Lector Vault (navigateur) : seuls les fichiers markdown voyagent entre
     // appareils, les médias relatifs ne sont jamais disponibles ici.
-    if (basePath?.startsWith('cloud://')) return null;
+    if (basePath?.startsWith('cloud://') || basePath?.startsWith('browser://')) return null;
     // Mode hosted : charger les médias depuis le serveur
     if (basePath && basePath.startsWith('hosted://')) {
       const hostedId = basePath.replace('hosted://', '')

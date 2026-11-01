@@ -77,22 +77,35 @@ const en = {
   'cloud.status.minutesAgo': '{n}m ago',
   'cloud.status.quotaFull': 'locker full',
 
-  // SourcePicker
-  'source.title': 'Lector',
+  // Empty state
   'source.subtitle': 'Choose your source',
-  'source.vault': 'Lector Vault',
-  'source.vaultDesc': 'Your documents on all your devices, encrypted. No account.',
-  'source.icloud': 'iCloud',
-  'source.icloudDesc': 'Synced across your devices',
-  'source.folder': 'Folder',
-  'source.folderDesc': 'Choose a local folder',
-  'source.file': 'File',
-  'source.fileDesc': 'Open a single file',
-  'source.demo': 'Explore a sample',
-  'source.demoDesc': 'See Lector in action, nothing to set up',
-  'source.icloudUnavailable': 'iCloud Drive is not available on this device. Enable it in Settings, or try the sample to explore Lector.',
-  'source.recentFiles': 'Recent files',
-  'source.hint': '\u2318+O file · \u2318+\u21E7+O folder · Drag & drop',
+
+  // Onboarding (first launch): two screens at most
+  'onboarding.where.title': 'Where should your notes live?',
+  'onboarding.where.body.desktop': 'Lector keeps your notes as plain Markdown files, in a folder you own.',
+  'onboarding.where.body.android': 'Lector keeps your notes as plain Markdown files, in a folder you own.',
+  'onboarding.where.body.ios': 'Lector keeps your notes as plain Markdown files, in the Lector folder of iCloud Drive.',
+  'onboarding.where.body.web': 'Lector keeps your notes as plain Markdown files, in a folder in this browser.',
+  'onboarding.where.create': 'Create my Lector folder',
+  'onboarding.where.open': 'Open {name}',
+  'onboarding.where.existing': 'Use an existing folder',
+  'onboarding.where.other': 'Use another folder',
+  'onboarding.where.demo': 'Explore a sample',
+  'onboarding.android.guide': 'Next, create a folder named Lector Vault, then tap Use this folder.',
+  'onboarding.android.toast': 'Create a folder named Lector Vault, then tap Use this folder',
+  'onboarding.android.confirmToast': 'Lector Vault is ready. Tap Use this folder to finish',
+  'onboarding.android.reassure': 'Lector only sees this folder. Nothing else on your phone.',
+  'onboarding.web.reassure': 'Nothing leaves this browser unless you turn on sync.',
+  'onboarding.error.ICLOUD_UNAVAILABLE': 'iCloud Drive is off on this device. Turn it on in Settings to keep your notes in the Lector folder.',
+  'onboarding.error.BROWSER_UNSUPPORTED': 'This browser cannot keep a folder of notes. Try a recent version of Chrome, Safari or Firefox.',
+  'onboarding.error.generic': 'Lector could not open this folder. Try again, or pick another folder.',
+  'onboarding.sync.title': 'Sync your devices?',
+  'onboarding.sync.free': 'Free and end-to-end encrypted.',
+  'onboarding.sync.text': 'Made for text: Markdown notes up to 20 MB in total. Keep photos and large files in your usual cloud.',
+  'onboarding.sync.setUp': 'Set up sync',
+  'onboarding.sync.skip': 'Not now',
+  'onboarding.copyFailed.one': '1 note could not be copied to sync. It is still in your folder.',
+  'onboarding.copyFailed.other': '{n} notes could not be copied to sync. They are still in your folder.',
 
   // CommandPalette
   'cmd.searchCommand': 'Search command...',
@@ -737,7 +750,7 @@ const en = {
 
   // Document de bienvenue (iOS, premier lancement)
   'welcome.fileName': 'Welcome to Lector',
-  'welcome.content': '# Welcome to Lector\n\nLector is your **reading companion**: a beautiful document reader that helps you study, annotate, and master any text.\n\n## Getting started\n\n- **Open files** from iCloud using the sidebar\n- **Edit** any document by tapping the pencil icon\n- **Create** new notes with the + button in the command palette (⌘⇧P)\n- **Highlight** text by selecting it\n- **Flashcards** to test your knowledge\n\n## Features\n\n### Reading tools\n- Focus mode for distraction-free reading\n- Reading ruler to guide your eyes\n- Auto-scroll at your own pace\n- Presentation mode for slides\n\n### Study tools\n- Highlights & annotations\n- Flashcards with spaced repetition\n- Table of contents navigation\n- Full-text search across all documents\n\n### Supported formats\n- Markdown (.md)\n- MIDI music files (.mid)\n- MusicXML sheet music (.musicxml)\n- Guitar Pro tabs (.gp, .gp5, .gpx)\n\n---\n\n*Tap the pencil icon to edit this document, or open the sidebar to browse your files.*\n',
+  'welcome.content': '# Welcome to Lector\n\nLector is your **reading companion**: a beautiful document reader that helps you study, annotate, and master any text.\n\n## Getting started\n\n- **Open files** from the sidebar\n- **Edit** any document by tapping the pencil icon\n- **Create** new notes with the + button in the command palette (⌘⇧P)\n- **Highlight** text by selecting it\n- **Flashcards** to test your knowledge\n\n## Features\n\n### Reading tools\n- Focus mode for distraction-free reading\n- Reading ruler to guide your eyes\n- Auto-scroll at your own pace\n- Presentation mode for slides\n\n### Study tools\n- Highlights & annotations\n- Flashcards with spaced repetition\n- Table of contents navigation\n- Full-text search across all documents\n\n### Supported formats\n- Markdown (.md)\n- MIDI music files (.mid)\n- MusicXML sheet music (.musicxml)\n- Guitar Pro tabs (.gp, .gp5, .gpx)\n\n---\n\n*Tap the pencil icon to edit this document, or open the sidebar to browse your files.*\n',
 
   // Zone: Android update (AppUpdatePlugin)
   'appUpdate.ready': 'Update ready: Lector {version}',

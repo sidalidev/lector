@@ -1,4 +1,4 @@
-// Contenu de démo embarqué: mode demo:// du SourcePicker.
+// Contenu de démo embarqué: mode demo:// (repli du premier lancement, ?demo).
 // Aucun compte, aucun fichier, aucun réseau : le reviewer (et l'utilisateur curieux)
 // voit le produit en 5 secondes. Rien n'est persisté, le picker revient au
 // prochain lancement tant qu'une vraie source n'a pas été choisie.

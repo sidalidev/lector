@@ -76,22 +76,8 @@ const fr = {
   'cloud.status.minutesAgo': 'il y a {n} min',
   'cloud.status.quotaFull': 'casier plein',
 
-  // SourcePicker
-  'source.title': 'Lector',
+  // Empty state
   'source.subtitle': 'Choisis ta source',
-  'source.vault': 'Lector Vault',
-  'source.vaultDesc': 'Tes documents sur tous tes appareils, chiffrés. Sans compte.',
-  'source.icloud': 'iCloud',
-  'source.icloudDesc': 'Synchronisé entre tes appareils',
-  'source.folder': 'Dossier',
-  'source.folderDesc': 'Choisir un dossier local',
-  'source.file': 'Fichier',
-  'source.fileDesc': 'Ouvrir un fichier unique',
-  'source.demo': 'Découvrir avec un exemple',
-  'source.demoDesc': 'Voir Lector en action, rien à configurer',
-  'source.icloudUnavailable': 'iCloud Drive n\'est pas disponible sur cet appareil. Active-le dans Réglages, ou essaie l\'exemple pour découvrir Lector.',
-  'source.recentFiles': 'Fichiers récents',
-  'source.hint': '⌘+O fichier · ⌘+⇧+O dossier · Glisser-déposer',
   
   // CommandPalette
   'cmd.searchCommand': 'Rechercher une commande...',

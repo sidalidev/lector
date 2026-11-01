@@ -2,9 +2,12 @@ package com.lector.app;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.UriPermission;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.provider.DocumentsContract;
+import android.widget.Toast;
 import android.provider.OpenableColumns;
 import android.util.Base64;
 
@@ -218,6 +221,198 @@ public class FilePickerPlugin extends Plugin {
         } catch (Exception e) {
             call.reject("Failed to create file: " + e.getMessage());
         }
+    }
+
+    // === Lector Vault: one folder, through the system picker only ===
+    //
+    // No storage permission: Android grants access to the folder the user
+    // picks (Storage Access Framework) and to nothing else. An app cannot
+    // create a folder in Documents without a permission, so "Create my Lector
+    // folder" opens the picker on Documents and asks the user to create
+    // "Lector Vault" there. If they pick a parent folder instead (Documents
+    // itself, say), Lector creates "Lector Vault" inside it, opens the picker
+    // again on that folder, and gives the parent grant back.
+
+    static final String VAULT_NAME = "Lector Vault";
+    private static final String EXTERNAL_STORAGE = "com.android.externalstorage.documents";
+
+    private Intent treeIntent(Uri initial) {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        intent.addFlags(
+            Intent.FLAG_GRANT_READ_URI_PERMISSION |
+            Intent.FLAG_GRANT_WRITE_URI_PERMISSION |
+            Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+        );
+        if (initial != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, initial);
+        }
+        return intent;
+    }
+
+    @PluginMethod
+    public void pickVault(PluginCall call) {
+        boolean create = Boolean.TRUE.equals(call.getBoolean("create", false));
+        String hint = call.getString("hint");
+        Uri documents = DocumentsContract.buildDocumentUri(EXTERNAL_STORAGE, "primary:Documents");
+        if (hint != null && !hint.isEmpty()) {
+            Toast.makeText(getContext(), hint, Toast.LENGTH_LONG).show();
+        }
+        startActivityForResult(call, treeIntent(documents), create ? "pickVaultCreateResult" : "pickVaultResult");
+    }
+
+    @ActivityCallback
+    private void pickVaultResult(PluginCall call, ActivityResult result) {
+        if (call == null) return;
+        Uri tree = pickedTree(result);
+        if (tree == null) { resolveCancelled(call); return; }
+        keepGrant(tree);
+        call.resolve(folderResult(tree, folderName(tree)));
+    }
+
+    @ActivityCallback
+    private void pickVaultCreateResult(PluginCall call, ActivityResult result) {
+        if (call == null) return;
+        Uri tree = pickedTree(result);
+        if (tree == null) { resolveCancelled(call); return; }
+        keepGrant(tree);
+        String name = folderName(tree);
+        if (VAULT_NAME.equalsIgnoreCase(name)) {
+            call.resolve(folderResult(tree, name));
+            return;
+        }
+        // A parent folder was picked: make "Lector Vault" inside it, then ask
+        // the user to confirm that folder so the grant covers it alone.
+        try {
+            String childId = findOrCreateVault(tree);
+            call.getData().put("parentTree", tree.toString());
+            Uri initial = DocumentsContract.buildDocumentUri(tree.getAuthority(), childId);
+            String confirm = call.getString("confirmHint");
+            if (confirm != null && !confirm.isEmpty()) {
+                Toast.makeText(getContext(), confirm, Toast.LENGTH_LONG).show();
+            }
+            startActivityForResult(call, treeIntent(initial), "pickVaultConfirmResult");
+        } catch (Exception e) {
+            // Creating failed (read-only provider): keep the folder the user picked.
+            call.resolve(folderResult(tree, name));
+        }
+    }
+
+    @ActivityCallback
+    private void pickVaultConfirmResult(PluginCall call, ActivityResult result) {
+        if (call == null) return;
+        String parentStr = call.getString("parentTree");
+        Uri parent = parentStr != null ? Uri.parse(parentStr) : null;
+        Uri tree = pickedTree(result);
+        if (tree != null) keepGrant(tree);
+        if (parent != null && (tree == null || !parent.equals(tree))) releaseGrant(parent);
+        if (tree == null) { resolveCancelled(call); return; }
+        call.resolve(folderResult(tree, folderName(tree)));
+    }
+
+    /** Folders Lector can still open (grants kept across restarts). */
+    @PluginMethod
+    public void persistedFolders(PluginCall call) {
+        org.json.JSONArray list = new org.json.JSONArray();
+        for (UriPermission p : getContext().getContentResolver().getPersistedUriPermissions()) {
+            Uri uri = p.getUri();
+            if (!p.isReadPermission() || !p.isWritePermission()) continue;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && !DocumentsContract.isTreeUri(uri)) continue;
+            JSObject item = new JSObject();
+            item.put("path", uri.toString());
+            item.put("name", folderName(uri));
+            item.put("time", p.getPersistedTime());
+            list.put(item);
+        }
+        JSObject res = new JSObject();
+        res.put("folders", list);
+        call.resolve(res);
+    }
+
+    /** Gives a folder grant back, so Lector stops seeing that folder. */
+    @PluginMethod
+    public void releaseFolder(PluginCall call) {
+        String uriStr = call.getString("uri");
+        if (uriStr == null) { call.reject("uri required"); return; }
+        releaseGrant(Uri.parse(uriStr));
+        call.resolve();
+    }
+
+    private Uri pickedTree(ActivityResult result) {
+        if (result.getResultCode() != Activity.RESULT_OK || result.getData() == null) return null;
+        return result.getData().getData();
+    }
+
+    private void resolveCancelled(PluginCall call) {
+        JSObject cancelled = new JSObject();
+        cancelled.put("cancelled", true);
+        call.resolve(cancelled);
+    }
+
+    private void keepGrant(Uri tree) {
+        try {
+            getContext().getContentResolver().takePersistableUriPermission(
+                tree, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        } catch (Exception ignored) {}
+    }
+
+    private void releaseGrant(Uri tree) {
+        try {
+            getContext().getContentResolver().releasePersistableUriPermission(
+                tree, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        } catch (Exception ignored) {}
+    }
+
+    private JSObject folderResult(Uri tree, String name) {
+        JSObject res = new JSObject();
+        res.put("path", tree.toString());
+        res.put("name", name);
+        res.put("isDirectory", true);
+        return res;
+    }
+
+    private String folderName(Uri tree) {
+        String docId;
+        try { docId = DocumentsContract.getTreeDocumentId(tree); } catch (Exception e) { return "Folder"; }
+        String name = docId.contains(":") ? docId.substring(docId.lastIndexOf(":") + 1) : docId;
+        if (name.contains("/")) name = name.substring(name.lastIndexOf("/") + 1);
+        if (name.isEmpty()) {
+            // Root of a volume, or a provider with opaque ids: ask the provider.
+            try {
+                Uri doc = DocumentsContract.buildDocumentUriUsingTree(tree, docId);
+                Cursor c = getContext().getContentResolver().query(doc,
+                    new String[]{DocumentsContract.Document.COLUMN_DISPLAY_NAME}, null, null, null);
+                if (c != null) {
+                    if (c.moveToFirst()) name = c.getString(0);
+                    c.close();
+                }
+            } catch (Exception ignored) {}
+        }
+        return name == null || name.isEmpty() ? "Folder" : name;
+    }
+
+    private String findOrCreateVault(Uri tree) throws Exception {
+        String parentId = DocumentsContract.getTreeDocumentId(tree);
+        Uri children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, parentId);
+        Cursor c = getContext().getContentResolver().query(children, new String[]{
+            DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+            DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+            DocumentsContract.Document.COLUMN_MIME_TYPE
+        }, null, null, null);
+        if (c != null) {
+            try {
+                while (c.moveToNext()) {
+                    if (VAULT_NAME.equalsIgnoreCase(c.getString(1))
+                        && DocumentsContract.Document.MIME_TYPE_DIR.equals(c.getString(2))) {
+                        return c.getString(0);
+                    }
+                }
+            } finally { c.close(); }
+        }
+        Uri parentDoc = DocumentsContract.buildDocumentUriUsingTree(tree, parentId);
+        Uri created = DocumentsContract.createDocument(getContext().getContentResolver(), parentDoc,
+            DocumentsContract.Document.MIME_TYPE_DIR, VAULT_NAME);
+        if (created == null) throw new IllegalStateException("Folder not created");
+        return DocumentsContract.getDocumentId(created);
     }
 
     // === Activity Result Callbacks ===

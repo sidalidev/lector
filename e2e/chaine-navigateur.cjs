@@ -168,7 +168,7 @@ async function main() {
       })
     })
     await page.reload()
-    await page.locator('.source-card-featured').waitFor({ timeout: 60_000 })
+    await page.locator('.onboarding-primary').waitFor({ timeout: 60_000 })
 
     // 1. Sans chaîne : arbre vide, l'app est priée d'ouvrir l'écran Synchronisation.
     const sansChaine = await avecFileSystem(page, async (fs) => ({ arbre: await fs.listDirectoryFiles('cloud://'), signaux: [...window.__signaux] }))
@@ -177,7 +177,10 @@ async function main() {
 
     // 2. Créer depuis le navigateur : 12 mots affichés une fois, formulaire et API du gestionnaire de mots de passe.
     const creer = page.getByRole('button', { name: 'Protect and sync' })
-    if (!(await creer.isVisible())) await page.locator('.source-card-featured').click()
+    if (!(await creer.isVisible())) {
+      await page.locator('.onboarding-primary').click()
+      await page.getByRole('button', { name: 'Set up sync' }).click()
+    }
     await creer.click()
     const elementsMots = page.locator('.chaine-mots .chaine-mot')
     await elementsMots.first().waitFor({ timeout: 20_000 })
@@ -314,7 +317,7 @@ async function main() {
     await page.getByPlaceholder('ERASE').fill('ERASE')
     await page.locator('form').getByRole('button', { name: 'Erase everything' }).click()
     // L'app repart de zéro : retour au choix de la source.
-    await page.locator('.source-picker').waitFor({ timeout: 15_000 })
+    await page.locator('.onboarding').waitFor({ timeout: 15_000 })
     assert.equal(await lireEntree(page), null)
     const restes = await page.evaluate(() => new Promise((resolve, reject) => {
       const req = indexedDB.open('lector-keys', 1)

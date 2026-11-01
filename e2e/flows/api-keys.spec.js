@@ -15,8 +15,7 @@ test.beforeEach(async ({ page }) => {
       req.onsuccess = req.onerror = req.onblocked = () => resolve()
     })
   })
-  await page.reload()
-  await page.locator('.source-card-demo').click()
+  await page.goto('/?demo')
   await expect(page.locator('h1').first()).toBeVisible()
 })
 
