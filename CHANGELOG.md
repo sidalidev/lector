@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.0.1 (2026-11-01)
+
+### New
+- A new first launch in two screens at most: choose where your notes live, then set up sync or skip it.
+- "Create my Lector folder" makes a Lector Vault folder you own: Documents/Lector Vault on a computer, a folder you pick on Android, the Lector folder of iCloud Drive on iOS, a folder kept in the browser on the web. An existing Lector Vault is offered instead of creating a new one, and "Use an existing folder" opens an Obsidian vault or any other folder.
+- On Android, Lector only sees the folder you chose, through the system folder picker. It asks for no storage permission, and grants for other folders are released.
+- The sync screen says what fits: free, end-to-end encrypted, Markdown notes up to 20 MB in total. Notes already in your folder are copied to the chain, never overwriting a document already there.
+
+### Improved
+- An empty folder gets the welcome document; a folder that already has notes is never touched.
+- The first launch picks up where it stopped if the app is closed halfway.
+- Existing users, with a folder or a chain already set up, go straight to their notes.
+
+### Known issues
+- The Android first launch has not been tested on a real device yet.
+- On iOS, notes live in the Lector folder of iCloud Drive: picking another existing folder is not available yet.
+
 ## 2.0.0 (2026-11-01)
 
 ### New

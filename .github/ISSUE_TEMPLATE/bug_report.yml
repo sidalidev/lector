@@ -12,7 +12,7 @@ body:
     attributes:
       label: Lector version
       description: Shown in the About screen.
-      placeholder: "2.0.0"
+      placeholder: "2.0.1"
     validations:
       required: true
   - type: dropdown
