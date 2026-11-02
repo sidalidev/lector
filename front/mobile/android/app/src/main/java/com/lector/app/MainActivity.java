@@ -10,6 +10,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(FilePickerPlugin.class);
         registerPlugin(AppUpdatePlugin.class);
         registerPlugin(CredentialsPlugin.class);
+        registerPlugin(HaptiquePlugin.class);
         super.onCreate(savedInstanceState);
         // The config sets one background for both modes: use the theme one
         // (values / values-night) so dark mode never flashes cream at launch.

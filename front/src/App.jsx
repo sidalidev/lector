@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, useSyncExternalStore, lazy, Suspense } from 'react';
 import {
   Folder, Sliders, List, X, Focus, Ruler, Play, Pause,
   Highlighter, GraduationCap, Download, Minus, Plus,
@@ -29,6 +29,9 @@ import otaService from './services/otaService';
 import { getStreak } from './services/activityTracker';
 import useTranslation from './hooks/useTranslation'
 import { cheminDans } from './utils/chemins'
+import * as rappels from './services/rappels'
+import { vueAujourdhui } from './services/taches/taches.js'
+import { haptique } from './services/haptique'
 import { messageChaine } from './utils/messagesErreur'
 import { echapperHtml, markdownVersHtmlImpression } from './utils/impression'
 import './App.css';
@@ -47,6 +50,8 @@ const ApiKeysPanel = lazy(() => import('./components/ApiKeysPanel'));
 const AboutPanel = lazy(() => import('./components/AboutPanel'));
 const YouTubeImport = lazy(() => import('./components/YouTubeImport'));
 const TextToSpeech = lazy(() => import('./components/TextToSpeech'));
+const TodayView = lazy(() => import('./components/TodayView'));
+const NewTask = lazy(() => import('./components/NewTask'));
 
 // --- Haptic feedback (iOS) ---
 const haptic = (style = 'light') => {
@@ -173,6 +178,15 @@ function App() {
   const [newFileName, setNewFileName] = useState('');
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
   const [showTTS, setShowTTS] = useState(false);
+  // Tâches : vue Today, ajout rapide, message bref
+  const [showToday, setShowToday] = useState(false);
+  const [showNewTask, setShowNewTask] = useState(false);
+  const [toast, setToast] = useState(null);
+  const etatTaches = useSyncExternalStore(rappels.abonner, rappels.etatTaches);
+  const todayCount = useMemo(() => {
+    const v = vueAujourdhui(etatTaches.taches, Date.now());
+    return v.enRetard.length + v.aujourdhui.filter(x => !x.fait).length;
+  }, [etatTaches]);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -205,10 +219,10 @@ function App() {
 
   // On mobile with no doc, auto-open the files popover
   useEffect(() => {
-    if (isMobile && rootDirPath && !currentDoc) {
+    if (isMobile && rootDirPath && !currentDoc && !showToday) {
       setMobilePopover('files');
     }
-  }, [isMobile, rootDirPath, currentDoc]);
+  }, [isMobile, rootDirPath, currentDoc, showToday]);
 
   const closeMobilePopover = useCallback(() => {
     setPopoverClosing(true);
@@ -654,6 +668,7 @@ function App() {
       if (name === 'command-palette') setShowCommandPalette(prev => !prev);
       else if (name === 'about') setShowAbout(true);
       else if (name === 'quick-open') setShowQuickOpen(prev => !prev);
+      else if (name === 'new-task') { if (rootDirPathRef.current && !rootDirPathRef.current.startsWith('hosted://')) setShowNewTask(true); }
       else if (name === 'refresh-files') {
         // Re-scan vault from disk + re-read current open doc (catches edits made
         // by external tools: terminal, scripts, other editors)
@@ -724,6 +739,7 @@ function App() {
 
     const unsubFileOpened = fileSystem.onFileOpened((data) => {
       setCurrentDoc(data);
+      setShowToday(false);
       addToHistory(data);
       setEditMode(false);
       // Auto-dismiss source picker when a file is opened externally
@@ -989,6 +1005,113 @@ function App() {
   // Handle content change from edit mode
   const handleContentChange = useCallback((newContent) => {
     setCurrentDoc(prev => prev ? { ...prev, content: newContent } : prev);
+    // Une tâche écrite ou cochée : Today et les rappels suivent.
+    rappels.actualiserBientot(rootDirPathRef.current);
+  }, []);
+
+  // --- Tâches et rappels ---
+  // Relire le vault : à l'ouverture, au retour au premier plan, à la fin d'une
+  // synchro, après une écriture. Jamais de relecture périodique.
+  useEffect(() => {
+    if (!rootDirPath) { rappels.oublier(); return; }
+    rappels.actualiser(rootDirPath);
+  }, [rootDirPath]);
+
+  useEffect(() => {
+    const relire = () => { if (rootDirPathRef.current) rappels.actualiser(rootDirPathRef.current); };
+    const auPremierPlan = () => { if (document.visibilityState === 'visible') relire(); };
+    window.addEventListener('focus', relire);
+    document.addEventListener('visibilitychange', auPremierPlan);
+    const offSync = window.electron?.cloud?.onEvent?.((evt) => { if (evt?.type === 'sync-complete') relire(); });
+    const surDisque = window.electron?.onDirChanged?.(() => rappels.actualiserBientot(rootDirPathRef.current));
+    return () => {
+      window.removeEventListener('focus', relire);
+      document.removeEventListener('visibilitychange', auPremierPlan);
+      offSync?.();
+      if (surDisque) window.electron?.removeDirChangedListener?.(surDisque);
+    };
+  }, []);
+
+  // Ouvrir une note à la ligne d'une tâche (vue Today, notification touchée).
+  const ligneEnAttente = useRef(null);
+  const allerALaTache = useCallback(({ ligne, brut }) => {
+    let n = ligne;
+    const lignes = (currentDocRef.current?.content || '').split('\n').map(l => l.replace(/\r$/, ''));
+    if (brut && lignes[n - 1] !== brut) {
+      const i = lignes.indexOf(brut);
+      if (i >= 0) n = i + 1;
+    }
+    const el = document.querySelector(`.document-content [data-task-line="${n}"]`);
+    if (!el) { handleNavigateToLine(n, n); return; }
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('task-flash');
+    setTimeout(() => el.classList.remove('task-flash'), 2000);
+  }, [handleNavigateToLine]);
+
+  const ouvrirTache = useCallback(async ({ chemin, ligne, brut }) => {
+    if (!chemin) return;
+    setShowToday(false);
+    setMobilePopover(null);
+    setEditMode(false);
+    if (currentDocRef.current?.filePath === chemin) {
+      setTimeout(() => allerALaTache({ ligne, brut }), 80);
+      return;
+    }
+    ligneEnAttente.current = { chemin, ligne, brut };
+    await fileSystem.openFileByPath(chemin);
+  }, [allerALaTache]);
+
+  useEffect(() => {
+    const p = ligneEnAttente.current;
+    if (!p || currentDoc?.filePath !== p.chemin) return;
+    ligneEnAttente.current = null;
+    const timer = setTimeout(() => allerALaTache(p), 250);
+    return () => clearTimeout(timer);
+  }, [currentDoc?.filePath, allerALaTache]);
+
+  useEffect(() => rappels.ecouterOuverture((o) => ouvrirTache(o)), [ouvrirTache]);
+
+  const afficherToast = useCallback((texte) => {
+    setToast(texte);
+    setTimeout(() => setToast(null), 2200);
+  }, []);
+
+  const handleNewTask = useCallback(() => {
+    const root = rootDirPathRef.current;
+    if (!root || root.startsWith('hosted://')) return;
+    setMobilePopover(null);
+    setShowNewTask(true);
+  }, []);
+
+  const handleAddTask = useCallback(async (texte, quand) => {
+    try {
+      const r = await rappels.ajouterTache(rootDirPathRef.current, texte, quand);
+      if (!r) return false;
+      haptique('confirm');
+      if (currentDocRef.current?.filePath === r.chemin) {
+        setCurrentDoc(prev => prev ? { ...prev, content: r.contenu } : prev);
+      }
+      setSidebarRefreshKey(k => k + 1);
+      afficherToast(t('tasks.added'));
+      rappels.actualiser(rootDirPathRef.current);
+      return true;
+    } catch (err) {
+      alert(err?.code ? messageChaine(err) : t('tasks.writeFailed'));
+      return false;
+    }
+  }, [afficherToast]);
+
+  const handleTodayNoteChanged = useCallback((chemin, contenu) => {
+    if (currentDocRef.current?.filePath === chemin) {
+      setCurrentDoc(prev => prev ? { ...prev, content: contenu } : prev);
+    }
+  }, []);
+
+  const openToday = useCallback(() => {
+    setShowToday(true);
+    setEditMode(false);
+    setMobilePopover(null);
+    if (rootDirPathRef.current) rappels.actualiser(rootDirPathRef.current);
   }, []);
 
   const handleOpenFolder = async () => {
@@ -1157,7 +1280,7 @@ function App() {
       <div className="titlebar drag-region">
         <div className="titlebar-center">
           <div className="titlebar-title" title={`Lector v${APP_VERSION}`}>
-            {currentDoc?.fileName || 'Lector'}
+            {showToday ? t('tasks.today') : (currentDoc?.fileName || 'Lector')}
             {streak > 0 && <span className="streak-badge" title={t('app.streakTooltip', { n: streak })}>🔥 {streak}</span>}
             <span className="titlebar-version">v{APP_VERSION}</span>
           </div>
@@ -1249,6 +1372,10 @@ function App() {
                 onNewFile={handleNewFile}
                 refreshKey={sidebarRefreshKey}
                 hidden={!showSidebar}
+                onOpenToday={openToday}
+                onNewTask={handleNewTask}
+                todayActive={showToday}
+                todayCount={todayCount}
               />
               <div
                 className="sidebar-resize-handle"
@@ -1283,8 +1410,19 @@ function App() {
         {/* Document with integrated mind map */}
         <div className="content-area">
           {/* Reading Ruler: scoped to content area only */}
-          {showRuler && currentDoc && <ReadingRuler />}
-          {currentDoc ? (
+          {showRuler && currentDoc && !showToday && <ReadingRuler />}
+          {showToday ? (
+            <ErrorBoundary>
+              <Suspense fallback={null}>
+                <TodayView
+                  rootDirPath={rootDirPath}
+                  onOpenTask={ouvrirTache}
+                  onNewTask={handleNewTask}
+                  onNoteChanged={handleTodayNoteChanged}
+                />
+              </Suspense>
+            </ErrorBoundary>
+          ) : currentDoc ? (
               <ErrorBoundary>
                   <DocumentView
                     ref={documentViewRef}
@@ -1301,6 +1439,7 @@ function App() {
                     onContentChange={handleContentChange}
                     onOpenFlashcards={() => setShowFlashcards(true)}
                     onShowApiKeys={() => setShowApiKeys(true)}
+                    onTasksChanged={() => rappels.actualiser(rootDirPathRef.current)}
                   />
               </ErrorBoundary>
           ) : (
@@ -1308,7 +1447,7 @@ function App() {
           )}
 
           {/* Barre de progression de lecture: en bas de la zone document */}
-          {currentDoc && (
+          {currentDoc && !showToday && (
             <div className="doc-read-progress">
               <div ref={progressRef} className="doc-read-progress-fill" />
             </div>
@@ -1316,7 +1455,7 @@ function App() {
         </div>
 
         {/* Right Sidebar: desktop only (mobile uses popover) */}
-        {showRightSidebar && !isMobile && currentDoc && (
+        {showRightSidebar && !isMobile && currentDoc && !showToday && (
           <div
             className="right-sidebar-container"
             style={{ width: rightSidebarWidth }}
@@ -1457,6 +1596,8 @@ function App() {
               case 'youtube': setShowYouTubeImport(true); break;
               case 'tts': if (currentDoc) setShowTTS(true); break;
               case 'new-file': handleNewFile(); break;
+              case 'new-task': handleNewTask(); break;
+              case 'today': openToday(); break;
               case 'learn': setShowChatPanel(true); break;
             }
           }}
@@ -1497,6 +1638,14 @@ function App() {
 
       {/* Synchronisation */}
       {panneauSynchro}
+
+      {/* Ajout rapide d'une tâche (Inbox.md) */}
+      {showNewTask && (
+        <Suspense fallback={null}>
+          <NewTask onClose={() => setShowNewTask(false)} onAdd={handleAddTask} />
+        </Suspense>
+      )}
+      {toast && <div className="lector-toast" role="status">{toast}</div>}
 
       {/* Mini dialog nouveau fichier */}
       {showNewFileDialog && (
@@ -1619,6 +1768,10 @@ function App() {
                     onReturnHome={() => { closeMobilePopover(); handleReturnToSourcePicker(); }}
                     onNewFile={handleNewFile}
                     refreshKey={sidebarRefreshKey}
+                    onOpenToday={openToday}
+                    onNewTask={handleNewTask}
+                    todayActive={showToday}
+                    todayCount={todayCount}
                   />
                 )}
 
@@ -1866,7 +2019,7 @@ function App() {
           <Folder size={19} />
         </button>
 
-        {currentDoc && (
+        {currentDoc && !showToday && (
           <>
             <button
               className={`mobile-fab mobile-fab-center ${mobilePopover === 'tools' ? 'active' : ''}`}

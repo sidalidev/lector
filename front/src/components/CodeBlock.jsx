@@ -28,7 +28,7 @@ export default memo(function CodeBlock({ children, language, ...props }) {
       <SyntaxHighlighter
         style={codeTheme}
         lineNumberStyle={lineNumberStyle}
-        language={language}
+        language={language || 'text'}
         PreTag="div"
         className="code-block"
         {...props}

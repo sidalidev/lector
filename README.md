@@ -22,6 +22,27 @@ Windows and Linux builds can be made with electron-builder (`npm run dist:win` f
 
 <!-- TODO: add generated light and dark screenshots (desktop and Pixel) before the public release. No mockups. -->
 
+## Tasks and reminders
+
+Tasks are plain Markdown, the same syntax as the Obsidian Tasks and Reminder plugins, so your notes read the same in any editor:
+
+```markdown
+- [ ] Call the bank ⏰ 2026-11-03 14:30
+- [ ] Pay rent 📅 2026-11-05
+- [x] Send the form ✅ 2026-11-02
+```
+
+- `⏰ YYYY-MM-DD HH:mm`: a reminder at that time. `⏰ YYYY-MM-DD` alone reminds you at 9:00.
+- `📅 YYYY-MM-DD`: due that day, with a reminder at 9:00 (a `⏰` on the same line wins).
+- `✅ YYYY-MM-DD`: added when you check a task in Lector, removed when you uncheck it.
+- Times are wall-clock times: 14:30 means 14:30 where the device is. Lines in code blocks are ignored.
+
+Tap a box in any note to check it: Lector writes the change into the file, through the same path as the editor, so it syncs and handles conflicts like any other edit. **Today**, at the top of the sidebar, gathers overdue tasks, those due today and the next 7 days from all your notes. **New task** (⌘N on a computer, or the command palette) adds a line to `Inbox.md` at the root of your notes, with an optional date and time.
+
+Each device reads your notes and schedules its own local notifications: Android and iOS through the system alarm (no Google service), macOS while Lector is running, the web while the tab is open. No server knows about your reminders. On Android, notifications are asked for when you create your first reminder, and reminders are inexact (they may arrive a few minutes late, which saves battery) unless you turn on "Remind on time" in Today. Lector shows no other notification.
+
+Known issue: a reminder written on another device is scheduled on your phone only after Lector next opens or comes back to the foreground there. Lector has no background service, by choice, to save battery.
+
 ## How sync works
 
 1. Your first device draws a random 128-bit secret and shows it as 12 words (BIP39). Keep them in your password manager or on the printable recovery kit.

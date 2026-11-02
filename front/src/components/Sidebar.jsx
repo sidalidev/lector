@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useCallback, useRef, memo } from 'react';
-import { Folder, FolderOpen, FileText, Bookmark, Star, Music, Guitar, Copy, Clock, BookOpen, Search, Home, Plus } from 'lucide-react';
+import { Folder, FolderOpen, FileText, Bookmark, Star, Music, Guitar, Copy, Clock, BookOpen, Search, Home, Plus, CalendarCheck, ListPlus } from 'lucide-react';
 import { getMasteryScore } from '../services/spacedRepetition';
 import fileSystem from '../services/fileSystem';
 import syncService from '../services/syncService';
@@ -160,7 +160,7 @@ const FileTreeItem = memo(function FileTreeItem({ item, depth, isExpanded, isAct
   );
 });
 
-function Sidebar({ content, onNavigate, bookmarks = [], onBookmarkClick, dirPath, rootDirPath, currentFilePath, focusFolderPath, onFocusFolderHandled, recentFiles = [], onFileSelected, onReturnHome, onNewFile, refreshKey = 0, hidden = false }) {
+function Sidebar({ content, onNavigate, bookmarks = [], onBookmarkClick, dirPath, rootDirPath, currentFilePath, focusFolderPath, onFocusFolderHandled, recentFiles = [], onFileSelected, onReturnHome, onNewFile, refreshKey = 0, hidden = false, onOpenToday, onNewTask, todayActive = false, todayCount = 0 }) {
   const [activeTab, setActiveTab] = useState('files');
   const [files, setFiles] = useState([]);
   const [expandedFolders, setExpandedFolders] = useState({});
@@ -418,6 +418,25 @@ function Sidebar({ content, onNavigate, bookmarks = [], onBookmarkClick, dirPath
 
   return (
     <aside className="sidebar" aria-label={t('sidebar.panel')} style={hidden ? { display: 'none' } : undefined}>
+      {/* Today : les tâches datées de toutes les notes, en tête de la navigation */}
+      {onOpenToday && rootDirPath && !rootDirPath.startsWith('hosted://') && (
+        <div className="sidebar-today-row">
+          <button
+            className={`sidebar-today ${todayActive ? 'active' : ''}`}
+            onClick={onOpenToday}
+            aria-current={todayActive ? 'page' : undefined}
+          >
+            <CalendarCheck size={17} />
+            <span className="sidebar-today-label">{t('tasks.today')}</span>
+            {todayCount > 0 && <span className="sidebar-today-count">{todayCount}</span>}
+          </button>
+          {onNewTask && (
+            <button className="sidebar-today-add" onClick={onNewTask} title={t('tasks.newTask')} aria-label={t('tasks.newTask')}>
+              <ListPlus size={17} />
+            </button>
+          )}
+        </div>
+      )}
       {/* Quick file search */}
       {activeTab === 'files' && files.length > 0 && (
         <div className="sidebar-quick-search">

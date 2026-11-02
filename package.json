@@ -1,6 +1,6 @@
 {
   "name": "lector",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "Beautiful Markdown reader with mind maps",
   "license": "MIT",
   "main": "front/desktop/main.js",
@@ -23,7 +23,7 @@
     "test:ui": "npx playwright test --ui --config e2e/playwright.config.js",
     "test:api": "npx playwright test --project=api --config e2e/playwright.config.js",
     "test:flows": "npx playwright test --project=flows --config e2e/playwright.config.js",
-    "test:chaine": "node --test front/src/services/chaine/*.test.mjs front/desktop/*.test.cjs"
+    "test:chaine": "node --test front/src/services/chaine/*.test.mjs front/src/services/taches/*.test.mjs front/desktop/*.test.cjs"
   },
   "author": {
     "name": "Sid",
@@ -195,6 +195,7 @@
     "@capacitor/cli": "^8.5.3",
     "@capacitor/core": "^8.5.3",
     "@capacitor/ios": "^8.5.3",
+    "@capacitor/local-notifications": "^8.3.1",
     "@codemirror/lang-markdown": "^6.5.0",
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
     "@fontsource-variable/literata": "^5.3.0",

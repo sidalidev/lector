@@ -1981,3 +1981,69 @@
   opacity: 0.6;
 }
 
+
+/* --- Tâches : - [ ] et - [x], cochables dans la lecture --- */
+.document-content li.task-list-item {
+  list-style: none;
+  position: relative;
+}
+.document-content ul.contains-task-list {
+  padding-left: 0.4em;
+}
+.document-content ul.contains-task-list ul.contains-task-list {
+  padding-left: 1.6em;
+}
+.document-content .task-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.15em;
+  height: 1.15em;
+  margin: 0 0.55em 0 0;
+  vertical-align: -0.18em;
+  border: 2px solid var(--text-muted);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  flex-shrink: 0;
+}
+.document-content .task-checkbox:active {
+  transform: scale(0.88);
+}
+.document-content .task-checkbox:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.document-content .task-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 32%;
+  top: 14%;
+  width: 26%;
+  height: 50%;
+  border: solid var(--on-accent);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.document-content .task-checkbox:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.document-content li.task-list-item:has(> .task-checkbox:checked),
+.document-content li.task-list-item:has(> p > .task-checkbox:checked) {
+  color: var(--text-muted);
+}
+@media (prefers-reduced-motion: reduce) {
+  .document-content .task-checkbox { transition: none; }
+}
+@media (max-width: 768px) {
+  .document-content .task-checkbox { width: 1.4em; height: 1.4em; vertical-align: -0.3em; }
+}
+
+/* Tâche rejointe depuis Today ou une notification */
+.document-content li.task-flash {
+  background: rgba(var(--accent-rgb), 0.22);
+  border-radius: 8px;
+  transition: background-color 0.4s ease;
+}

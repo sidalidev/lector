@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Scroll, BookOpen, Highlighter, Ruler,
-  Search, Sidebar, PanelRight, Maximize2, Zap, KeyRound, Youtube, FilePlus, Volume2, FolderDown, GraduationCap, Cloud, Info
+  Search, Sidebar, PanelRight, Maximize2, Zap, KeyRound, Youtube, FilePlus, Volume2, FolderDown, GraduationCap, Cloud, Info, CalendarCheck, ListPlus
 } from 'lucide-react';
 import normalizeSearch from '../utils/normalizeSearch';
 import { t } from '../services/i18n'
@@ -18,6 +18,8 @@ function CommandPalette({ onClose, onCommand }) {
 
   const commands = useMemo(() => {
     const all = [
+      { id: 'today', label: t('cmd.today'), description: t('cmd.todayDesc'), icon: CalendarCheck, keywords: 'today tasks todo due overdue reminders week agenda' },
+      { id: 'new-task', label: t('cmd.newTask'), description: t('cmd.newTaskDesc'), icon: ListPlus, keywords: 'new task todo reminder inbox add rappel tache', shortcut: fileSystem.isElectron() ? '⌘N' : null },
       { id: 'autoscroll', label: t('cmd.autoscroll'), description: t('cmd.autoscrollDesc'), icon: Scroll, keywords: 'scroll defiler auto' },
       { id: 'focus', label: t('cmd.focus'), description: t('cmd.focusDesc'), icon: Maximize2, keywords: 'focus zen distraction' },
       { id: 'ruler', label: t('cmd.ruler'), description: t('cmd.rulerDesc'), icon: Ruler, keywords: 'ruler regle lecture ligne' },
@@ -117,6 +119,7 @@ function CommandPalette({ onClose, onCommand }) {
                   <span className="command-palette-label">{cmd.label}</span>
                   <span className="command-palette-desc">{cmd.description}</span>
                 </div>
+                {cmd.shortcut && <kbd className="command-palette-shortcut">{cmd.shortcut}</kbd>}
               </button>
             );
           })}

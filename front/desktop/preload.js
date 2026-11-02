@@ -70,6 +70,20 @@ contextBridge.exposeInMainWorld('electron', {
   installUpdate: () => ipcRenderer.invoke('install-update'),
   ytDlpTranscript: (videoId) => ipcRenderer.invoke('yt-dlp-transcript', videoId),
 
+  // --- Tâches et rappels : notes qui contiennent des cases, notifications locales ---
+  taches: {
+    collecter: (racine) => ipcRenderer.invoke('taches:collecter', racine),
+  },
+  rappels: {
+    programmer: (liste) => ipcRenderer.invoke('rappels:programmer', liste),
+    enAttente: () => ipcRenderer.invoke('rappels:en-attente'),
+    onOuvrir: (callback) => {
+      const handler = (_event, cible) => callback(cible);
+      ipcRenderer.on('rappels:ouvrir', handler);
+      return () => ipcRenderer.removeListener('rappels:ouvrir', handler);
+    },
+  },
+
   // --- Premier lancement : le dossier des notes (Documents/Lector Vault) ---
   vault: {
     suggest: () => ipcRenderer.invoke('vault:suggest'),

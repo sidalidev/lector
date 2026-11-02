@@ -12,5 +12,11 @@
   "android": {
     "path": "mobile/android",
     "backgroundColor": "#FBF7EF"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_lector",
+      "iconColor": "#E9A23B"
+    }
   }
 }

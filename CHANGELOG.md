@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.1.0 (2026-11-02)
+
+### New
+- Tasks in any note: tap a `- [ ]` box to check it off. Lector writes `- [x]` and the date, `✅ 2026-11-02`, into the file, like the Obsidian Tasks plugin, and syncs it like any other edit.
+- Reminders written in your notes: `⏰ 2026-11-03 14:30` for a time, `📅 2026-11-05` for a due date (reminder at 9:00). Each device schedules its own local notifications; no server knows about them.
+- Today, at the top of the sidebar: overdue tasks, those due today and the next 7 days from all your notes, with the note they come from. Check them off from there.
+- New task (⌘N on a computer, or the command palette) adds a line to Inbox.md, with an optional date and time.
+
+### Improved
+- Touching a reminder opens its note at the right line.
+- On Android, checking a task gives a light haptic tick that follows the system setting, with no vibration permission.
+- Notifications are asked for only when you create your first reminder, with a sentence that says why. Reminders are inexact by default to save battery; "Remind on time" in Today turns on exact alarms if you allow them.
+- A code block without a language no longer stops a document from displaying.
+
+### Known issues
+- A reminder written on another device is scheduled on the phone only after Lector next opens or comes back to the foreground there: there is no background service, by choice, to save battery.
+- On a computer, reminders appear while Lector is running; on the web, while the tab is open.
+- Reminders on Android have not been tested on a real device yet.
+
 ## 2.0.1 (2026-11-01)
 
 ### New

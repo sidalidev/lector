@@ -9,6 +9,10 @@ Lector is your **reading companion**: a beautiful Markdown reader that helps you
 
 > This is a sample document. Nothing to set up: browse the sidebar to see what Lector can do, then pick your real source whenever you're ready.
 
+## Tasks and reminders
+
+Write \`- [ ]\` in any note and tap the box to check it off. Add \`⏰ 2026-11-03 14:30\` for a reminder, or \`📅 2026-11-05\` for a due date. **Today**, at the top of the sidebar, gathers them from every note: open *This week* to try it.
+
 ## Reading tools
 
 - **Focus mode**: dim everything but the paragraph you're reading
@@ -129,9 +133,40 @@ const lire = (doc) => {
 \`\`\`
 `
 
+// Tâches de la démo : datées par rapport au jour de l'ouverture, pour que Today montre quelque chose.
+function jourDemo(decalage) {
+  const d = new Date()
+  d.setHours(12, 0, 0, 0)
+  d.setDate(d.getDate() + decalage)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+const EN_TASKS = `# This week
+
+Tasks are plain Markdown: tap a box to check it off, and Lector writes it in the note. **Today**, at the top of the sidebar, gathers them from every note.
+
+## Home
+
+- [ ] Renew the car insurance 📅 ${jourDemo(-1)}
+- [ ] Call the bank about the transfer ⏰ ${jourDemo(0)} 14:30
+- [ ] Water the tomatoes ⏰ ${jourDemo(0)} 19:00
+- [x] Book the dentist ⏰ ${jourDemo(0)} 09:00 ✅ ${jourDemo(0)}
+
+## Work
+
+- [ ] Send the quarterly report ⏰ ${jourDemo(1)} 10:00
+- [ ] Prepare the workshop slides 📅 ${jourDemo(3)}
+- [ ] Read the onboarding notes
+
+## Later
+
+- [ ] Plan the trip to the mountains 📅 ${jourDemo(12)}
+`
+
 const DOCS = {
   en: [
     { name: 'Welcome to Lector.md', content: EN_WELCOME },
+    { name: 'This week.md', content: EN_TASKS },
     { name: 'Diagrams & math.md', content: EN_DIAGRAMS },
   ],
   fr: [
@@ -147,4 +182,12 @@ export function getDemoFiles(locale) {
 export function getDemoFile(locale, name) {
   const files = getDemoFiles(locale)
   return files.find(f => f.name === name) || files[0]
+}
+
+/** Démo : une note modifiée (case cochée) le reste en mémoire jusqu'à la fermeture. */
+export function setDemoFile(locale, name, content) {
+  const files = getDemoFiles(locale)
+  const file = files.find(f => f.name === name)
+  if (file) file.content = content
+  else files.push({ name, content })
 }

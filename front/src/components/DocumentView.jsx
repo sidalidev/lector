@@ -42,6 +42,8 @@ const MarkdownEditor = lazy(() => import('./MarkdownEditor'));
 import './DocumentView.css';
 import { t } from '../services/i18n'
 import { besoinDeCle, messageChaine } from '../utils/messagesErreur'
+import { basculerTache, jourLocal } from '../services/taches/taches.js'
+import { haptique } from '../services/haptique'
 
 /** Vrai si le dossier fait partie du vault synchronisé par la chaîne (ordinateur). */
 async function estDansVaultSynchronise(dirPath) {
@@ -142,6 +144,7 @@ const DocumentView = memo(forwardRef(function DocumentView({
   onContentChange,
   onOpenFlashcards,
   onShowApiKeys,
+  onTasksChanged,
 }, ref) {
   const internalRef = useRef(null);
   const setRefs = useCallback((node) => {
@@ -545,15 +548,19 @@ const DocumentView = memo(forwardRef(function DocumentView({
 
   // Process content with header IDs, source line numbers, and extract headers for bookmarks
   // Skip headers inside fenced code blocks (``` ... ```)
-  const { processedContent, headers } = useMemo(() => {
+  const { processedContent, headers, sourceLines } = useMemo(() => {
     let headerIndex = 0;
     const extractedHeaders = [];
     const slugCounts = {};
 
     const lines = restContent.split('\n');
     let inCodeBlock = false;
+    // Ligne du texte affiché d'où vient chaque ligne envoyée au rendu (un titre en produit deux).
+    const sourceLines = [];
     const processed = lines.map((line, idx) => {
       const sourceLine = lineOffsets[idx] || (idx + 1);
+      sourceLines.push(sourceLine);
+      if (/^(#{1,6})\s+(.+)$/.test(line) && !inCodeBlock && !line.trimStart().startsWith('```')) sourceLines.push(sourceLine);
       if (line.trimStart().startsWith('```')) {
         inCodeBlock = !inCodeBlock;
         return line;
@@ -590,8 +597,33 @@ const DocumentView = memo(forwardRef(function DocumentView({
       return line;
     }).join('\n');
 
-    return { processedContent: processed, headers: extractedHeaders };
+    return { processedContent: processed, headers: extractedHeaders, sourceLines };
   }, [restContent, lineOffsets]);
+
+  // --- Cases à cocher : toucher une case l'écrit dans le fichier, par le même
+  // chemin que l'éditeur (enregistrer), donc la même synchro et les mêmes conflits.
+  // displayContent a perdu les lignes vides du début (trim) : on les rajoute.
+  const leadingLines = useMemo(() => ((/^\s*/.exec(content || '')[0]).match(/\n/g) || []).length, [content]);
+  const sourceLinesRef = useRef(sourceLines);
+  sourceLinesRef.current = sourceLines;
+  const leadingLinesRef = useRef(leadingLines);
+  leadingLinesRef.current = leadingLines;
+  const contentRef = useRef(content);
+  contentRef.current = content;
+  const toggleTaskRef = useRef(null);
+  toggleTaskRef.current = async (fileLine) => {
+    const before = contentRef.current;
+    if (typeof before !== 'string' || !fileLine) return;
+    const expected = before.split('\n')[fileLine - 1]?.replace(/\r$/, '');
+    const r = basculerTache(before, fileLine, jourLocal(Date.now()), expected);
+    if (!r) return;
+    haptique(r.fait ? 'confirm' : 'tick');
+    if (onContentChange) onContentChange(r.contenu);
+    if (!filePath || filePath.startsWith('hosted://')) return;
+    const ok = await enregistrer(filePath, r.contenu);
+    if (!ok) { if (onContentChange) onContentChange(before); return; }
+    if (onTasksChanged) onTasksChanged();
+  };
 
 
   // Notify parent of doc info (headers, metadata, generate callback) for right sidebar
@@ -785,6 +817,35 @@ const DocumentView = memo(forwardRef(function DocumentView({
 
   // Custom components for ReactMarkdown
   const components = useMemo(() => ({
+    li: ({ node, className, children, ...props }) => {
+      if (!className || !String(className).includes('task-list-item')) {
+        return <li className={className} {...props}>{children}</li>;
+      }
+      const renderLine = node?.position?.start?.line;
+      const displayLine = renderLine ? sourceLinesRef.current?.[renderLine - 1] : null;
+      const fileLine = displayLine ? displayLine + leadingLinesRef.current : null;
+      return (
+        <li className={className} data-task-line={fileLine || undefined} data-source-line={displayLine || undefined} {...props}>
+          {children}
+        </li>
+      );
+    },
+    input: ({ node, ...props }) => {
+      if (props.type !== 'checkbox') return <input {...props} />;
+      return (
+        <input
+          type="checkbox"
+          className="task-checkbox"
+          checked={!!props.checked}
+          aria-label={props.checked ? t('tasks.markOpen') : t('tasks.markDone')}
+          onChange={(e) => {
+            const li = e.currentTarget.closest('li[data-task-line]');
+            const line = li ? Number(li.getAttribute('data-task-line')) : 0;
+            if (line) toggleTaskRef.current?.(line);
+          }}
+        />
+      );
+    },
     img: ({ src, alt }) => {
       const isLocal = src && !src.startsWith('http') && !src.startsWith('data:');
       const isHtml = src && /\.html?$/i.test(src);

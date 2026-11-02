@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, Menu, shell, protocol, net, safeStorage, systemPreferences, powerMonitor, nativeTheme } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, shell, protocol, net, safeStorage, systemPreferences, powerMonitor, nativeTheme, Notification } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
@@ -446,6 +446,12 @@ function createAppMenu() {
     {
       label: 'File',
       submenu: [
+        {
+          label: 'New task',
+          accelerator: 'CmdOrCtrl+N',
+          click: () => mainWindow?.webContents.send('menu-shortcut', 'new-task'),
+        },
+        { type: 'separator' },
         {
           label: 'Open file…',
           accelerator: 'CmdOrCtrl+O',
@@ -1447,6 +1453,131 @@ ipcMain.handle('save-file', async (event, filePath, content) => {
     return false;
   }
 });
+
+// --- Tâches et rappels ---
+// Le renderer lit les tâches (ce handler lui donne les notes qui en contiennent)
+// et confie ici les rappels à venir. Le processus principal tient les minuteurs
+// et affiche les notifications tant que l'app tourne, fenêtre fermée comprise.
+// Rien ne sort de l'ordinateur.
+
+const LIGNE_CASE = /^[ \t>]*(?:[-*+]|\d{1,9}[.)])[ \t]+\[[ xX]\][ \t]+\S/m;
+const MAX_NOTES_TACHES = 10000;
+const MAX_OCTETS_NOTE = 2 * 1024 * 1024;
+
+ipcMain.handle('taches:collecter', async (event, racine) => {
+  try {
+    const dossier = acces.verifier(racine);
+    if (!dossier || !fs.statSync(dossier).isDirectory()) return { ok: false };
+    const notes = [];
+    let vues = 0;
+    let complet = true;
+    const parcourir = async (dir) => {
+      let entrees;
+      try { entrees = await fs.promises.readdir(dir, { withFileTypes: true }); } catch { complet = false; return; }
+      for (const e of entrees) {
+        if (e.isSymbolicLink() || e.name.startsWith('.')) continue;
+        const chemin = path.join(dir, e.name);
+        if (e.isDirectory()) {
+          if (!shouldSkipDir(e.name)) await parcourir(chemin);
+          continue;
+        }
+        if (!e.isFile() || !MARKDOWN.includes(path.extname(e.name).toLowerCase())) continue;
+        if (++vues > MAX_NOTES_TACHES) { complet = false; return; }
+        try {
+          const st = await fs.promises.stat(chemin);
+          if (st.size > MAX_OCTETS_NOTE) continue;
+          const content = await fs.promises.readFile(chemin, 'utf-8');
+          if (LIGNE_CASE.test(content)) notes.push({ path: chemin, content });
+        } catch { complet = false; }
+      }
+    };
+    await parcourir(dossier);
+    return { ok: true, notes, complet };
+  } catch (error) {
+    debugLog('taches:collecter failed: ' + error.message);
+    return { ok: false };
+  }
+});
+
+let rappels = [];               // [{ id, quand, titre, note, chemin, ligne, brut }]
+let minuteurRappels = null;
+const rappelsSonnes = new Set(); // ids déjà affichés pendant cette session
+const notificationsVivantes = new Set(); // gardées en mémoire jusqu'au clic (macOS)
+let ouvertureRappel = null;      // rappel touché avant que la fenêtre soit prête
+
+function texteCourt(v, max) {
+  return typeof v === 'string' ? v.replace(/[\r\n]+/g, ' ').slice(0, max) : '';
+}
+
+function ouvrirDepuisRappel(r) {
+  const cible = { chemin: r.chemin, ligne: r.ligne, brut: r.brut };
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    ouvertureRappel = cible; // la fenêtre neuve la demande au démarrage
+    createWindow();
+    return;
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+  if (mainWindow.webContents.isLoading()) ouvertureRappel = cible;
+  else mainWindow.webContents.send('rappels:ouvrir', cible);
+}
+
+function sonner(r) {
+  if (!Notification.isSupported()) return;
+  const n = new Notification({ title: r.titre, body: r.note });
+  notificationsVivantes.add(n);
+  n.on('click', () => { notificationsVivantes.delete(n); ouvrirDepuisRappel(r); });
+  n.on('close', () => notificationsVivantes.delete(n));
+  n.show();
+}
+
+// Affiche les rappels échus (y compris pendant une mise en veille), puis
+// arme un seul minuteur pour le prochain, plafonné à un jour.
+function armerRappels() {
+  clearTimeout(minuteurRappels);
+  minuteurRappels = null;
+  const maintenant = Date.now();
+  for (const r of rappels) {
+    if (r.quand <= maintenant && !rappelsSonnes.has(r.id)) {
+      rappelsSonnes.add(r.id);
+      sonner(r);
+    }
+  }
+  rappels = rappels.filter((r) => r.quand > maintenant);
+  if (!rappels.length) return;
+  const prochain = Math.min(...rappels.map((r) => r.quand));
+  minuteurRappels = setTimeout(armerRappels, Math.min(Math.max(prochain - maintenant, 0), 24 * 60 * 60 * 1000));
+}
+
+ipcMain.handle('rappels:programmer', (event, liste) => {
+  if (!Array.isArray(liste)) return false;
+  // D'abord ce qui était dû avant ce nouveau calendrier (retour de veille).
+  armerRappels();
+  rappels = liste.slice(0, 100).flatMap((r) => {
+    if (!r || !Number.isInteger(r.id) || !Number.isFinite(r.quand)) return [];
+    if (!acces.verifier(r.chemin, MARKDOWN)) return [];
+    return [{
+      id: r.id,
+      quand: r.quand,
+      titre: texteCourt(r.titre, 300) || 'Reminder',
+      note: texteCourt(r.note, 200),
+      chemin: r.chemin,
+      ligne: Number.isInteger(r.ligne) && r.ligne > 0 ? r.ligne : 1,
+      brut: texteCourt(r.brut, 2000),
+    }];
+  });
+  armerRappels();
+  return true;
+});
+
+ipcMain.handle('rappels:en-attente', () => {
+  const o = ouvertureRappel;
+  ouvertureRappel = null;
+  return o;
+});
+
+app.whenReady().then(() => powerMonitor.on('resume', () => armerRappels()));
 
 // Window opacity
 ipcMain.handle('set-window-opacity', (event, opacity) => {

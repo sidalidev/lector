@@ -496,6 +496,13 @@ class FileSystemService {
 
   async writeFile(filePath, content) {
     await this.ensurePlatform();
+    // Démo : en mémoire seulement, rien n'est persisté.
+    if (filePath?.startsWith('demo://')) {
+      const { setDemoFile } = await import('./demoContent');
+      const { getLocale } = await import('./i18n');
+      setDemoFile(getLocale(), filePath.replace('demo://', ''), content);
+      return true;
+    }
     if (filePath?.startsWith('browser://')) {
       const bv = await import('./browserVault');
       return bv.ecrire(filePath, content);
@@ -539,6 +546,10 @@ class FileSystemService {
   // Créer un nouveau fichier dans un dossier SAF (Android) ou iCloud (iOS)
   async createNewFile(dirPath, fileName, content = '') {
     await this.ensurePlatform()
+    if (dirPath === 'demo://') {
+      await this.writeFile(`demo://${fileName}`, content)
+      return { uri: `demo://${fileName}`, fileName, success: true }
+    }
     if (dirPath?.startsWith('browser://')) {
       const bv = await import('./browserVault')
       const uri = dirPath.endsWith('://') ? `${dirPath}${fileName}` : `${dirPath}/${fileName}`
