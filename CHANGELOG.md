@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.1 (2026-11-09)
+
+### Fixed
+- On a computer, a network drop (sleep, Wi-Fi change) could open a second connection for update notices, and each later drop doubled them, until the whole system ran short of resources and froze. Lector now keeps one connection at a time, waits longer between retries when the server does not answer, and does nothing while the computer sleeps.
+
 ## 2.1.0 (2026-11-02)
 
 ### New
