@@ -108,7 +108,7 @@ The client keeps two Yjs documents: the **local** document (what the person sees
 
 ### 5.4 Compaction
 
-When a room holds more than 200 messages, or the log is over twice the last snapshot plus 64 KB, the relay sends `compact?` to the connection that just wrote. That client, if it has no unacknowledged update and decrypted every message, sends `compact` with the mirror's full state. The relay replaces stored messages up to `upto` with it. The relay cannot check a snapshot; a co-author could send a bad one, but a co-author can already erase the text (§ 3.3).
+When a room holds more than 200 messages since its last snapshot (`COLLAB_COMPACT_AFTER`), or uses more than half its quota plus 64 KB, the relay sends `compact?` to the connection that just wrote. When an update would exceed the quota, the relay refuses it (`QUOTA_EXCEEDED`, the change stays on the device) and asks for a snapshot. That client, if it has no unacknowledged update and decrypted every message, sends `compact` with the mirror's full state. The relay replaces stored messages up to `upto` with it. The relay cannot check a snapshot; a co-author could send a bad one, but a co-author can already erase the text (§ 3.3).
 
 ## 6. Relay
 
@@ -158,7 +158,15 @@ The shared document is a normal `.md` file in the owner's vault. The client keep
 - File to Y.Text: when the file changes outside the shared editor (another editor, sync from another device of the chain), the difference is applied to the Y.Text as one edit (`appliquerTexte`, common prefix and suffix), so it travels to co-authors like a normal edit.
 - `MarkdownEditor` takes an optional binding (`yCollab` with a per-person `Y.UndoManager`); without it, nothing changes.
 
-## 10. Known gaps
+## 10. Code and tests
+
+- Client: `front/src/services/collab/` (`crypto.js` keys, link and envelope; `salon.js` protocol client; `partage.js` create, open, stop; `stockage.js` IndexedDB). UI: `front/src/components/collab/`. Entry: `front/src/main.jsx` loads only `SharedDoc` on `/d/`.
+- Relay: `back/services/collab/relais.js` (protocol, limits), `stockagePrisma.js` and `stockageMemoire.js` (same contract), `config.js` (limits). Attached to the API's HTTP server in `back/index.js`.
+- `npm run test:chaine` runs `crypto.test.mjs` (derivations, link, AAD binding, padding) and `relais.test.mjs` (real relay, in-memory store: concurrent writing, disconnection, closed tab, stop, wrong proof, compaction, quota, and no plaintext in any frame or stored byte).
+- `npm test` runs `e2e/api/collab.spec.js` (relay on SQLite) and `e2e/flows/collab.spec.js` (two browser contexts through the Vite proxy: typing together, remote cursors, network cut, reload, download, stop; Share panel of the web app).
+- Development: the Vite server proxies `/v1` (WebSocket included) to `LECTOR_API`, `http://localhost:3456` by default.
+
+## 11. Known gaps
 
 - No read-only links, no per-person revocation: stopping the share cuts everyone.
 - The relay can drop messages or show an old state without detection.
