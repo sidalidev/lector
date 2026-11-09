@@ -22,6 +22,8 @@ const ENV_TEST = {
   CHAIN_MAX_DOC_BYTES: String(64 * 1024),
   CHAIN_QUOTA_BYTES: String(256 * 1024),
   CHAIN_MAX_DOCS: '20',
+  // Co-écriture : compactage rapide pour le tester sur la vraie base.
+  COLLAB_COMPACT_AFTER: '20',
 }
 
 module.exports = { BACK, DONNEES, PORT_TEST, ENV_TEST }
