@@ -3,7 +3,7 @@ import {
   Folder, Sliders, List, X, Focus, Ruler, Play, Pause,
   Highlighter, GraduationCap, Download, Minus, Plus,
   Blend, RefreshCw, Pencil, MessageCircle, Volume2, Sparkles,
-  Tag, FolderDown, Info
+  Tag, FolderDown, Info, Share2
 } from 'lucide-react';
 import { getTotalDueCount, getAllDueCards } from './services/spacedRepetition';
 import Sidebar from './components/Sidebar';
@@ -52,6 +52,11 @@ const YouTubeImport = lazy(() => import('./components/YouTubeImport'));
 const TextToSpeech = lazy(() => import('./components/TextToSpeech'));
 const TodayView = lazy(() => import('./components/TodayView'));
 const NewTask = lazy(() => import('./components/NewTask'));
+// Co-écriture : chargée à l'ouverture du panneau seulement (Yjs hors du paquet principal).
+const SharePanel = lazy(() => import('./components/collab/SharePanel'));
+// Partage en temps réel : version web d'abord. Sur ordinateur et mobile, le
+// document partagé doit encore être relié au fichier .md du vault (docs/collab-design.md § 9).
+const PARTAGE_POSSIBLE = typeof window !== 'undefined' && !window.electron && !window.Capacitor?.isNativePlatform?.();
 
 // --- Haptic feedback (iOS) ---
 const haptic = (style = 'light') => {
@@ -164,6 +169,7 @@ function App() {
   const [updateReady, setUpdateReady] = useState(null); // version string or null
   const [updateDismissed, setUpdateDismissed] = useState(false);
   const [editMode, setEditMode] = useState(() => storage.get('editMode', false));
+  const [showShare, setShowShare] = useState(false);
   const [showChatPanel, setShowChatPanel] = useState(() => storage.get('showChatPanel', false));
   const [focusMode, setFocusMode] = useState(false);
   const [showApiKeys, setShowApiKeys] = useState(false);
@@ -1285,6 +1291,12 @@ function App() {
             <span className="titlebar-version">v{APP_VERSION}</span>
           </div>
           <CloudStatusIndicator onClick={() => setShowCloudPanel(true)} />
+          {PARTAGE_POSSIBLE && currentDoc && !showToday && !currentDoc.filePath?.startsWith('demo://') && (
+            <button className="titlebar-share" onClick={() => setShowShare(true)} title={t('collab.share.title')} data-testid="collab-partager">
+              <Share2 size={13} />
+              {t('collab.share')}
+            </button>
+          )}
           {updateReady && updateDismissed && (
             <button
               className="titlebar-update-dot"
@@ -1581,6 +1593,7 @@ function App() {
               case 'ruler': setShowRuler(prev => !prev); break;
               case 'highlights': setShowHighlightsPanel(prev => !prev); break;
               case 'flashcards': if (currentDoc) setShowFlashcards(true); break;
+              case 'share': if (PARTAGE_POSSIBLE && currentDoc) setShowShare(true); break;
               case 'search': if (currentDoc) setShowSearch(true); break;
               case 'sidebar': setShowSidebar(prev => !prev); break;
               case 'right-sidebar': setShowRightSidebar(prev => !prev); break;
@@ -1632,6 +1645,9 @@ function App() {
 
       {/* Clés API personnelles */}
       {showApiKeys && <ApiKeysPanel onClose={() => setShowApiKeys(false)} />}
+      {showShare && currentDoc && (
+        <SharePanel filePath={currentDoc.filePath} content={currentDoc.content} onClose={() => setShowShare(false)} />
+      )}
 
       {/* À propos */}
       {showAbout && <AboutPanel onClose={() => setShowAbout(false)} />}

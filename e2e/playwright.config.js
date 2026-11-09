@@ -20,6 +20,8 @@ export default defineConfig({
     {
       command: 'npx vite --port 5173',
       cwd: '../front',
+      // Le proxy /v1 de Vite (WebSocket du partage compris) vise l'API de test.
+      env: { LECTOR_API: `http://localhost:${PORT_TEST}` },
       url: 'http://localhost:5173',
       reuseExistingServer: true,
       timeout: 30000,

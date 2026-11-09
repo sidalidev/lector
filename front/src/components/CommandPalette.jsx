@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Scroll, BookOpen, Highlighter, Ruler,
-  Search, Sidebar, PanelRight, Maximize2, Zap, KeyRound, Youtube, FilePlus, Volume2, FolderDown, GraduationCap, Cloud, Info, CalendarCheck, ListPlus
+  Search, Sidebar, PanelRight, Maximize2, Zap, KeyRound, Youtube, FilePlus, Volume2, FolderDown, GraduationCap, Cloud, Info, CalendarCheck, ListPlus, Share2
 } from 'lucide-react';
 import normalizeSearch from '../utils/normalizeSearch';
 import { t } from '../services/i18n'
@@ -25,6 +25,10 @@ function CommandPalette({ onClose, onCommand }) {
       { id: 'ruler', label: t('cmd.ruler'), description: t('cmd.rulerDesc'), icon: Ruler, keywords: 'ruler regle lecture ligne' },
       { id: 'highlights', label: t('cmd.highlights'), description: t('cmd.highlightsDesc'), icon: Highlighter, keywords: 'highlight surligner annotations' },
       { id: 'flashcards', label: t('cmd.flashcards'), description: t('cmd.flashcardsDesc'), icon: BookOpen, keywords: 'flashcard revision cartes' },
+      // Partage en temps réel : navigateur seulement pour l'instant (docs/collab-design.md § 9).
+      ...(!isCapacitor && !fileSystem.isElectron() ? [
+        { id: 'share', label: t('cmd.share'), description: t('cmd.shareDesc'), icon: Share2, keywords: 'share collaborate together co-write link partager' },
+      ] : []),
       { id: 'search', label: t('cmd.search'), description: t('cmd.searchDesc'), icon: Search, keywords: 'search chercher find' },
       { id: 'sidebar', label: t('cmd.sidebar'), description: t('cmd.sidebarDesc'), icon: Sidebar, keywords: 'sidebar barre laterale panel' },
       { id: 'right-sidebar', label: t('cmd.rightSidebar'), description: t('cmd.rightSidebarDesc'), icon: PanelRight, keywords: 'right sidebar toc table matieres panneau droit' },

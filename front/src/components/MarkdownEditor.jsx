@@ -17,7 +17,11 @@ function makeFontSizeExtension(size) {
   });
 }
 
-function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false }) {
+// `extensions` : extensions CodeMirror en plus, fournies par l'appelant. Le
+// document partagé (collab/) y passe la liaison Yjs : l'historique et le
+// contenu viennent alors du Y.Text, pas de `content` ni de history().
+function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, extensions = null }) {
+  const partage = !!extensions;
   const containerRef = useRef(null);
   const viewRef = useRef(null);
   const onChangeRef = useRef(onChange);
@@ -34,9 +38,10 @@ function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false })
     const state = EditorState.create({
       doc: content || '',
       extensions: [
+        ...(extensions || []),
         lineNumbers(),
         highlightActiveLine(),
-        history(),
+        ...(partage ? [] : [history()]),
         foldGutter(),
         bracketMatching(),
         closeBrackets(),
@@ -47,13 +52,13 @@ function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false })
         fontSizeCompartment.of(makeFontSizeExtension(fontSize)),
         keymap.of([
           ...defaultKeymap.filter(k => k.key !== 'Mod-f' && k.key !== 'Mod-h'),
-          ...historyKeymap,
+          ...(partage ? [] : historyKeymap),
           ...closeBracketsKeymap,
           indentWithTab,
         ]),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
-            onChangeRef.current(update.state.doc.toString());
+            onChangeRef.current?.(update.state.doc.toString());
           }
         }),
         EditorView.theme({
@@ -121,7 +126,7 @@ function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false })
   // Sync content from outside (file switch)
   useEffect(() => {
     const view = viewRef.current;
-    if (!view) return;
+    if (!view || partage) return;
     const currentDoc = view.state.doc.toString();
     if (content !== currentDoc) {
       view.dispatch({

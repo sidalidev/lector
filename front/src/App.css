@@ -90,6 +90,28 @@
 }
 
 /* Pastille update (quand le banner est dismiss) */
+.titlebar-share {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar-share:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
 .titlebar-update-dot {
   display: flex;
   align-items: center;
