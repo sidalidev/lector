@@ -26,6 +26,10 @@ const POLITIQUE = {
   'connect-src': [
     "'self'",
     'https://lector.dockerbop.fr',
+    // Co-écriture : relais WebSocket (docs/collab-design.md). 'self' couvre la
+    // même origine dans les navigateurs récents ; écrit en clair pour les autres.
+    'wss://lector.dockerbop.fr',
+    'wss://lector.sidali.dev',
     'https://api.anthropic.com',
     'https://api.elevenlabs.io',
     'https://paulrosen.github.io',
@@ -73,11 +77,19 @@ export default defineConfig(({ command }) => {
       outDir: 'dist',
       rollupOptions: {
         output: {
-          manualChunks: {
-            'diagram-blocks': ['./src/components/DiagramBlocks.jsx'],
-            'mermaid': ['mermaid'],
-            'd3': ['d3'],
-            'abcjs': ['abcjs'],
+          // Par fonction, pas par liste : une liste range aussi les dépendances
+          // communes (React, aides de Vite) dans le morceau de mermaid, que
+          // l'entrée importait alors toujours, même sur la page /d/ d'un invité.
+          manualChunks(id) {
+            if (id.includes('vite/preload-helper') || id.includes('commonjsHelpers')) return 'vendor';
+            if (/node_modules\/(react|react-dom|scheduler|lucide-react)\//.test(id)) return 'vendor';
+            if (/node_modules\/mermaid\//.test(id)) return 'mermaid';
+            if (/node_modules\/d3(-[a-z]+)?\//.test(id)) return 'd3';
+            if (/node_modules\/abcjs\//.test(id)) return 'abcjs';
+            if (id.endsWith('/src/components/DiagramBlocks.jsx')) return 'diagram-blocks';
+            // Textes de l'interface : partagés par l'app, les schémas et la page /d/.
+            if (id.includes('/src/services/i18n') || id.includes('/src/locales/')) return 'i18n';
+            return undefined;
           },
         },
       },
@@ -86,6 +98,11 @@ export default defineConfig(({ command }) => {
       port: 5173,
       // Les dépendances (polices, KaTeX) sont dans le node_modules de la racine.
       fs: { allow: ['.', '../node_modules'] },
+      // API locale derrière /v1 (chaîne et relais de co-écriture, WebSocket compris).
+      // LECTOR_API : l'API de test des tests de bout en bout.
+      proxy: {
+        '/v1': { target: process.env.LECTOR_API || 'http://localhost:3456', ws: true, changeOrigin: false },
+      },
     },
   };
 });
