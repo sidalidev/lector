@@ -104,11 +104,15 @@ export class SalonCollab {
       this._envoyerPresence([...added, ...updated, ...removed]);
     };
     this._surEnLigne = () => {
+      this.recul = RECUL_MIN_MS;
       if (this.statut === STATUTS.HORS_LIGNE) this._reconnecterBientot(0);
     };
+    // Le navigateur sait que le réseau est parti : inutile d'attendre qu'un ping échoue.
+    this._surHorsLigne = () => this.couper();
     doc.on("update", this._surMaj);
     presence?.on("update", this._surPresence);
     globalThis.addEventListener?.("online", this._surEnLigne);
+    globalThis.addEventListener?.("offline", this._surHorsLigne);
   }
 
   _changerStatut(statut, detail) {
@@ -350,6 +354,7 @@ export class SalonCollab {
     this.doc.off("update", this._surMaj);
     this.presence?.off("update", this._surPresence);
     globalThis.removeEventListener?.("online", this._surEnLigne);
+    globalThis.removeEventListener?.("offline", this._surHorsLigne);
     if (this.onSauver) this.sauverMaintenant();
     const ws = this.ws;
     this.ws = null;
