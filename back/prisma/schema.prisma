@@ -37,3 +37,34 @@ model ChainDoc {
   @@unique([chainId, docId])
   @@index([chainId, deletedAt])
 }
+
+// Salon de co-écriture (docs/collab-design.md § 6). Le relais ne connaît que
+// l'id (dérivé de la clé du document, sans retour possible), l'empreinte de la
+// preuve et celle du secret du propriétaire. Aucun compte, aucun nom.
+model CollabRoom {
+  id         String        @id // 32 hex
+  proofHash  String // hex(SHA-256(P))
+  ownerHash  String // hex(SHA-256(O)), seul le propriétaire peut arrêter
+  lastSeq    Int           @default(0)
+  baseSeq    Int           @default(0) // numéro de l'instantané compacté, 0 sans instantané
+  bytesUsed  Int           @default(0)
+  createdAt  DateTime      @default(now())
+  lastSeenAt DateTime      @default(now()) // écrit au plus une fois par heure
+  entries    CollabEntry[]
+}
+
+// Message chiffré d'un salon : mise à jour ou instantané (seq = baseSeq).
+model CollabEntry {
+  roomId String
+  room   CollabRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  seq    Int
+  data   Bytes // enveloppe AES-GCM, illisible pour le relais
+
+  @@id([roomId, seq])
+}
+
+// Salon arrêté ou purgé : son id répond comme inexistant et ne peut pas être recréé.
+model CollabRoomGone {
+  id     String   @id
+  goneAt DateTime @default(now())
+}

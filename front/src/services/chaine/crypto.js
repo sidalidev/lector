@@ -122,7 +122,15 @@ function ivEnOctets(iv) {
 
 /** HKDF-SHA256(S, sel vide, info), sortie de `longueur` octets (32 par défaut). */
 async function hkdf(S, info, longueur = 32) {
-  const base = await subtle().importKey("raw", secret(S), "HKDF", false, ["deriveBits"]);
+  return hkdfOctets(secret(S), info, longueur);
+}
+
+/**
+ * HKDF-SHA256(ikm, sel vide, info) pour une matière de clé de taille libre.
+ * Sert aussi aux clés de document du partage (services/collab/crypto.js).
+ */
+export async function hkdfOctets(ikm, info, longueur = 32) {
+  const base = await subtle().importKey("raw", ikm, "HKDF", false, ["deriveBits"]);
   const bits = await subtle().deriveBits(
     { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(0), info: utf8(info) },
     base,
@@ -208,9 +216,10 @@ const aadTombe = (docId) => utf8(`tombe:${docId}`);
 
 // ---------------------------------------------------------------------------
 // Enveloppe : version (1 octet) ‖ IV (12 octets) ‖ chiffré ‖ étiquette (16 octets)
+// sceller et ouvrir sont exportées pour le partage de documents (même enveloppe).
 // ---------------------------------------------------------------------------
 
-async function sceller(cleEnc, clair, aad, iv) {
+export async function sceller(cleEnc, clair, aad, iv = aleatoire(TAILLE_IV)) {
   const vecteur = ivEnOctets(iv);
   const chiffre = new Uint8Array(
     await subtle().encrypt({ name: "AES-GCM", iv: vecteur, additionalData: aad, tagLength: 128 }, cleEnc, clair),
@@ -222,7 +231,7 @@ async function sceller(cleEnc, clair, aad, iv) {
   return env;
 }
 
-async function ouvrir(cleEnc, enveloppe, aad) {
+export async function ouvrir(cleEnc, enveloppe, aad) {
   const env = enveloppe instanceof Uint8Array ? enveloppe : new Uint8Array(enveloppe);
   if (env.length < SURCOUT_ENVELOPPE) throw new Error("Bloc invalide : trop court");
   if (env[0] !== VERSION_ENVELOPPE) throw new Error(`Bloc invalide : version ${env[0]} inconnue`);

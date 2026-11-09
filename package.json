@@ -23,7 +23,7 @@
     "test:ui": "npx playwright test --ui --config e2e/playwright.config.js",
     "test:api": "npx playwright test --project=api --config e2e/playwright.config.js",
     "test:flows": "npx playwright test --project=flows --config e2e/playwright.config.js",
-    "test:chaine": "node --test front/src/services/chaine/*.test.mjs front/src/services/taches/*.test.mjs front/desktop/*.test.cjs"
+    "test:chaine": "node --test front/src/services/chaine/*.test.mjs front/src/services/collab/*.test.mjs front/src/services/taches/*.test.mjs front/desktop/*.test.cjs"
   },
   "author": {
     "name": "Sid",
@@ -206,6 +206,7 @@
     "d3": "^7.9.0",
     "electron-updater": "^6.7.3",
     "katex": "^0.18.4",
+    "lib0": "^0.2.120",
     "lucide-react": "^0.562.0",
     "mermaid": "^11.12.2",
     "react": "^19.2.3",
@@ -219,7 +220,10 @@
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
     "verovio": "^6.0.1",
-    "webaudiofont": "^3.0.4"
+    "webaudiofont": "^3.0.4",
+    "y-codemirror.next": "^0.3.6",
+    "y-protocols": "^1.0.7",
+    "yjs": "^13.6.33"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",

@@ -6,6 +6,8 @@ const chainRouter = require('./routes/chain')
 const releasesRouter = require('./routes/releases')
 const { routeSecurityTxt } = require('./routes/securityTxt')
 const { demarrerPurge } = require('./services/casiers')
+const { creerRelais } = require('./services/collab/relais')
+const { creerStockagePrisma } = require('./services/collab/stockagePrisma')
 
 const app = express()
 const PORT = process.env.PORT || 3456
@@ -40,7 +42,11 @@ app.use((err, _req, res, _next) => {
   res.status(status).json({ error: status >= 500 ? 'Internal error' : 'Invalid request' })
 })
 
-app.listen(PORT, () => {
+const serveur = app.listen(PORT, () => {
   console.log(`[Lector API] http://localhost:${PORT}`)
   demarrerPurge(prisma)
 })
+
+// Co-écriture : relais WebSocket aveugle sur /v1/collab (docs/collab-design.md).
+// Même confiance dans le proxy qu'Express (trust proxy 1) pour l'IP des limites.
+creerRelais({ stockage: creerStockagePrisma(prisma), confianceProxy: true }).attacher(serveur).demarrerPurge()
