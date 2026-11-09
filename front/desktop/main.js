@@ -694,17 +694,44 @@ app.whenReady().then(() => {
     // when the server announces a new release.
     // Use Electron's net.request (Chromium stack) so the SSE honors the OS keychain.
     const SSE_URL = (process.env.LECTOR_RELEASES_URL || 'https://lector.dockerbop.fr') + '/v1/releases/stream';
+    // Une seule connexion et un seul minuteur à la fois. Avant, une coupure
+    // réseau déclenchait à la fois l'erreur de la requête et celle de la
+    // réponse : deux reconnexions, qui doublaient à chaque coupure jusqu'à
+    // épuiser les ressources du système (ERR_INSUFFICIENT_RESOURCES).
+    let sseReq = null;
+    let sseTimer = null;
+    let sseDelai = 5_000;
+    const SSE_DELAI_MAX = 30 * 60 * 1000;
+    const fermerSSE = () => {
+      clearTimeout(sseTimer);
+      sseTimer = null;
+      if (sseReq) {
+        const r = sseReq;
+        sseReq = null;
+        try { r.abort(); } catch { /* déjà fermée */ }
+      }
+    };
+    const reconnecterSSE = (req, raison) => {
+      if (req !== sseReq) return; // événement d'une connexion déjà remplacée
+      debugLog(`Releases SSE ${raison}, reconnecting in ${Math.round(sseDelai / 1000)}s`);
+      fermerSSE();
+      sseTimer = setTimeout(connectSSE, sseDelai);
+      sseDelai = Math.min(sseDelai * 2, SSE_DELAI_MAX);
+    };
     const connectSSE = () => {
+      fermerSSE();
+      let req;
       try {
-        const req = net.request({ method: 'GET', url: SSE_URL });
+        req = net.request({ method: 'GET', url: SSE_URL });
+        sseReq = req;
         req.setHeader('Accept', 'text/event-stream');
         req.on('response', (res) => {
           if (res.statusCode !== 200) {
-            debugLog('Releases SSE non-200: ' + res.statusCode);
-            setTimeout(connectSSE, 30_000);
+            reconnecterSSE(req, 'non-200: ' + res.statusCode);
             return;
           }
           debugLog('Releases SSE connected');
+          sseDelai = 5_000;
           let buf = '';
           res.on('data', (chunk) => {
             buf += chunk.toString('utf8');
@@ -718,17 +745,26 @@ app.whenReady().then(() => {
               }
             }
           });
-          res.on('end', () => { debugLog('Releases SSE closed, reconnecting'); setTimeout(connectSSE, 5_000); });
-          res.on('error', (err) => { debugLog('Releases SSE error: ' + err.message); setTimeout(connectSSE, 30_000); });
+          res.on('end', () => reconnecterSSE(req, 'closed'));
+          res.on('error', (err) => reconnecterSSE(req, 'error: ' + err.message));
         });
-        req.on('error', (err) => { debugLog('Releases SSE req error: ' + err.message); setTimeout(connectSSE, 30_000); });
+        req.on('error', (err) => reconnecterSSE(req, 'req error: ' + err.message));
         req.end();
       } catch (err) {
-        debugLog('Releases SSE setup failed: ' + err.message);
-        setTimeout(connectSSE, 60_000);
+        if (!req || req !== sseReq) sseReq = req || null;
+        reconnecterSSE(sseReq, 'setup failed: ' + err.message);
       }
     };
     connectSSE();
+
+    // En veille, rien ne tourne ; au réveil, une seule connexion neuve.
+    powerMonitor.on('suspend', fermerSSE);
+    powerMonitor.on('resume', () => {
+      fermerSSE();
+      sseDelai = 5_000;
+      sseTimer = setTimeout(connectSSE, 5_000);
+      checkForUpdates();
+    });
   }
 
   const args = process.argv.slice(1);
