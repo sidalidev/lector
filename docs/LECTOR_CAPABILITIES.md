@@ -211,6 +211,19 @@ Détail technique : `docs/CHAINE.md`, publié sur https://lector.dockerbop.fr/sy
 
 ---
 
+## Écrire à plusieurs (partage en temps réel)
+
+Détail : `docs/collab-design.md`.
+
+- Bouton **Share** sur un document ouvert (version web pour l'instant) : lien `https://<hôte>/d/<id>#<clé>` et QR
+- Une clé de 256 bits par document, sans lien avec les 12 mots : partager un document ne donne jamais accès au vault
+- L'invité ouvre le lien dans un navigateur, sans compte ni installation : prénom, curseurs et sélections des autres en couleur, annulation de ses propres modifications seulement
+- Texte, prénoms et curseurs chiffrés sur l'appareil (AES-256-GCM) ; le relais ne fait que transmettre et garder une copie chiffrée pour le rattrapage
+- Hors ligne : les modifications restent dans le navigateur et repartent à la reconnexion (fusion Yjs)
+- Copie de l'invité dans son navigateur, téléchargeable en `.md`
+- **Stop sharing** : le salon est effacé, le lien ne marche plus pour personne, une nouvelle clé au prochain partage
+- Pas encore : document partagé relié au fichier `.md` du vault sur ordinateur et Android
+
 ## IA et voix (clés personnelles)
 
 Aucune fonction ne passe par un serveur de Lector. L'utilisateur saisit ses propres clés dans l'écran « Clés API » ; elles restent sur l'appareil.
@@ -260,10 +273,11 @@ Sécurité du rendu et de l'accès au disque (CSP, assainissement des documents,
 - En-tête YAML
 - Visualisation de PDF ou d'EPUB (export seulement)
 - Synchronisation des images et autres fichiers non markdown
-- Partage de documents entre personnes, édition collaborative
+- Pages publiques : un document partagé ne se lit jamais sans la clé du lien
+- Invitations en lecture seule, retrait d'une seule personne (arrêter le partage coupe tout le monde)
 - Système de plugins
 - Thèmes CSS personnalisés (thèmes intégrés uniquement)
 
 ---
 
-> *Dernière mise à jour : octobre 2026.*
+> *Dernière mise à jour : novembre 2026.*

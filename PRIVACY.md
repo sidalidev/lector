@@ -8,6 +8,7 @@ Lector is a free Markdown reader made by Sid (https://sidali.dev). This page say
 - No analytics, no crash reports, no ads, no cookies, no third-party SDK.
 - Your documents stay on your device unless you turn on sync.
 - Sync is end-to-end encrypted: our server stores blocks it cannot read.
+- Writing together is end-to-end encrypted too: only people with the link can read the document.
 - Your documents are **not** encrypted on your device by Lector. Your system protects them like any other file.
 
 ## Sync (optional)
@@ -32,6 +33,26 @@ Only Markdown files travel. Each file and its path are encrypted on your device 
 **Backups:** the server is backed up automatically. Backups hold the encrypted blocks and the metadata above, never your 12 words or keys. They are kept up to 30 days on the server, and monthly archives up to 6 months off site. An erased chain can stay in these backups, still encrypted, until they expire. The backup setup is server configuration, outside this repository.
 
 **Where:** a server rented from Hetzner in Germany. Off-site backup copies are kept on the developer's computer (France) and in Apple iCloud Drive.
+
+## Writing together (optional)
+
+When you share a document, your device draws a new key for that document only. It is not your 12 words and gives no access to your other documents. The key is in the link, after `#`: browsers never send that part to a server, so we never receive it.
+
+Your text, your first name, your colour and your cursor are encrypted on your device (AES-256-GCM) before they leave it. Our server passes them to the other people in the document and keeps an encrypted copy so that someone who was offline can catch up.
+
+**What our server sees:**
+
+- a document identifier derived from the key (it cannot be turned back into the key), a hash (SHA-256) of the proof sent when connecting, and a hash of a secret only the owner's device holds (to stop sharing);
+- encrypted messages: when they arrive and their approximate size (rounded up to 64 bytes). This shows when someone types and roughly how much;
+- how many people are connected to the document;
+- when the document was shared and last used (to the hour);
+- the IP address of each connection, in memory, to limit abuse; it is never written to the database or the application logs. The reverse proxy access log described above records the connection (IP address, time, the fixed address `/v1/collab`), never the document identifier.
+
+**What our server never sees:** the text, the title, the names, the cursors, the key.
+
+**How long:** a shared document with no activity for 90 days is deleted. "Stop sharing" deletes it at once; its identifier is kept for a year so the old link cannot be reused, then forgotten. Encrypted copies may remain in the server backups until they expire.
+
+**On your device and theirs:** the shared document, its key and your first name are stored in the browser (IndexedDB and local storage), not encrypted by Lector. When you stop sharing, the others keep the copy they have; Lector cannot take it back. Anyone who has the link can read and edit the document, so send it only to the people you write with.
 
 ## Features that talk to someone else
 

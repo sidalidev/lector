@@ -107,6 +107,12 @@ Someone who obtains `P` but not `S` (for example by reading request headers on a
 
 The relay can hide a document, refuse a write, or serve an older version of a block. There is no authenticated manifest against rollback yet.
 
+### 4.11 Writing together
+
+A shared document has its own 256-bit key, unrelated to the chain, carried in the fragment of the invitation link (`/d/<room>#<key>`), which browsers never send. The relay sees a room identifier derived from that key, the hash of a proof, encrypted messages (sizes padded to 64 bytes, timing visible), how many people are connected, and their IP addresses in memory. It cannot read, forge or move messages between rooms; it can drop them or replay old ones (harmless: Yjs updates are idempotent).
+
+Not protected: everyone who has the link is a full co-author (read, write, erase); there is no read-only link and no way to remove one person except stopping the share for everyone; a leaked link is a leaked document; the key is stored unencrypted in the browsers that opened it; the shared page is web code served by Lector's server (§ 4.3). Details: [collab-design.md](collab-design.md).
+
 ## 5. Adversaries
 
 | Adversary | Can | Cannot |
