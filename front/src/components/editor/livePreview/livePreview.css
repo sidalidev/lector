@@ -19,10 +19,6 @@
   padding: 0;
 }
 
-.cm-editor.cm-lp .cm-cursor {
-  border-left: 2px solid var(--accent-primary);
-  border-radius: 1px;
-}
 
 .cm-editor.cm-lp .cm-selectionBackground,
 .cm-editor.cm-lp.cm-focused .cm-selectionBackground {
@@ -299,4 +295,6 @@
 
 .cm-editor .cm-ySelectionCaret {
   border-left-width: 2px;
+  border-right-width: 1px;
+  border-radius: 2px;
 }

@@ -1,5 +1,5 @@
 import { useRef, useEffect, memo } from 'react';
-import { EditorView, lineNumbers, highlightActiveLine, keymap } from '@codemirror/view';
+import { EditorView, lineNumbers, highlightActiveLine, keymap, drawSelection } from '@codemirror/view';
 import { EditorState, Compartment, Prec, Transaction } from '@codemirror/state';
 import { history, historyKeymap } from '@codemirror/commands';
 import { foldGutter, bracketMatching, indentOnInput, syntaxHighlighting, defaultHighlightStyle, LanguageSupport } from '@codemirror/language';
@@ -58,6 +58,8 @@ function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, e
         ...(options ? [optionsApercu.of(options)] : []),
         ...(readOnly ? [EditorState.readOnly.of(true), EditorView.editable.of(false)] : []),
         surlignages(),
+        // Curseur dessiné par l'éditeur (le natif ne s'épaissit pas) : voir livePreview.css.
+        drawSelection({ cursorBlinkRate: 1100 }),
         // Mis en forme par défaut ; « Show Markdown syntax » rend le mode source.
         modeEcriture({ source: [lineNumbers(), highlightActiveLine(), foldGutter(), syntaxHighlighting(defaultHighlightStyle)] }),
         ...(partage ? [] : [history()]),
@@ -117,9 +119,17 @@ function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, e
             background: 'var(--bg-secondary)',
             borderRadius: '2px',
           },
-          '.cm-cursor': {
-            borderLeftColor: 'var(--accent-primary)',
-            borderLeftWidth: '2px',
+          '.cm-cursor, .cm-dropCursor': {
+            borderLeft: '3px solid var(--accent-primary)',
+            borderRadius: '2px',
+            marginLeft: '-1px',
+            // Le curseur glisse d'une position à l'autre au lieu de sauter.
+            transition: 'left 90ms cubic-bezier(.2,.8,.2,1), top 90ms cubic-bezier(.2,.8,.2,1)',
+          },
+          // Clignotement en fondu plutôt qu'en tout ou rien (les noms d'animation de
+          // CodeMirror restent : il relance le cycle à chaque frappe).
+          '.cm-cursorLayer': {
+            animationTimingFunction: 'ease-in-out !important',
           },
           '.cm-foldGutter': {
             color: 'var(--text-muted)',
