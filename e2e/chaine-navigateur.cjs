@@ -179,7 +179,9 @@ async function main() {
     const creer = page.getByRole('button', { name: 'Protect and sync' })
     if (!(await creer.isVisible())) {
       await page.locator('.onboarding-primary').click()
-      await page.getByRole('button', { name: 'Set up sync' }).click()
+      await page.keyboard.press('Meta+Shift+p')
+      await page.locator('.command-palette-input').fill('sync')
+      await page.locator('.command-palette-item', { hasText: 'Sync' }).first().click()
     }
     await creer.click()
     const elementsMots = page.locator('.chaine-mots .chaine-mot')

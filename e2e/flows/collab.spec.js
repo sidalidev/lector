@@ -145,7 +145,6 @@ test("Partager depuis l'app web : lien, QR, ouverture par l'invité, arrêt", as
   const app = await (await browser.newContext()).newPage()
   await app.goto('/')
   await app.locator('.onboarding-primary').first().click()
-  await app.getByRole('button', { name: 'Not now' }).click()
   await app.locator('.file-tree-item').first().click()
   await app.getByTestId('collab-partager').click()
   await app.getByTestId('collab-creer').click()

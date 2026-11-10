@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-// Premier lancement : deux écrans au plus, l'état survit à un rechargement,
+// Premier lancement : un seul écran, la note d'accueil s'ouvre tout de suite,
 // et un utilisateur qui a déjà une source ne voit jamais l'onboarding.
 
 test.use({ locale: 'en-US' })
@@ -19,17 +19,12 @@ async function appareilVierge(page) {
   await page.reload()
 }
 
-test('créer le dossier, passer la synchro, arriver sur le document de bienvenue', async ({ page }) => {
+test('Start : dossier créé, note de bienvenue ouverte, aucun écran de synchro', async ({ page }) => {
   await appareilVierge(page)
-  await expect(page.getByRole('heading', { name: 'Where should your notes live?' })).toBeVisible()
-  await page.getByRole('button', { name: 'Create my Lector folder' }).click()
-
-  await expect(page.getByRole('heading', { name: 'Sync your devices?' })).toBeVisible()
-  await expect(page.getByText('Markdown notes up to 20 MB in total')).toBeVisible()
-  // App tuée sur le deuxième écran : elle y revient.
-  await page.reload()
-  await expect(page.getByRole('heading', { name: 'Sync your devices?' })).toBeVisible()
-  await page.getByRole('button', { name: 'Not now' }).click()
+  await expect(page.getByRole('heading', { name: 'Your notes, yours' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'I already use Lector' })).toBeVisible()
+  await page.getByRole('button', { name: 'Start' }).click()
+  await expect(page.getByRole('heading', { name: 'Sync your devices?' })).toHaveCount(0)
 
   await expect(page.locator('h1').first()).toContainText('Welcome to Lector')
   await expect(page.locator('.file-tree-item', { hasText: 'Welcome to Lector' })).toBeVisible()
@@ -42,8 +37,7 @@ test('créer le dossier, passer la synchro, arriver sur le document de bienvenue
 
 test('un dossier Lector Vault existant est proposé', async ({ page }) => {
   await appareilVierge(page)
-  await page.getByRole('button', { name: 'Create my Lector folder' }).click()
-  await page.getByRole('button', { name: 'Not now' }).click()
+  await page.getByRole('button', { name: 'Start' }).click()
   await expect(page.locator('h1').first()).toContainText('Welcome to Lector')
 
   await page.evaluate(() => { localStorage.removeItem('lector-source-type'); localStorage.removeItem('lector-last-session') })

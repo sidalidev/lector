@@ -1146,18 +1146,9 @@ function App() {
     const welcome = await bienvenue(dossier);
     setSidebarRefreshKey(k => k + 1);
     setShowSourcePicker(false);
-    // Écran 2 au premier lancement seulement, et jamais avec une chaîne déjà en place.
-    let aUneChaine = false;
-    try {
-      if (window.electron?.cloud?.status) aUneChaine = !!(await window.electron.cloud.status())?.hasChain;
-      else aUneChaine = await (await import('./services/chaineWeb')).aUneChaine();
-    } catch {}
-    if (!localStorage.getItem(ONBOARDING_DONE_KEY) && !aUneChaine) {
-      const etat = { step: 'sync', welcome };
-      localStorage.setItem(ONBOARDING_KEY, JSON.stringify(etat));
-      setOnboarding(etat);
-      return;
-    }
+    // Plus d'écran « Sync your devices? » : la note d'accueil s'ouvre tout de
+    // suite, la synchro se règle depuis l'app quand on en a besoin.
+    localStorage.removeItem(ONBOARDING_KEY);
     localStorage.setItem(ONBOARDING_DONE_KEY, '1');
     if (welcome) fileSystem.openFileByPath(welcome).catch(() => {});
   }, []);

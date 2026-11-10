@@ -18,15 +18,12 @@ async function relierApi(page) {
   })
 }
 
-// Premier lancement : créer le dossier du navigateur, puis « Set up sync ».
-// Le premier lancement déjà passé, la synchro s'ouvre depuis la palette.
+// Premier lancement : « Start » crée le dossier du navigateur, puis la
+// synchro s'ouvre depuis la palette, comme pour tout utilisateur.
 async function ouvrirSynchro(page) {
   await page.locator('.onboarding-primary').click()
-  const setUp = page.getByRole('button', { name: 'Set up sync' })
-  await expect(setUp.or(page.locator('.titlebar'))).toBeVisible()
-  if (await setUp.isVisible()) await setUp.click()
-  else await ouvrirSynchroDepuisLaPalette(page)
-  await expect(page.locator('.panel h2')).toHaveText('Sync')
+  await expect(page.locator('.titlebar')).toBeVisible()
+  await ouvrirSynchroDepuisLaPalette(page)
 }
 
 async function ouvrirSynchroDepuisLaPalette(page) {
@@ -188,9 +185,7 @@ test.describe('Synchronisation dans le navigateur', () => {
     const autre = await (await browser.newContext()).newPage()
     await relierApi(autre)
     await autre.goto('/')
-    await autre.getByRole('button', { name: 'I already use Lector on another device' }).click()
-    // Pas d'écran « Sync your devices? » : on arrive directement sur la saisie.
-    await expect(autre.getByRole('button', { name: 'Set up sync' })).toHaveCount(0)
+    await autre.getByRole('button', { name: 'I already use Lector' }).click()
     const champ = autre.locator('input[autocomplete="current-password"]')
     await expect(champ).toBeVisible()
     await champ.fill(mots.join(' '))
