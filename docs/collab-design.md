@@ -146,7 +146,7 @@ If the owner is offline, the stop is remembered and sent at the next opportunity
 ## 8. Web flow
 
 - `/d/<room>#<key>` is served by the web app (nginx: `location /d/`). `front/src/main.jsx` recognises the path and loads only `SharedDoc` (dynamic import): Yjs, CodeMirror bindings and the collaboration code are not in the main bundle.
-- First visit: the page checks that the room id is derived from the key (a damaged link is refused), stores the key, removes the fragment from the address bar, asks for a first name (kept in the browser), then connects.
+- First visit: the page checks that the room id is derived from the key (a damaged link is refused), stores the key, asks for a nickname (kept in the browser), then connects. The address bar keeps the full link, key included, so it can be copied, bookmarked or reopened from the history; opened without its key, the page puts it back if this browser knows it. The key therefore sits in the browser history like in the chat where the link was received. The key is written in hexadecimal so that no messaging app cuts the link; older base64url links still open.
 - The person sees the document, the others' cursors, who is connected, the connection state, and a button to download the document as `.md`.
 - Owner, from the web app: **Share** on an open document creates the room with the document text, then shows the link, a QR code and **Stop sharing**. Opening the link (button **Open**) brings the owner to the same page, with the owner's controls.
 

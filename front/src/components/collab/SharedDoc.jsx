@@ -24,13 +24,14 @@ import {
 import './collab.css'
 
 /**
- * Lit la clé du fragment, la range avec le document et retire le fragment de
- * la barre d'adresse. Renvoie l'enregistrement, ou null si le lien est abîmé.
+ * Lit la clé du fragment et la range avec le document. Renvoie l'enregistrement,
+ * ou null si le lien est abîmé. La barre d'adresse garde toujours le lien
+ * complet : on peut la recopier, la mettre en favori ou rouvrir depuis
+ * l'historique (une ouverture sans clé la remet, si ce navigateur la connaît).
  */
 async function chargerEnregistrement(id) {
   const fragment = location.hash
   if (fragment.length > 1) {
-    history.replaceState(history.state, '', location.pathname + location.search)
     let K
     try {
       K = cleDuFragment(fragment)
@@ -47,6 +48,10 @@ async function chargerEnregistrement(id) {
     return enregistrement
   }
   const existant = await stockage.lireSalon(id)
+  if (existant?.cle) {
+    const lien = await lienDu(existant)
+    history.replaceState(history.state, '', location.pathname + location.search + lien.slice(lien.indexOf('#')))
+  }
   return existant && (existant.cle || existant.arrete) ? existant : null
 }
 
@@ -212,7 +217,7 @@ export default function SharedDoc() {
   }, [titre])
 
   useEffect(() => {
-    if (enregistrement?.role === 'proprietaire' && enregistrement.cle) lienDu(enregistrement).then(setLien)
+    if (enregistrement?.cle) lienDu(enregistrement).then(setLien)
   }, [enregistrement])
 
   // Suivre quelqu'un : son curseur reste à l'écran jusqu'à ce que je fasse défiler ou tape.
@@ -308,7 +313,7 @@ export default function SharedDoc() {
             <Download size={16} />
             {t('collab.download')}
           </button>
-          {proprietaire && lien && !arrete && (
+          {lien && !arrete && (
             <button type="button" className="collab-btn collab-btn-plein" onClick={() => setPanneau(panneau === 'partage' ? null : 'partage')}>
               <Share2 size={16} />
               {t('collab.share')}
@@ -344,7 +349,7 @@ export default function SharedDoc() {
             <h2>{t('collab.share.title')}</h2>
             <p className="collab-note">{t('collab.share.intro')}</p>
             <LienPartage lien={lien} ouvrir={false} />
-            <button type="button" className="collab-btn collab-btn-danger" onClick={arreter}>{t('collab.stop')}</button>
+            {proprietaire && <button type="button" className="collab-btn collab-btn-danger" onClick={arreter}>{t('collab.stop')}</button>}
           </div>
         )}
       </header>

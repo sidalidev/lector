@@ -66,7 +66,8 @@ test('deux navigateurs écrivent ensemble, survivent à une coupure, puis le par
   // L'invitée : aucun compte, aucun vault, le document s'ouvre.
   await entrer(lea, lien, 'Lea')
   await expect(editeur(lea)).toContainText('INT. KITCHEN - NIGHT')
-  expect(lea.url()).not.toContain('#') // la clé ne reste pas dans la barre d'adresse
+  // Le lien reste entier dans la barre d'adresse : recopié tel quel, il marche.
+  expect(lea.url()).toBe(lien)
   await expect(lea.getByTestId('collab-personnes')).toContainText('Sid')
   await expect(sid.getByTestId('collab-personnes')).toContainText('Lea')
 
