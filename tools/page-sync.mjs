@@ -36,8 +36,8 @@ export function pageSync(markdown) {
   <title>Lector | How sync works</title>
   <meta name="description" content="Technical specification of Lector sync: end-to-end encryption, no account, what the server sees.">
   <style>
-@font-face { font-family: 'Figtree'; src: url('/fonts/figtree.woff') format('woff'); font-weight: 300 900; font-display: swap; }
-    @font-face { font-family: 'Bricolage Grotesque'; src: url('/fonts/bricolage-grotesque.woff') format('woff'); font-weight: 200 800; font-display: swap; }
+@font-face { font-family: 'Figtree'; src: url('/fonts/figtree.woff2') format('woff2'); font-weight: 300 900; font-display: swap; }
+    @font-face { font-family: 'Bricolage Grotesque'; src: url('/fonts/bricolage-grotesque.woff2') format('woff2'); font-weight: 200 800; font-display: swap; }
     /* Charte « Miel du Champsaur » */
     :root {
       --cream: #FBF7EF;

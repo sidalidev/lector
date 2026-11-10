@@ -2,12 +2,11 @@ import { useRef, useEffect, memo } from 'react';
 import { EditorView, keymap, drawSelection } from '@codemirror/view';
 import { EditorState, Prec, Transaction } from '@codemirror/state';
 import { history, historyKeymap } from '@codemirror/commands';
-import { bracketMatching, indentOnInput, LanguageSupport } from '@codemirror/language';
+import { LanguageSupport } from '@codemirror/language';
 // Pas markdown() : sa valeur par défaut embarque le langage HTML, donc aussi
 // JavaScript et CSS (un tiers de l'éditeur). La grammaire Markdown (GFM), la
 // suite des listes à Entrée et le collage d'URL en lien suffisent.
 import { markdownLanguage, markdownKeymap, pasteURLAsLink } from '@codemirror/lang-markdown';
-import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
 import { defaultKeymap, indentWithTab } from '@codemirror/commands';
 import { modeEcriture, optionsApercu } from './editor/livePreview/index.js';
 import { surlignages, creerApi } from './editor/apiEditeur.js';
@@ -55,9 +54,6 @@ function MarkdownEditor({ content, onChange, autoFocus = false, extensions = nul
         // Mis en forme, le seul mode d'écriture.
         modeEcriture(),
         ...(partage ? [] : [history()]),
-        bracketMatching(),
-        closeBrackets(),
-        indentOnInput(),
         new LanguageSupport(markdownLanguage),
         Prec.high(keymap.of(markdownKeymap)),
         pasteURLAsLink,
@@ -65,7 +61,6 @@ function MarkdownEditor({ content, onChange, autoFocus = false, extensions = nul
         keymap.of([
           ...defaultKeymap.filter(k => k.key !== 'Mod-f' && k.key !== 'Mod-h'),
           ...(partage ? [] : historyKeymap),
-          ...closeBracketsKeymap,
           indentWithTab,
         ]),
         EditorView.updateListener.of((update) => {

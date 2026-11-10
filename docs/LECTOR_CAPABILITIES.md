@@ -20,7 +20,7 @@ Lector est un éditeur et lecteur Markdown léger, gratuit, sans compte et sans 
 
 **Plateformes :** macOS, Windows et Linux (Electron ; seul macOS est publié par `deploy/deploy.sh`), iOS et Android (Capacitor ; mise à jour OTA du bundle web sur iOS, APK signé sur Android), web (navigateur).
 
-**Poids :** le JavaScript du premier affichage de `/app/` pèse environ 80 Ko gzip (budget de 150 Ko vérifié par `npm run test:poids`) ; la page partagée `/d/` environ 185 Ko. La coloration du code ne se charge que lorsque la note affichée en contient. Polices : Figtree et Bricolage Grotesque en WOFF2, sous-ensemble latin ; les autres ne se chargent que si une note en a besoin.
+**Poids :** le JavaScript du premier affichage de `/app/` pèse environ 80 Ko gzip (budget de 150 Ko vérifié par `npm run test:poids`) ; la page partagée `/d/` environ 185 Ko. La coloration du code ne se charge que lorsque la note affichée en contient. Polices : Figtree et Bricolage Grotesque en WOFF2, sous-ensemble latin ; JetBrains Mono (latin) et Noto Naskh Arabic (arabe) ne se chargent que si une note en a besoin. Une fois visitée, l'app web s'ouvre hors ligne : un service worker (`front/src/sw.js`, règles dans `front/src/utils/swRegles.js`) garde ses fichiers, jamais `/v1` ni les documents ; la page passe par le réseau d'abord, une nouvelle version est prise au rechargement suivant.
 
 ---
 

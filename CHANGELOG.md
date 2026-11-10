@@ -27,7 +27,10 @@ Lector stays a light Markdown editor: everything not about writing or viewing Ma
 - The app runs on Preact, a much smaller engine with the same components.
 - Code highlighting loads only when the note you open contains code. Code highlighting now uses highlight.js, one language at a time.
 - Lighter fonts: Figtree and Bricolage Grotesque as compressed Latin subsets; other fonts load only when a note needs them.
-- A lighter editor.
+- A lighter editor: no bracket matching, auto-closed brackets or auto-indent, which served code, not Markdown. Lists still continue on Enter.
+- Opening a note no longer waits for the editor to download step by step: as soon as your notes folder is known, or while you create or enter your key, the note view and the editor download together.
+- Fewer fonts: Literata, unused, is gone; JetBrains Mono keeps only its Latin subsets and Noto Naskh Arabic only its Arabic subset, each downloaded only when a note shows such characters. The site pages use WOFF2.
+- The web app opens instantly and offline once visited: a small service worker keeps its files (code, styles, Latin fonts, icons). The page itself always comes from the network first, so a new version is used at the next reload. Your documents and every call to the relay (`/v1`) never go through this cache.
 - The formats guide written in your vault on a computer (`LECTOR-FORMATS.md`) now says math and Mermaid diagrams are no longer rendered.
 
 ### Privacy

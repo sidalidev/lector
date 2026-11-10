@@ -10,6 +10,7 @@ import AppMark from './AppMark'
 import { t } from '../services/i18n'
 import { ID_CHAINE, estDisponible, enregistrerDansGestionnaire, recupererDepuisGestionnaire } from '../services/credentials'
 import { messageChaine } from '../utils/messagesErreur'
+import { prechargerEditeur } from '../services/prechargement'
 import './Panel.css'
 import './Onboarding.css'
 import './ChaineSync.css'
@@ -38,6 +39,8 @@ export default function EntreeWeb({ onPret }) {
   }
 
   const creer = () => agir(async () => {
+    // La note s'ouvrira bientôt : l'éditeur se télécharge pendant que l'utilisateur garde ses mots.
+    prechargerEditeur()
     const m = await import('../services/chaineWeb')
     const r = await m.creerWeb()
     if (!r?.ok) { setErr(messageChaine(r)); return }
@@ -102,7 +105,7 @@ export default function EntreeWeb({ onPret }) {
             <h1 className="onboarding-title">{t('entry.title')}</h1>
             <p className="onboarding-body">{t('entry.body')}</p>
             <div className="onboarding-actions">
-              <button type="button" className="onboarding-primary" onClick={() => { setErr(''); setVue('connexion') }} disabled={busy} data-testid="entree-connexion">
+              <button type="button" className="onboarding-primary" onClick={() => { setErr(''); setVue('connexion'); prechargerEditeur() }} disabled={busy} data-testid="entree-connexion">
                 {t('entry.signIn')}
               </button>
               <button type="button" className="onboarding-secondary" onClick={creer} disabled={busy} data-testid="entree-creer">

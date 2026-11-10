@@ -15,6 +15,7 @@ Définie dans `front/vite.config.js` et posée en tête de `index.html` (balise 
 | `font-src` | `'self' data:` | polices embarquées |
 | `connect-src` | `'self'`, `https://lector.dockerbop.fr`, `wss://lector.dockerbop.fr`, `wss://lector.sidali.dev` | synchro et relais de co-écriture seulement (l'app mobile n'est pas sur son origine) ; aucun autre service n'est appelé |
 | `frame-src` | YouTube, Vimeo, Rumble, `lector-local:` | vidéos intégrées, pages HTML locales sur ordinateur |
+| `worker-src` | `'self'` | service worker de l'app web (`/sw.js`) ; il ne met jamais en cache `/v1` ni `/d/<id>` (`front/src/utils/swRegles.js`) |
 | `object-src` | `'none'` | |
 | `base-uri`, `form-action` | `'self'` | |
 

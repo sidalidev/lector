@@ -114,7 +114,7 @@ const en = {
   'about.privacy': 'Privacy policy',
   'about.howSync': 'How sync works',
   'about.site': 'sidali.dev',
-  'about.fonts': 'Fonts: Bricolage Grotesque, Figtree, Literata, JetBrains Mono and Noto Naskh Arabic, under the SIL Open Font License. The L of the icon comes from KaTeX Script, under the same license.',
+  'about.fonts': 'Fonts: Bricolage Grotesque, Figtree, JetBrains Mono and Noto Naskh Arabic, under the SIL Open Font License. The L of the icon comes from KaTeX Script, under the same license.',
   'about.flows': 'What leaves your device',
   'about.flowsIntro': 'Everything Lector sends, and where. No analytics, no crash reports.',
   'flow.sync.what': 'Sync, when you turn it on',

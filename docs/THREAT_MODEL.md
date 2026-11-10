@@ -19,6 +19,7 @@ Related documents: the privacy policy (`PRIVACY.md`), the record of server data 
 | Your Markdown documents | Plain files in your vault folder (desktop). In the relay as encrypted blocks when sync is on. In the browser or mobile app, decrypted in memory while you read them. |
 | The chain secret `S` (12 words) | Desktop: `userData/cloud-secrets.dat`, encrypted with the system keychain through Electron `safeStorage` when available. Web and mobile: never stored; only non-exportable `CryptoKey` objects and the proof are kept in IndexedDB. Your password manager or printed recovery kit, if you saved it there. |
 | Settings | Page storage of the app (browser storage on web and mobile). |
+| Files of the web app (code, styles, Latin fonts, icons) | Cache Storage of the service worker (web only). Never documents, keys or relay responses (`/v1`). |
 
 ## 3. What is protected
 

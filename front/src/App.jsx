@@ -19,16 +19,16 @@ import { vueAujourdhui } from './services/taches/taches.js'
 import { haptique } from './services/haptique'
 import { messageChaine } from './utils/messagesErreur'
 import { allerALigne, ecrireALaFin, remplacerTexte } from './services/editeurCourant'
+import { prechargerEditeur } from './services/prechargement'
 import './App.css';
 
 const APP_VERSION = __APP_VERSION__ || '0.0.0'
 
 // La note (éditeur mis en forme, CodeMirror) : hors du premier
 // chargement, l'écran d'accueil n'en a pas besoin. Avec une source déjà
-// choisie, on le demande tout de suite, en parallèle du démarrage.
-const chargerDocumentView = () => import('./components/DocumentView');
-const DocumentView = lazy(chargerDocumentView);
-try { if (localStorage.getItem('lector-source-type')) chargerDocumentView(); } catch { /* stockage indisponible */ }
+// choisie, la vue et l'éditeur partent ensemble dès que le dossier des notes
+// est connu (services/prechargement.js) : l'app et l'arbre passent d'abord.
+const DocumentView = lazy(() => import('./components/DocumentView'));
 
 // Chargés uniquement quand utilisés
 const SearchBar = lazy(() => import('./components/SearchBar'));
@@ -415,6 +415,8 @@ function App() {
   // pas. Le vault cloud:// serait vide et sans issue : retour au choix de la
   // source, avec l'écran Synchronisation qui explique quoi faire.
   const rootDirPathRef = useRef(rootDirPath);
+  // Dossier des notes connu : une note va s'ouvrir, l'éditeur se télécharge déjà.
+  useEffect(() => { if (rootDirPath) prechargerEditeur(); }, [rootDirPath]);
   rootDirPathRef.current = rootDirPath;
   const quitterVaultWeb = useCallback(() => {
     if (!rootDirPathRef.current?.startsWith('cloud://')) return;
@@ -810,6 +812,7 @@ function App() {
   // Écran 1 : le dossier des notes est prêt (créé, rouvert ou choisi).
   const handleVaultReady = useCallback(async ({ rootDirPath: dossier, sourceType }, { rejoindre = false } = {}) => {
     sourceChoisie.current = true;
+    prechargerEditeur();
     localStorage.setItem(SOURCE_TYPE_KEY, sourceType);
     localStorage.setItem(SESSION_KEY, JSON.stringify({ rootDirPath: dossier }));
     setCurrentDoc(null);

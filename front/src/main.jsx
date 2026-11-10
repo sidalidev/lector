@@ -22,6 +22,18 @@ const racine = PAGE_PARTAGEE
   ? import('./components/collab/SharedDoc.jsx')
   : import('./App');
 
+// Service worker : app web construite seulement (ni développement, ni
+// Electron, ni Capacitor). Enregistré après le chargement, pour ne pas
+// disputer le réseau au premier affichage. Sur /d/<id>, la racine de l'app est
+// le dossier parent.
+if (import.meta.env.PROD && 'serviceWorker' in navigator && !window.electron && !window.Capacitor?.isNativePlatform?.()
+    && /^https?:$/.test(location.protocol)) {
+  const scope = new URL(PAGE_PARTAGEE ? '../' : './', document.baseURI);
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(new URL('sw.js', scope), { scope: scope.href }).catch(() => { /* sans service worker, l'app marche quand même */ });
+  });
+}
+
 racine.then(({ default: Racine }) => {
   ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>

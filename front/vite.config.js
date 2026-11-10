@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import { randomBytes } from 'crypto';
-import { readFileSync } from 'fs';
+import { readFileSync, readdirSync } from 'fs';
+import { createHash } from 'crypto';
 
 const pkg = JSON.parse(readFileSync('../package.json', 'utf-8'));
 
@@ -32,6 +33,8 @@ const POLITIQUE = {
   'object-src': ["'none'"],
   'base-uri': ["'self'"],
   'form-action': ["'self'"],
+  // Service worker de l'app web (sw.js, même origine).
+  'worker-src': ["'self'"],
 };
 
 // En développement seulement : Vite recharge par websocket ; un nonce tiré au
@@ -57,10 +60,40 @@ function csp(nonce) {
   };
 }
 
+// Service worker (src/sw.js) : écrit dans dist/sw.js au build, avec les
+// règles de src/utils/swRegles.js et la liste des fichiers du build. Pas de
+// dépendance : quelques lignes suffisent pour une coquille en cache.
+function serviceWorker() {
+  return {
+    name: 'lector-sw',
+    apply: 'build',
+    // Après le plugin HTML de Vite : index.html est alors dans le bundle.
+    enforce: 'post',
+    generateBundle(_options, bundle) {
+      const fichiers = Object.keys(bundle).filter((f) => f !== 'index.html')
+      const publics = readdirSync('public')
+      const tous = [...fichiers, ...publics].sort()
+      // La version change avec le moindre fichier (noms à hash et index.html) :
+      // le navigateur voit un nouveau sw.js à chaque déploiement.
+      const empreinte = createHash('sha256')
+      for (const f of tous) empreinte.update(f)
+      const index = bundle['index.html']
+      empreinte.update(index ? String(index.source) : '')
+      const regles = readFileSync('src/utils/swRegles.js', 'utf-8').replace(/^export /gm, '')
+      const corps = readFileSync('src/sw.js', 'utf-8')
+      this.emitFile({
+        type: 'asset',
+        fileName: 'sw.js',
+        source: `const FICHIERS = ${JSON.stringify(tous)};\nconst VERSION = ${JSON.stringify(empreinte.digest('hex').slice(0, 16))};\n${regles}\n${corps}`,
+      });
+    },
+  };
+}
+
 export default defineConfig(({ command }) => {
   const nonce = command === 'serve' ? randomBytes(16).toString('base64') : undefined;
   return {
-    plugins: [csp(nonce)],
+    plugins: [csp(nonce), serviceWorker()],
     // Preact à la place de React (même API par preact/compat, ~40 Ko gzip de
     // moins au démarrage). Le JSX est compilé par esbuild, sans Babel.
     esbuild: { jsx: 'automatic', jsxImportSource: 'preact' },
