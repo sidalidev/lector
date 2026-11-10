@@ -11,7 +11,7 @@ Lector is a **Markdown editor**: plain \`.md\` files, beautifully rendered, edit
 
 ## Write
 
-- Tap the pencil (or press **⌘E**) to edit, tap again to read
+- Click anywhere to write: the Markdown shows on the line you edit
 - Headings, lists, tables, links, images, code: plain Markdown, nothing proprietary
 - **Share** a note to write it together in real time
 

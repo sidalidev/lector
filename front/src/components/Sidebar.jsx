@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useCallback, useRef, memo } from 'react';
-import { Folder, FolderOpen, FileText, Bookmark, Star, Copy, Clock, Search, Home, Plus, CalendarCheck, ListPlus } from 'lucide-react';
+import { Folder, FolderOpen, FileText, Star, Copy, Clock, Search, Home, Plus, CalendarCheck, ListPlus } from 'lucide-react';
 import fileSystem from '../services/fileSystem';
 import syncService from '../services/syncService';
 import storage from '../services/storage';
@@ -136,7 +136,7 @@ const FileTreeItem = memo(function FileTreeItem({ item, depth, isExpanded, isAct
   );
 });
 
-function Sidebar({ content, onNavigate, bookmarks = [], onBookmarkClick, dirPath, rootDirPath, currentFilePath, focusFolderPath, onFocusFolderHandled, recentFiles = [], onFileSelected, onReturnHome, onNewFile, refreshKey = 0, hidden = false, onOpenToday, onNewTask, todayActive = false, todayCount = 0 }) {
+function Sidebar({ dirPath, rootDirPath, currentFilePath, focusFolderPath, onFocusFolderHandled, recentFiles = [], onFileSelected, onReturnHome, onNewFile, refreshKey = 0, hidden = false, onOpenToday, onNewTask, todayActive = false, todayCount = 0 }) {
   const [activeTab, setActiveTab] = useState('files');
   const [files, setFiles] = useState([]);
   const [expandedFolders, setExpandedFolders] = useState({});
@@ -453,14 +453,6 @@ function Sidebar({ content, onNavigate, bookmarks = [], onBookmarkClick, dirPath
         >
           <Clock size={17} />
         </button>
-        <button
-          className={`sidebar-tab ${activeTab === 'bookmarks' ? 'active' : ''}`}
-          onClick={() => setActiveTab('bookmarks')}
-          title={t('sidebar.bookmarksTab')}
-        >
-          <Bookmark size={17} />
-          {bookmarks.length > 0 && <span className="bookmark-count">{bookmarks.length}</span>}
-        </button>
       </div>
 
       {activeTab === 'files' && (
@@ -558,30 +550,6 @@ function Sidebar({ content, onNavigate, bookmarks = [], onBookmarkClick, dirPath
                   </button>
                 ))}
             </>
-          )}
-        </nav>
-      )}
-
-
-      {activeTab === 'bookmarks' && (
-        <nav className="sidebar-nav bookmarks-list">
-          {bookmarks.length === 0 ? (
-            <div className="empty-bookmarks">
-              <Bookmark size={32} className="empty-icon" />
-              <p>{t('sidebar.noBookmarks')}</p>
-              <p className="empty-hint">{t('sidebar.bookmarksHint')}</p>
-            </div>
-          ) : (
-            bookmarks.map((bookmark) => (
-              <button
-                key={bookmark.id}
-                className="sidebar-item bookmark-item"
-                onClick={() => onBookmarkClick(bookmark.id)}
-              >
-                <Bookmark size={14} className="bookmark-icon" />
-                {bookmark.text}
-              </button>
-            ))
           )}
         </nav>
       )}

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, useSyncExternalStore, lazy, Suspense } from 'react';
 import {
   Folder, Sliders, List, X, Focus, Download, Minus, Plus,
-  RefreshCw, Pencil, FolderDown, Info, Share2
+  RefreshCw, FolderDown, Info, Share2
 } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import RightSidebar from './components/FloatingTOC';
@@ -20,11 +20,12 @@ import { vueAujourdhui } from './services/taches/taches.js'
 import { haptique } from './services/haptique'
 import { messageChaine } from './utils/messagesErreur'
 import { echapperHtml, markdownVersHtmlImpression } from './utils/impression'
+import { allerALigne, ecrireALaFin } from './services/editeurCourant'
 import './App.css';
 
 const APP_VERSION = __APP_VERSION__ || '0.0.0'
 
-// Affichage Markdown (react-markdown, remark, rehype) : hors du premier
+// La note (éditeur mis en forme, CodeMirror) : hors du premier
 // chargement, l'écran d'accueil n'en a pas besoin. Avec une source déjà
 // choisie, on le demande tout de suite, en parallèle du démarrage.
 const chargerDocumentView = () => import('./components/DocumentView');
@@ -115,7 +116,6 @@ function App() {
   const [recentFiles, setRecentFiles] = useState(() => loadHistory());
   const [showSidebar, setShowSidebar] = useState(() => storage.get('showSidebar', true));
   const [showSearch, setShowSearch] = useState(false);
-  const [bookmarks, setBookmarks] = useState([]);
 
   // New states with persistence
   const [history, setHistory] = useState([]);
@@ -141,7 +141,6 @@ function App() {
   const [onboarding, setOnboarding] = useState(() => lireOnboarding());
   const [updateReady, setUpdateReady] = useState(null); // version string or null
   const [updateDismissed, setUpdateDismissed] = useState(false);
-  const [editMode, setEditMode] = useState(() => storage.get('editMode', false));
   const [showShare, setShowShare] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
@@ -214,14 +213,14 @@ function App() {
   // Save all preferences in a single debounced effect
   useEffect(() => {
     const t = setTimeout(() => {
-      const prefs = { fontSize, showSidebar, sidebarWidth, rightSidebarWidth, showRightSidebar, editMode };
+      const prefs = { fontSize, showSidebar, sidebarWidth, rightSidebarWidth, showRightSidebar };
       for (const [k, v] of Object.entries(prefs)) {
         storage.set(k, v);
       }
       syncService.markGlobalDirty();
     }, 300);
     return () => clearTimeout(t);
-  }, [fontSize, showSidebar, sidebarWidth, rightSidebarWidth, showRightSidebar, editMode]);
+  }, [fontSize, showSidebar, sidebarWidth, rightSidebarWidth, showRightSidebar]);
 
   // Élément de la vue document : un état, pas une ref, car DocumentView arrive
   // après coup (chargé à la demande) et l'écouteur de défilement doit suivre.
@@ -679,7 +678,6 @@ function App() {
       setCurrentDoc(data);
       setShowToday(false);
       addToHistory(data);
-      setEditMode(false);
       // Auto-dismiss source picker when a file is opened externally
       setShowSourcePicker(false);
       // Mode démo : ne rien persister (ni source, ni session, ni récents).
@@ -779,14 +777,6 @@ function App() {
         setShowGlobalSearch(prev => !prev);
         return;
       }
-      // Cmd+E for edit mode toggle
-      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 'e') {
-        e.preventDefault();
-        if (currentDoc) {
-          setEditMode(prev => !prev);
-        }
-        return;
-      }
       // Cmd+F for search (only when a document is open)
       if ((e.metaKey || e.ctrlKey) && e.key === 'f' && currentDoc) {
         e.preventDefault();
@@ -874,70 +864,10 @@ function App() {
     }
   };
 
-  const scrollToHeader = (id) => {
-    const el = window.document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      el.classList.add('highlight');
-      setTimeout(() => el.classList.remove('highlight'), 2000);
-    }
-  };
 
-  // Faire défiler jusqu'à une ligne du fichier (tâches)
-  const handleNavigateToLine = useCallback((lineStart, lineEnd) => {
-    // Find the first element with a matching data-source-line
-    const docView = window.document.querySelector('.document-content');
-    if (!docView) return;
 
-    // Find closest element for the target line
-    let target = null;
-    let bestDist = Infinity;
-    const els = docView.querySelectorAll('[data-source-line]');
-    for (const el of els) {
-      const n = parseInt(el.getAttribute('data-source-line'), 10);
-      if (n >= lineStart && n <= lineEnd) {
-        target = el;
-        break;
-      }
-      // Fallback: closest line before the target
-      if (n <= lineStart && (lineStart - n) < bestDist) {
-        bestDist = lineStart - n;
-        target = el;
-      }
-    }
 
-    if (!target) return;
-
-    // If it's a hidden span marker, use the next visible sibling or parent
-    const scrollTarget = target.style?.display === 'none' ? (target.nextElementSibling || target.parentElement) : target;
-
-    scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-    // Highlight effect
-    const orig = scrollTarget.style.background;
-    scrollTarget.style.background = 'rgba(233, 162, 59, 0.28)';
-    scrollTarget.style.borderRadius = '4px';
-    scrollTarget.style.transition = 'background 0.3s';
-    setTimeout(() => {
-      scrollTarget.style.background = orig;
-    }, 2000);
-  }, []);
-
-  const toggleBookmark = useCallback((headerId, headerText) => {
-    setBookmarks(prev => {
-      const exists = prev.find(b => b.id === headerId);
-      if (exists) {
-        return prev.filter(b => b.id !== headerId);
-      }
-      return [...prev, { id: headerId, text: headerText, filePath: currentDoc?.filePath }];
-    });
-  }, [currentDoc?.filePath]);
-
-  const isBookmarked = useCallback((headerId) => {
-    return bookmarks.some(b => b.id === headerId);
-  }, [bookmarks]);
-
-  // Handle content change from edit mode
+  // Texte enregistré par l'éditeur de la note
   const handleContentChange = useCallback((newContent) => {
     setCurrentDoc(prev => prev ? { ...prev, content: newContent } : prev);
     // Une tâche écrite ou cochée : Today et les rappels suivent.
@@ -976,18 +906,13 @@ function App() {
       const i = lignes.indexOf(brut);
       if (i >= 0) n = i + 1;
     }
-    const el = document.querySelector(`.document-content [data-task-line="${n}"]`);
-    if (!el) { handleNavigateToLine(n, n); return; }
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    el.classList.add('task-flash');
-    setTimeout(() => el.classList.remove('task-flash'), 2000);
-  }, [handleNavigateToLine]);
+    allerALigne(n);
+  }, []);
 
   const ouvrirTache = useCallback(async ({ chemin, ligne, brut }) => {
     if (!chemin) return;
     setShowToday(false);
     setMobilePopover(null);
-    setEditMode(false);
     if (currentDocRef.current?.filePath === chemin) {
       setTimeout(() => allerALaTache({ ligne, brut }), 80);
       return;
@@ -1044,7 +969,6 @@ function App() {
 
   const openToday = useCallback(() => {
     setShowToday(true);
-    setEditMode(false);
     setMobilePopover(null);
     if (rootDirPathRef.current) rappels.actualiser(rootDirPathRef.current);
   }, []);
@@ -1131,9 +1055,9 @@ function App() {
       }
       if (uri) {
         await fileSystem.openFileByPath(uri)
-        // Refresh la sidebar + passer en édition
+        // Refresh la sidebar + curseur dans la nouvelle note
         setSidebarRefreshKey(k => k + 1)
-        setTimeout(() => setEditMode(true), 300)
+        setTimeout(() => ecrireALaFin(), 400)
       }
     } catch (err) {
       // Casier plein, trop de documents : le dire plutôt que d'échouer en silence.
@@ -1296,10 +1220,6 @@ function App() {
           {!isMobile && (
             <>
               <Sidebar
-                content={currentDoc?.content || ''}
-                onNavigate={scrollToHeader}
-                bookmarks={bookmarks}
-                onBookmarkClick={scrollToHeader}
                 dirPath={currentDoc?.dirPath}
                 rootDirPath={rootDirPath}
                 currentFilePath={currentDoc?.filePath}
@@ -1368,13 +1288,9 @@ function App() {
                     dirPath={currentDoc.dirPath}
                     filePath={currentDoc.filePath}
                     onOpenLocalFile={handleOpenLocalFile}
-                    onToggleBookmark={toggleBookmark}
-                    isBookmarked={isBookmarked}
                     fontSize={fontSize}
                     onDocInfo={setDocInfo}
-                    editMode={editMode}
                     onContentChange={handleContentChange}
-                    onTasksChanged={() => rappels.actualiser(rootDirPathRef.current)}
                   />
                 </Suspense>
               </ErrorBoundary>
@@ -1575,10 +1491,6 @@ function App() {
                 {/* FILES PANEL: with quick file search */}
                 {mobilePopover === 'files' && (
                   <Sidebar
-                    content={currentDoc?.content || ''}
-                    onNavigate={(id) => { scrollToHeader(id); closeMobilePopover(); }}
-                    bookmarks={bookmarks}
-                    onBookmarkClick={(id) => { scrollToHeader(id); closeMobilePopover(); }}
                     dirPath={currentDoc?.dirPath}
                     rootDirPath={rootDirPath}
                     currentFilePath={currentDoc?.filePath}
@@ -1599,17 +1511,6 @@ function App() {
                 {/* TOOLS PANEL */}
                 {mobilePopover === 'tools' && (
                   <div className="mobile-tools-grid">
-                    {currentDoc && (
-                      <Tooltip text={t('tooltip.edit')} position="bottom">
-                        <button
-                          className={`mobile-tool-btn ${editMode ? 'active' : ''}`}
-                          onClick={() => { setEditMode(prev => !prev); closeMobilePopover(); }}
-                        >
-                          <span className="tool-icon"><Pencil size={20} /></span>
-                          <span className="tool-label">{t('app.edit')}</span>
-                        </button>
-                      </Tooltip>
-                    )}
                     <Tooltip text={t('tooltip.focus')} position="bottom">
                       <button
                         className={`mobile-tool-btn ${focusMode ? 'active' : ''}`}

@@ -11,26 +11,25 @@ test.describe('Mode démo', () => {
   })
 
   test('la démo ouvre un document lisible immédiatement', async ({ page }) => {
-    await expect(page.locator('h1').first()).toContainText(/Welcome to Lector/)
+    await expect(page.locator('.cm-lp-h1').first()).toContainText(/Welcome to Lector/)
   })
 
   test('la démo liste ses documents dans la sidebar', async ({ page }) => {
-    await expect(page.locator('h1').first()).toBeVisible()
+    await expect(page.locator('.cm-lp-h1').first()).toBeVisible()
     await expect(page.locator('.file-tree-item')).toHaveCount(3)
   })
 
-  test('naviguer vers le doc des diagrammes rend mermaid et colore le code', async ({ page }) => {
-    await expect(page.locator('h1').first()).toBeVisible()
+  test('naviguer vers le doc des diagrammes rend mermaid dans la note', async ({ page }) => {
+    await expect(page.locator('.cm-lp-h1').first()).toBeVisible()
     await page.locator('.file-tree-item', { hasText: /Diagrams/ }).click()
-    await expect(page.locator('h1').first()).toContainText(/Diagrams/)
+    await expect(page.locator('.cm-lp-h1').first()).toContainText(/Diagrams/)
     await expect(page.locator('.mermaid-svg svg').first()).toBeVisible({ timeout: 15000 })
-    await expect(page.locator('.code-block .hljs-keyword').first()).toBeVisible({ timeout: 10000 })
     // Les formules ne sont pas rendues : $…$ reste du texte.
     await expect(page.locator('.katex')).toHaveCount(0)
   })
 
   test("rien n'est persisté : le premier lancement revient sans ?demo", async ({ page }) => {
-    await expect(page.locator('h1').first()).toBeVisible()
+    await expect(page.locator('.cm-lp-h1').first()).toBeVisible()
     const leaked = await page.evaluate(() =>
       Object.keys(localStorage).filter(k => /source-type|last-session/.test(k))
     )

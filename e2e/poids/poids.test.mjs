@@ -42,7 +42,7 @@ test(`/app/ : moins de ${BUDGET_APP} Ko de JS au premier affichage, sans mermaid
 })
 
 test("/app/?demo : une note sans diagramme n'apporte ni mermaid, ni KaTeX, ni d3", async () => {
-  const r = await mesurer(navigateur, `${base}/app/?demo`, '.document-content h1, .document-title')
+  const r = await mesurer(navigateur, `${base}/app/?demo`, '.cm-lp-h1')
   for (const [nom, signe] of Object.entries(INTERDITS)) {
     const coupable = r.fichiers.find((f) => f.type === '.js' && signe.test(f.texte))
     assert.equal(coupable, undefined, `${nom} téléchargé pour la note d'accueil (${coupable?.chemin})`)

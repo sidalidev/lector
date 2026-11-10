@@ -1007,3 +1007,15 @@
   border-radius: 8px;
   transition: background-color 0.4s ease;
 }
+
+/* L'éditeur grandit avec la note : c'est .document-view qui défile. */
+.document-view-edit .markdown-editor-container {
+  display: block;
+  overflow: visible;
+  min-height: 100%;
+}
+
+.document-view-edit .markdown-editor-container .cm-editor {
+  height: auto;
+  min-height: 100%;
+}

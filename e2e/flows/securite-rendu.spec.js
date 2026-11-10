@@ -17,9 +17,11 @@ Normal paragraph.
 
 <a href="javascript:window.__pwn=(window.__pwn||0)+1">trap link</a>
 
+[markdown trap](javascript:window.__pwn=(window.__pwn||0)+1)
+
 <script>window.__pwn=(window.__pwn||0)+1</script>
 
-<style>.document-content{display:none}</style>
+<style>.cm-content{display:none}</style>
 
 <object data="x.swf"></object><embed src="x.swf"><form action="https://evil.invalid/"><input name="q"></form>
 
@@ -73,7 +75,7 @@ export function getDemoFile(locale, name) { return DOCS.find(f => f.name === nam
 
 async function ouvrirDemo(page) {
   await page.goto('/?demo')
-  await expect(page.locator('h1').first()).toContainText('Hostile')
+  await expect(page.locator('.cm-lp-h1').first()).toContainText('Hostile')
 }
 
 test.beforeEach(async ({ page }) => {
@@ -87,56 +89,43 @@ test.beforeEach(async ({ page }) => {
 })
 
 test.describe('Rendu sûr des documents', () => {
-  test('le HTML brut d\'un document ne lance aucun script et garde ce que Lector affiche', async ({ page }) => {
-    const contenu = page.locator('.document-content')
-    await expect(contenu.locator('pre').filter({ hasText: 'const x = 1' })).toBeVisible({ timeout: 10000 })
-    await page.getByText('trap link').evaluate((a) => a.click())
+  test('le HTML brut d\'un document reste du texte et ne lance aucun script', async ({ page }) => {
+    // L'éditeur n'interprète jamais le HTML d'une note : il l'affiche tel quel.
+    // Fenêtre haute : CodeMirror ne dessine que les lignes visibles.
+    await page.setViewportSize({ width: 1200, height: 4000 })
+    const contenu = page.locator('.cm-content')
+    await expect(contenu).toContainText('const x = 1')
+    await expect(contenu).toContainText('<script>')
+    await page.locator('[data-lp-href]', { hasText: 'to the section' }).click()
+    await page.getByText('markdown trap').click({ modifiers: ['ControlOrMeta'] })
     await page.waitForTimeout(500)
 
     const etat = await page.evaluate(() => {
-      const doc = document.querySelector('.document-content')
-      const voile = document.getElementById('voile')
+      const doc = document.querySelector('.cm-content')
       return {
         pwn: window.__pwn ?? 0,
-        dangereux: doc.querySelectorAll('iframe, script, style, object, embed, form, base, link').length,
+        dangereux: doc.querySelectorAll('iframe, script, style, object, embed, form, base, link, img[onerror]').length,
         evenements: [...doc.querySelectorAll('*')].filter((el) => [...el.attributes].some((a) => a.name.startsWith('on'))).length,
-        liensJs: [...doc.querySelectorAll('a')].filter((a) => /^\s*javascript:/i.test(a.getAttribute('href') || '')).length,
+        liensJs: [...doc.querySelectorAll('[data-lp-href]')].filter((a) => /javascript:/i.test(a.getAttribute('data-lp-href'))).length,
         feuilleExterne: document.querySelectorAll('link[href*="evil.invalid"]').length,
         baseExterne: document.querySelectorAll('base[href*="evil.invalid"]').length,
-        voileFixe: voile ? getComputedStyle(voile).position === 'fixed' : false,
-        couleur: getComputedStyle(document.getElementById('couleur')).color,
+        voile: !!document.getElementById('voile'),
       }
     })
-    expect(etat).toEqual({
-      pwn: 0,
-      dangereux: 0,
-      evenements: 0,
-      liensJs: 0,
-      feuilleExterne: 0,
-      baseExterne: 0,
-      voileFixe: false,
-      couleur: 'rgb(200, 0, 0)',
-    })
+    expect(etat).toEqual({ pwn: 0, dangereux: 0, evenements: 0, liensJs: 0, feuilleExterne: 0, baseExterne: 0, voile: false })
 
-    // Ce dont Lector a besoin reste là.
-    await expect(contenu.locator('.katex')).toHaveCount(0)
+    // Ce dont Lector a besoin reste là, mis en forme.
+    await expect(page.locator('.katex')).toHaveCount(0)
     await expect(contenu).toContainText('Dollars stay plain text: $x^2$')
-    await expect(contenu.locator('details summary')).toHaveText('More')
-    await expect(contenu.locator('kbd')).toHaveText('Ctrl')
-    await expect(contenu.locator('sub')).toHaveText('2')
-    await expect(contenu.locator('mark')).toHaveText('marked')
-    await expect(contenu.locator('table td').first()).toHaveText('1')
-    // Une case de tâche se coche (Lector l'écrit dans la note) : active, sans script.
-    await expect(contenu.locator('li input[type="checkbox"].task-checkbox')).toHaveCount(1)
-    await expect(contenu.locator('h2#second-section[data-header-id]')).toHaveCount(1)
-    await expect(contenu.locator('[data-source-line]').first()).toBeAttached()
-    await expect(contenu.locator('pre').filter({ hasText: 'const x = 1' })).toBeVisible()
-    await expect(contenu.locator('a[href="#second-section"]')).toHaveCount(1)
+    await expect(contenu.locator('.cm-lp-tableau td').first()).toHaveText('1')
+    await expect(contenu.locator('.cm-lp-case')).toHaveCount(1)
+    await expect(contenu.locator('[role="heading"][aria-level="2"]')).toContainText('Second section')
+    await expect(contenu.locator('[data-lp-href="#second-section"]')).toHaveCount(1)
   })
 
   test('un lien javascript: dans un diagramme Mermaid ne s\'exécute pas au clic', async ({ page }) => {
     await page.locator('.file-tree-item', { hasText: 'Diagram' }).click()
-    const svg = page.locator('.document-content .mermaid-svg svg')
+    const svg = page.locator('.cm-lp-mermaid .mermaid-svg svg')
     await expect(svg).toBeVisible({ timeout: 15000 })
     await expect(svg).toContainText('Expand the diagram')
 
@@ -184,6 +173,6 @@ test('aucune police ni aucun script ne vient d\'un tiers au lancement', async ({
     await document.fonts.ready
     return [...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family.replace(/"/g, ''))
   })
-  expect(polices).toEqual(expect.arrayContaining(['Figtree', 'Bricolage Grotesque', 'Literata Variable']))
+  expect(polices).toEqual(expect.arrayContaining(['Figtree', 'Bricolage Grotesque']))
   expect(tiers).toEqual([])
 })

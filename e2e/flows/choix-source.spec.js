@@ -26,19 +26,19 @@ test('Start : dossier créé, note de bienvenue ouverte, aucun écran de synchro
   await page.getByRole('button', { name: 'Start' }).click()
   await expect(page.getByRole('heading', { name: 'Sync your devices?' })).toHaveCount(0)
 
-  await expect(page.locator('h1').first()).toContainText('Welcome to Lector')
+  await expect(page.locator('.cm-lp-h1').first()).toContainText('Welcome to Lector')
   await expect(page.locator('.file-tree-item', { hasText: 'Welcome to Lector' })).toBeVisible()
 
   // Ensuite, plus jamais d'onboarding.
   await page.reload()
-  await expect(page.locator('h1').first()).toContainText('Welcome to Lector')
+  await expect(page.locator('.cm-lp-h1').first()).toContainText('Welcome to Lector')
   await expect(page.locator('.onboarding')).toHaveCount(0)
 })
 
 test('un dossier Lector Vault existant est proposé', async ({ page }) => {
   await appareilVierge(page)
   await page.getByRole('button', { name: 'Start' }).click()
-  await expect(page.locator('h1').first()).toContainText('Welcome to Lector')
+  await expect(page.locator('.cm-lp-h1').first()).toContainText('Welcome to Lector')
 
   await page.evaluate(() => { localStorage.removeItem('lector-source-type'); localStorage.removeItem('lector-last-session') })
   await page.reload()

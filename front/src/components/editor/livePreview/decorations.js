@@ -24,7 +24,11 @@ const PUCE = Decoration.mark({ class: 'cm-lp-puce' })
 const FAIT = Decoration.mark({ class: 'cm-lp-fait' })
 
 const ligne = (classe) => Decoration.line({ class: classe })
-const TITRES = [1, 2, 3, 4, 5, 6].map((n) => ligne(`cm-lp-titre cm-lp-h${n}`))
+// role="heading" : les lecteurs d'écran (et le sommaire du navigateur) y voient des titres.
+const TITRES = [1, 2, 3, 4, 5, 6].map((n) => Decoration.line({
+  class: `cm-lp-titre cm-lp-h${n}`,
+  attributes: { role: 'heading', 'aria-level': String(n) },
+}))
 const CITATION = ligne('cm-lp-citation')
 const SEPARATEUR = ligne('cm-lp-hr')
 const CODE = ligne('cm-lp-bloc-code')
@@ -34,11 +38,56 @@ const CODE_SEUL = ligne('cm-lp-bloc-code cm-lp-bloc-code-debut cm-lp-bloc-code-f
 
 const lien = (href) => Decoration.mark({
   class: 'cm-lp-lien',
-  attributes: ADRESSE_OUVRABLE.test(href) ? { 'data-lp-href': href } : {},
+  attributes: href && !ADRESSE_INTERDITE.test(href) ? { 'data-lp-href': href } : {},
 })
 
-// Seules ces adresses s'ouvrent au Cmd/Ctrl+clic : pas de javascript:, data:…
+// Seules ces adresses s'ouvrent dans le navigateur : pas de javascript:, data:…
 export const ADRESSE_OUVRABLE = /^(https?:\/\/|mailto:)/i
+// Jamais cliquables. Les autres (note voisine, #titre) sont confiées à l'hôte.
+const ADRESSE_INTERDITE = /^\s*(javascript|data|vbscript|file):/i
+
+/** Image d'une note. Une image locale est résolue par l'hôte (optionsApercu). */
+export class ImageWidget extends WidgetType {
+  constructor(src, alt, resoudre) {
+    super()
+    this.src = src
+    this.alt = alt
+    this.resoudre = resoudre
+  }
+
+  eq(autre) { return autre.src === this.src && autre.alt === this.alt }
+
+  get estimatedHeight() { return 240 }
+
+  toDOM(view) {
+    const el = document.createElement('span')
+    el.className = 'cm-lp-image'
+    const img = document.createElement('img')
+    img.alt = this.alt
+    img.loading = 'lazy'
+    img.decoding = 'async'
+    img.onload = () => view.requestMeasure()
+    const absente = () => {
+      el.classList.add('cm-lp-image-absente')
+      el.textContent = this.alt || this.src
+    }
+    img.onerror = absente
+    const directe = /^(https?:|data:image\/|blob:)/i.test(this.src)
+    const url = directe ? this.src : this.resoudre?.(this.src)
+    if (url && typeof url.then === 'function') {
+      url.then((u) => { if (u) img.src = u; else absente() }, absente)
+    } else if (url) {
+      img.src = url
+    } else {
+      absente()
+      return el
+    }
+    el.appendChild(img)
+    return el
+  }
+
+  ignoreEvent() { return false }
+}
 
 /** Case à cocher d'une tâche. `<span role="checkbox">` plutôt qu'un <input> : stylable partout. */
 export class CaseWidget extends WidgetType {
@@ -82,7 +131,7 @@ export function lignesActives(state, focus) {
  * Décorations des plages `plages` ([{ from, to }], en pratique
  * view.visibleRanges). Renvoie un DecorationSet.
  */
-export function construireDecorations(state, plages, { focus = true } = {}) {
+export function construireDecorations(state, plages, { focus = true, resoudreImage = null } = {}) {
   const doc = state.doc
   const actives = lignesActives(state, focus)
   const active = (pos) => actives.has(doc.lineAt(pos).number)
@@ -162,6 +211,16 @@ export function construireDecorations(state, plages, { focus = true } = {}) {
             const href = url ? doc.sliceString(url.from, url.to) : ''
             deco.push(lien(href).range(n.from, n.to))
             break
+          }
+          case 'Image': {
+            if (active(n.from)) break
+            const url = n.node.getChild('URL')
+            const src = url ? doc.sliceString(url.from, url.to).replace(/^<|>$/g, '') : ''
+            const texte = doc.sliceString(n.from, n.to)
+            const alt = /^!\[([^\]]*)\]/.exec(texte)?.[1] ?? ''
+            if (!src) break
+            deco.push(Decoration.replace({ widget: new ImageWidget(src, alt, resoudreImage) }).range(n.from, n.to))
+            return false
           }
           case 'LinkMark': case 'LinkTitle':
             // Les crochets d'une image restent visibles : seule la syntaxe des liens se replie.

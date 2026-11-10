@@ -196,3 +196,91 @@
   border-bottom-right-radius: var(--radius-sm);
   padding-bottom: 0.5em;
 }
+
+/* --- Images, tableaux, diagrammes ----------------------------------------- */
+
+/* Chaque ligne suit le sens de son texte (arabe à droite). */
+.cm-editor.cm-lp .cm-line {
+  unicode-bidi: plaintext;
+}
+
+.cm-editor.cm-lp .cm-lp-image {
+  display: block;
+  margin: 8px 0;
+  cursor: text;
+}
+
+.cm-editor.cm-lp .cm-lp-image img {
+  display: block;
+  max-width: 100%;
+  max-height: 70vh;
+  border-radius: 12px;
+}
+
+.cm-editor.cm-lp .cm-lp-image-absente {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  font-size: 0.85em;
+}
+
+.cm-editor.cm-lp .cm-lp-bloc {
+  margin: 12px 0;
+  cursor: text;
+}
+
+.cm-editor.cm-lp .cm-lp-tableau {
+  overflow-x: auto;
+}
+
+.cm-editor.cm-lp .cm-lp-tableau table {
+  border-collapse: collapse;
+  font-size: 0.92em;
+  line-height: 1.5;
+  min-width: 50%;
+}
+
+.cm-editor.cm-lp .cm-lp-tableau th,
+.cm-editor.cm-lp .cm-lp-tableau td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color, rgba(127, 127, 127, 0.2));
+  text-align: left;
+  vertical-align: top;
+}
+
+.cm-editor.cm-lp .cm-lp-tableau th {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.cm-editor.cm-lp .cm-lp-tableau code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--bg-secondary);
+}
+
+.cm-editor.cm-lp .cm-lp-mermaid {
+  min-height: 40px;
+  color: var(--text-muted);
+}
+
+/* Recherche dans la note */
+.cm-editor .cm-recherche {
+  background: rgba(var(--accent-rgb), 0.25);
+  border-radius: 2px;
+}
+
+.cm-editor .cm-recherche-courante {
+  background: rgba(var(--accent-rgb), 0.6);
+}
+
+/* Ligne signalée (sommaire, tâche ouverte depuis Today) */
+.cm-editor .cm-ligne-signalee {
+  background: rgba(var(--accent-rgb), 0.18);
+  border-radius: 4px;
+  transition: background 0.6s;
+}

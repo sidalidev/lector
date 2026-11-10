@@ -1,6 +1,6 @@
 import { useRef, useEffect, memo } from 'react';
 import { EditorView, lineNumbers, highlightActiveLine, keymap } from '@codemirror/view';
-import { EditorState, Compartment, Prec } from '@codemirror/state';
+import { EditorState, Compartment, Prec, Transaction } from '@codemirror/state';
 import { history, historyKeymap } from '@codemirror/commands';
 import { foldGutter, bracketMatching, indentOnInput, syntaxHighlighting, defaultHighlightStyle, LanguageSupport } from '@codemirror/language';
 // Pas markdown() : sa valeur par défaut embarque le langage HTML, donc aussi
@@ -9,7 +9,9 @@ import { foldGutter, bracketMatching, indentOnInput, syntaxHighlighting, default
 import { markdownLanguage, markdownKeymap, pasteURLAsLink } from '@codemirror/lang-markdown';
 import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
 import { defaultKeymap, indentWithTab } from '@codemirror/commands';
-import { modeEcriture } from './editor/livePreview/index.js';
+import { modeEcriture, optionsApercu } from './editor/livePreview/index.js';
+import { surlignages, creerApi } from './editor/apiEditeur.js';
+import { inscrire, desinscrire } from '../services/editeurCourant.js';
 import './MarkdownEditor.css';
 
 const fontSizeCompartment = new Compartment();
@@ -26,7 +28,10 @@ function makeFontSizeExtension(size) {
 // contenu viennent alors du Y.Text, pas de `content` ni de history().
 // `content` peut alors être une fonction, lue à la création de l'éditeur : le
 // texte reçu entre le rendu et le montage (effet différé) n'est pas perdu.
-function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, extensions = null }) {
+// `options` : images locales et liens de note (voir livePreview/options.js).
+// `principal` : l'éditeur de la note ouverte ; le sommaire et la recherche le
+// pilotent (services/editeurCourant.js) et la page défile autour de lui.
+function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, extensions = null, options = null, principal = false, readOnly = false }) {
   const partage = !!extensions;
   const containerRef = useRef(null);
   const viewRef = useRef(null);
@@ -50,6 +55,9 @@ function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, e
       doc: (typeof content === 'function' ? content() : content) || '',
       extensions: [
         ...(extensions || []),
+        ...(options ? [optionsApercu.of(options)] : []),
+        ...(readOnly ? [EditorState.readOnly.of(true), EditorView.editable.of(false)] : []),
+        surlignages(),
         // Mis en forme par défaut ; « Show Markdown syntax » rend le mode source.
         modeEcriture({ source: [lineNumbers(), highlightActiveLine(), foldGutter(), syntaxHighlighting(defaultHighlightStyle)] }),
         ...(partage ? [] : [history()]),
@@ -75,12 +83,13 @@ function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, e
           }
         }),
         EditorView.theme({
-          '&': {
+          // L'éditeur principal grandit avec le texte : c'est la page qui défile.
+          '&': principal ? { minHeight: '100%' } : {
             height: '100%',
             flex: '1',
           },
           '.cm-scroller': {
-            overflow: 'auto',
+            overflow: principal ? 'visible' : 'auto',
             fontFamily: "var(--font-mono)",
             lineHeight: '1.7',
           },
@@ -125,12 +134,15 @@ function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, e
     });
 
     viewRef.current = view;
+    const api = principal ? creerApi(view) : null;
+    if (api) inscrire(api);
 
     if (autoFocus) {
       requestAnimationFrame(() => view.focus());
     }
 
     return () => {
+      if (api) desinscrire(api);
       view.destroy();
       viewRef.current = null;
     };
@@ -148,6 +160,8 @@ function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, e
     if (content !== currentDoc) {
       view.dispatch({
         changes: { from: 0, to: currentDoc.length, insert: content || '' },
+        // Texte venu d'ailleurs : Cmd+Z ne doit pas le défaire.
+        annotations: Transaction.addToHistory.of(false),
       });
     }
   }, [content]);

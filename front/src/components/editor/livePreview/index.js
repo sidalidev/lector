@@ -11,22 +11,52 @@
 import { EditorView, ViewPlugin, keymap } from '@codemirror/view'
 import { Compartment, Prec } from '@codemirror/state'
 import { syntaxTree } from '@codemirror/language'
-import { construireDecorations } from './decorations.js'
+import { construireDecorations, lignesActives, ADRESSE_OUVRABLE } from './decorations.js'
+import { blocsRendus } from './blocs.js'
+import { optionsApercu } from './options.js'
 import { basculerCase, entourer } from './commandes.js'
 import { syntaxeVisible, EVENEMENT_SYNTAXE } from './reglage.js'
 import './livePreview.css'
 
 export { syntaxeVisible, afficherSyntaxe, basculerSyntaxe } from './reglage.js'
+export { optionsApercu } from './options.js'
+
+const decorationsDe = (view) => construireDecorations(view.state, view.visibleRanges, {
+  focus: view.hasFocus,
+  resoudreImage: view.state.facet(optionsApercu).resoudreImage,
+})
+
+// Identifiant d'ancre d'un titre, comme GitHub : « Mon titre ! » → mon-titre
+export const ancre = (texte) => texte.trim().toLowerCase()
+  .replace(/[^\p{L}\p{N}\s_-]/gu, '').replace(/\s/g, '-')
+
+/** Ouvre un lien : #titre dans la note, l'hôte d'abord, sinon le navigateur. */
+function ouvrirLien(view, href) {
+  if (href.startsWith('#')) {
+    const cible = decodeURIComponent(href.slice(1)).toLowerCase()
+    for (let n = 1; n <= view.state.doc.lines; n++) {
+      const l = view.state.doc.line(n)
+      const m = /^#{1,6}\s+(.*?)\s*#*\s*$/.exec(l.text)
+      if (m && ancre(m[1].replace(/\*\*|__|`/g, '')) === cible) {
+        view.dispatch({ effects: EditorView.scrollIntoView(l.from, { y: 'start', yMargin: 24 }) })
+        return
+      }
+    }
+    return
+  }
+  if (view.state.facet(optionsApercu).ouvrirLien?.(href)) return
+  if (ADRESSE_OUVRABLE.test(href)) window.open(href, '_blank', 'noopener,noreferrer')
+}
 
 const apercu = ViewPlugin.fromClass(class {
   constructor(view) {
-    this.decorations = construireDecorations(view.state, view.visibleRanges, { focus: view.hasFocus })
+    this.decorations = decorationsDe(view)
   }
 
   update(u) {
     if (u.docChanged || u.viewportChanged || u.selectionSet || u.focusChanged
       || syntaxTree(u.startState) !== syntaxTree(u.state)) {
-      this.decorations = construireDecorations(u.state, u.view.visibleRanges, { focus: u.view.hasFocus })
+      this.decorations = decorationsDe(u.view)
     }
   }
 }, {
@@ -43,12 +73,27 @@ const apercu = ViewPlugin.fromClass(class {
         if (spec) view.dispatch(spec)
         return true
       }
-      // Lien : Cmd/Ctrl+clic ouvre, le clic simple place le curseur.
-      const lien = (e.metaKey || e.ctrlKey) && cible?.closest('[data-lp-href]')
-      if (lien) {
+      // Bloc rendu (tableau, diagramme) ou image : le clic y place le curseur,
+      // le Markdown réapparaît pour l'éditer.
+      const bloc = cible?.closest('.cm-lp-bloc, .cm-lp-image')
+      if (bloc) {
         e.preventDefault()
-        window.open(lien.getAttribute('data-lp-href'), '_blank', 'noopener,noreferrer')
+        const pos = view.posAtDOM(bloc)
+        view.focus()
+        view.dispatch({ selection: { anchor: pos }, scrollIntoView: false })
         return true
+      }
+      // Lien mis en forme : le clic l'ouvre, comme dans Bear. Sur la ligne en
+      // cours d'écriture (syntaxe visible), le clic place le curseur ; Cmd/Ctrl+clic ouvre toujours.
+      const lien = e.button === 0 && cible?.closest('[data-lp-href]')
+      if (lien) {
+        const ligne = view.state.doc.lineAt(view.posAtDOM(lien)).number
+        const enEcriture = lignesActives(view.state, view.hasFocus).has(ligne)
+        if (!enEcriture || e.metaKey || e.ctrlKey) {
+          e.preventDefault()
+          ouvrirLien(view, lien.getAttribute('data-lp-href'))
+          return true
+        }
       }
       return false
     },
@@ -65,6 +110,9 @@ const raccourcis = Prec.high(keymap.of([
 /** Le mode mis en forme seul (sans bascule). */
 export const livePreview = () => [
   apercu,
+  blocsRendus(),
+  // Chaque ligne prend le sens de son texte (arabe à droite, le reste à gauche).
+  EditorView.perLineTextDirection.of(true),
   EditorView.editorAttributes.of({ class: 'cm-lp' }),
   EditorView.contentAttributes.of({ 'data-mode': 'live-preview' }),
 ]
