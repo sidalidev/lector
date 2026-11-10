@@ -1019,3 +1019,38 @@
   height: auto;
   min-height: 100%;
 }
+
+/* Note partagée : qui est là, en haut à droite */
+.doc-presence {
+  position: sticky;
+  top: 10px;
+  z-index: 5;
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  height: 0;
+  margin: 0 14px;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+}
+
+.doc-presence li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 13px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.doc-presence li span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--couleur);
+}

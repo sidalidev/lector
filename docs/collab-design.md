@@ -1,6 +1,6 @@
 # Real-time co-writing: design
 
-Status: web flow built (invitation page `/d/<room>`, owner share and stop from the web app). Binding a shared document to a `.md` file of the desktop or Android vault is designed below (§ 9) but not built yet.
+Status: web flow built (invitation page `/d/<room>`, owner share and stop from the web app). In the web app, a shared note stays bound to its room (§ 9): the owner writes in the note itself and sees the co-authors' cursors. Desktop and Android are not built yet.
 
 Lector lets two or more people write the same Markdown document at the same time, like a shared online document, without giving up what Lector is: no account, a blind relay, end-to-end encryption, text only, local first.
 
@@ -150,7 +150,7 @@ If the owner is offline, the stop is remembered and sent at the next opportunity
 - The person sees the document, the others' cursors, who is connected, the connection state, and a button to download the document as `.md`.
 - Owner, from the web app: **Share** on an open document creates the room with the document text, then shows the link, a QR code and **Stop sharing**. Opening the link (button **Open**) brings the owner to the same page, with the owner's controls.
 
-## 9. Desktop and Android (designed, not built)
+## 9. Shared note in the owner's vault (built in the web app, `services/collab/liaison.js`)
 
 The shared document is a normal `.md` file in the owner's vault. The client keeps the Yjs state next to its record (IndexedDB, keyed by room, plus an index from file path to room):
 

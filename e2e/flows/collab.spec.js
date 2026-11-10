@@ -147,6 +147,7 @@ test("Partager depuis l'app web : lien, QR, ouverture par l'invité, arrêt", as
   await app.locator('.onboarding-primary').first().click()
   await app.locator('.file-tree-item').first().click()
   await app.getByTestId('collab-partager').click()
+  await app.getByTestId('collab-nom-proprietaire').fill('Sid')
   await app.getByTestId('collab-creer').click()
   const lien = await app.getByTestId('collab-lien').inputValue()
   expect(lien).toMatch(/\/d\/[0-9a-f]{32}#[A-Za-z0-9_-]{43}$/)
@@ -156,10 +157,29 @@ test("Partager depuis l'app web : lien, QR, ouverture par l'invité, arrêt", as
   await entrer(invite, lien, 'Lea')
   await expect(editeur(invite)).toContainText('Welcome to Lector')
 
+  // La note de l'app est reliée au salon : chacun voit le texte et le curseur de l'autre.
+  await app.keyboard.press('Escape')
+  await expect(app.locator('.doc-presence')).toContainText('Lea')
+  await taperALaFin(invite, '\nINT. KITCHEN - NIGHT')
+  const enBas = () => app.locator('.document-view').evaluate((el) => { el.scrollTop = el.scrollHeight })
+  await expect.poll(async () => { await enBas(); return editeur(app).textContent() }).toContain('INT. KITCHEN - NIGHT')
+  await expect(app.locator('.cm-ySelectionInfo', { hasText: 'Lea' })).toBeVisible()
+  await taperALaFin(app, '\nEXT. HARBOUR - DAWN')
+  await expect(editeur(invite)).toContainText('EXT. HARBOUR - DAWN')
+  await expect(invite.locator('.cm-ySelectionInfo', { hasText: 'Sid' })).toBeVisible()
+  await app.waitForTimeout(1500) // enregistrement de la note (1 s après la dernière frappe)
+  await app.getByTestId('collab-partager').click()
+
   app.once('dialog', (d) => d.accept())
   await app.getByRole('button', { name: 'Stop sharing' }).click()
   await expect(app.getByRole('status')).toContainText('Sharing stopped')
   await expect(invite.getByTestId('collab-bandeau')).toContainText('The owner stopped sharing')
+  // Le texte écrit à deux est dans la note du vault, partage arrêté compris.
+  await app.reload()
+  await app.locator('.file-tree-item').first().click()
+  await expect.poll(async () => { await enBas(); return editeur(app).textContent() }).toContain('EXT. HARBOUR - DAWN')
+  await expect(editeur(app)).toContainText('INT. KITCHEN - NIGHT')
+  await app.getByTestId('collab-partager').click()
   // Partager à nouveau : nouvelle clé, nouveau lien.
   await app.getByTestId('collab-creer').click()
   expect(await app.getByTestId('collab-lien').inputValue()).not.toBe(lien)

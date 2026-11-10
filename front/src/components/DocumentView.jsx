@@ -4,6 +4,7 @@ import syncService from '../services/syncService';
 import storage from '../services/storage';
 import { allerALigne, ligneEnHaut, titresDe } from '../services/editeurCourant';
 import { messageChaine } from '../utils/messagesErreur';
+import { partageDuFichier } from '../services/collab/stockage.js';
 import './DocumentView.css';
 
 // La note se lit et s'écrit au même endroit : l'éditeur mis en forme (façon
@@ -71,10 +72,64 @@ const DocumentView = memo(forwardRef(function DocumentView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filePath]);
 
+  // --- Note partagée : l'éditeur écrit dans le salon, avec les curseurs des autres ---
+  const [liaison, setLiaison] = useState(null);      // { chemin, extensions, texte(), appliquerFichier, fermer }
+  const [personnes, setPersonnes] = useState([]);
+  const [verifPartage, setVerifPartage] = useState(0);
+  const liaisonRef = useRef(null);
+  liaisonRef.current = liaison?.chemin === filePath ? liaison : null;
+
+  useEffect(() => {
+    const surPartage = () => setVerifPartage((n) => n + 1);
+    window.addEventListener('lector-partage', surPartage);
+    return () => window.removeEventListener('lector-partage', surPartage);
+  }, []);
+
+  useEffect(() => {
+    if (!ecrivable(filePath)) return undefined;
+    let annule = false;
+    let l = null;
+    const quitter = () => {
+      // Retour à la note seule : l'éditeur reprend le dernier texte connu.
+      setValeur({ chemin: filePath, texte: texteRef.current });
+      setLiaison(null);
+      setPersonnes([]);
+    };
+    (async () => {
+      const enregistrement = await partageDuFichier(filePath).catch(() => null);
+      if (annule || !enregistrement?.cle) return;
+      const { relier } = await import('../services/collab/liaison.js');
+      const { STATUTS } = await import('../services/collab/partage.js');
+      if (annule) return;
+      l = await relier(enregistrement, {
+        onPersonnes: (p) => { if (!annule) setPersonnes(p); },
+        onStatut: (st) => {
+          if (st === STATUTS.ARRETE || st === STATUTS.REFUSE) { annule = true; l?.fermer(); quitter(); }
+        },
+      });
+      if (annule) { l.fermer(); return; }
+      setLiaison({ chemin: filePath, ...l });
+      // Le salon a pu avancer pendant l'absence : le fichier le rattrape.
+      const texte = l.texte();
+      if (texte !== texteRef.current) handleChangeRef.current(texte);
+    })();
+    return () => {
+      annule = true;
+      if (l) { l.fermer(); quitter(); }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filePath, verifPartage]);
+
   // Même note, texte venu d'ailleurs : adopté seulement si rien n'attend d'être enregistré ici.
+  // Note partagée : il devient une modification du salon, que les autres reçoivent.
   useEffect(() => {
     if (content === texteRef.current) return;
     if (texteRef.current !== enregistreRef.current) return;
+    if (liaisonRef.current) {
+      enregistreRef.current = content;
+      liaisonRef.current.appliquerFichier(content);
+      return;
+    }
     texteRef.current = content;
     enregistreRef.current = content;
     setValeur({ chemin: filePath, texte: content });
@@ -87,6 +142,8 @@ const DocumentView = memo(forwardRef(function DocumentView({
     const chemin = filePath;
     minuteurRef.current = setTimeout(() => enregistrer(chemin, texteRef.current), 1000);
   }, [filePath, enregistrer]);
+  const handleChangeRef = useRef(handleChange);
+  handleChangeRef.current = handleChange;
 
   // Fermeture de l'onglet ou de l'app : ne rien perdre de la dernière seconde.
   useEffect(() => {
@@ -168,10 +225,18 @@ const DocumentView = memo(forwardRef(function DocumentView({
   return (
     <div ref={setRefs} className="document-view document-view-edit">
       {saveError && <div className="doc-save-error" role="alert">{saveError}</div>}
+      {liaisonRef.current && personnes.length > 0 && (
+        <ul className="doc-presence" aria-label={`${personnes.length} here`}>
+          {personnes.map((p) => (
+            <li key={p.client} style={{ '--couleur': p.couleur }}><span aria-hidden="true" />{p.nom}</li>
+          ))}
+        </ul>
+      )}
       <Suspense fallback={null}>
         <MarkdownEditor
-          key={filePath}
-          content={valeur.chemin === filePath ? valeur.texte : content}
+          key={liaisonRef.current ? `${filePath}#partage` : filePath}
+          extensions={liaisonRef.current?.extensions || null}
+          content={liaisonRef.current ? liaisonRef.current.texte : (valeur.chemin === filePath ? valeur.texte : content)}
           onChange={handleChange}
           fontSize={fontSize}
           options={options}

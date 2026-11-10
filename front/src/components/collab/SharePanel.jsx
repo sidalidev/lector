@@ -14,6 +14,10 @@ export default function SharePanel({ filePath, content, onClose }) {
   const [lien, setLien] = useState(null)
   const [occupe, setOccupe] = useState(false)
   const [message, setMessage] = useState(null)
+  // Prénom montré aux autres à côté de mon curseur (gardé dans ce navigateur).
+  const [nom, setNom] = useState(() => stockage.lireProfil()?.nom || '')
+  // La note ouverte se relie (ou se délie) du salon tout de suite.
+  const prevenir = () => window.dispatchEvent(new CustomEvent('lector-partage', { detail: { chemin: filePath } }))
 
   useEffect(() => {
     reessayerArrets().catch(() => {})
@@ -32,11 +36,13 @@ export default function SharePanel({ filePath, content, onClose }) {
   const creer = async () => {
     setOccupe(true)
     setMessage(null)
+    if (nom.trim() && nom.trim() !== stockage.lireProfil()?.nom) stockage.ecrireProfil(nom)
     try {
       const r = await creerPartage({ texte: content, titre: titreDu(content, filePath?.split('/').pop()), chemin: filePath })
       setPartage(r.enregistrement)
       setLien(r.lien)
       if (!r.enLigne) setMessage(t('collab.share.offline'))
+      prevenir()
     } finally {
       setOccupe(false)
     }
@@ -50,6 +56,7 @@ export default function SharePanel({ filePath, content, onClose }) {
       setPartage(null)
       setLien(null)
       setMessage(t(ok ? 'collab.stop.done' : 'collab.stop.pending'))
+      prevenir()
     } finally {
       setOccupe(false)
     }
@@ -67,9 +74,20 @@ export default function SharePanel({ filePath, content, onClose }) {
             <button type="button" className="collab-btn collab-btn-danger" onClick={arreter} disabled={occupe}>{t('collab.stop')}</button>
           </>
         ) : (
-          <button type="button" className="collab-btn collab-btn-plein" onClick={creer} disabled={occupe} data-testid="collab-creer">
+          <>
+          <input
+            className="collab-champ"
+            maxLength={40}
+            value={nom}
+            placeholder={t('collab.name.placeholder')}
+            aria-label={t('collab.name.hint')}
+            onChange={(e) => setNom(e.target.value)}
+            data-testid="collab-nom-proprietaire"
+          />
+          <button type="button" className="collab-btn collab-btn-plein" onClick={creer} disabled={occupe || !nom.trim()} data-testid="collab-creer">
             {occupe ? t('collab.share.creating') : t('collab.share.create')}
           </button>
+          </>
         )}
         {message && <p className="collab-note" role="status">{message}</p>}
         <details className="collab-note">
