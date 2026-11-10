@@ -24,7 +24,7 @@
     "test:api": "npx playwright test --project=api --config e2e/playwright.config.js",
     "test:flows": "npx playwright test --project=flows --config e2e/playwright.config.js",
     "test:poids": "npm run build && node --test e2e/poids/poids.test.mjs",
-    "test:chaine": "node --test front/src/services/chaine/*.test.mjs front/src/services/collab/*.test.mjs front/src/services/taches/*.test.mjs front/desktop/*.test.cjs"
+    "test:chaine": "node --test front/src/services/chaine/*.test.mjs front/src/services/collab/*.test.mjs front/src/services/taches/*.test.mjs front/src/components/editor/livePreview/*.test.mjs front/desktop/*.test.cjs"
   },
   "author": {
     "name": "Sid",

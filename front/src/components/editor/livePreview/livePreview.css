@@ -1,0 +1,198 @@
+/* Mode d'écriture mis en forme (façon Bear). Actif quand l'éditeur porte .cm-lp.
+   Couleurs et polices : variables du thème Lector (clair et sombre). */
+
+.cm-editor.cm-lp .cm-scroller {
+  font-family: var(--font-sans);
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ~70 caractères par ligne, centrés, marges généreuses. */
+.cm-editor.cm-lp .cm-content {
+  max-width: calc(36em + 2 * clamp(16px, 4vw, 48px));
+  padding: 48px clamp(16px, 4vw, 48px) 40vh;
+  color: var(--text-primary);
+  caret-color: var(--accent-primary);
+}
+
+.cm-editor.cm-lp .cm-line {
+  padding: 0;
+}
+
+.cm-editor.cm-lp .cm-cursor {
+  border-left: 2px solid var(--accent-primary);
+  border-radius: 1px;
+}
+
+.cm-editor.cm-lp .cm-selectionBackground,
+.cm-editor.cm-lp.cm-focused .cm-selectionBackground {
+  background: rgba(var(--accent-rgb), 0.22) !important;
+  border-radius: 3px;
+}
+
+.cm-editor.cm-lp .cm-content ::selection {
+  background: rgba(var(--accent-rgb), 0.22);
+}
+
+/* --- Syntaxe ------------------------------------------------------------ */
+
+/* Repliée hors de la ligne active : le texte reste dans le DOM. */
+.cm-editor.cm-lp .cm-lp-cache {
+  font-size: 0;
+  letter-spacing: 0;
+}
+
+/* Curseur d'une autre personne posé dans une marque repliée : taille normale. */
+.cm-editor.cm-lp .cm-lp-cache .cm-ySelectionCaret,
+.cm-editor.cm-lp .cm-lp-cache .cm-ySelectionInfo {
+  font-size: 1rem;
+}
+
+/* Sur la ligne active : visible, atténuée. */
+.cm-editor.cm-lp .cm-lp-marque {
+  color: var(--text-muted);
+  opacity: 0.55;
+  font-weight: 400;
+  font-style: normal;
+  text-decoration: none;
+  animation: cm-lp-apparition 140ms ease-out;
+}
+
+@keyframes cm-lp-apparition {
+  from { opacity: 0; }
+  to { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cm-editor.cm-lp .cm-lp-marque { animation: none; }
+}
+
+/* --- Titres ------------------------------------------------------------- */
+
+.cm-editor.cm-lp .cm-lp-titre {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: var(--display-tracking, -0.01em);
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+
+.cm-editor.cm-lp .cm-lp-h1 { font-size: 1.85em; padding-top: 0.5em; padding-bottom: 0.15em; }
+.cm-editor.cm-lp .cm-lp-h2 { font-size: 1.45em; padding-top: 0.6em; padding-bottom: 0.1em; }
+.cm-editor.cm-lp .cm-lp-h3 { font-size: 1.2em; padding-top: 0.5em; font-weight: 650; }
+.cm-editor.cm-lp .cm-lp-h4,
+.cm-editor.cm-lp .cm-lp-h5,
+.cm-editor.cm-lp .cm-lp-h6 { font-size: 1.05em; padding-top: 0.4em; font-weight: 650; color: var(--text-secondary); }
+
+/* --- En ligne ----------------------------------------------------------- */
+
+.cm-editor.cm-lp .cm-lp-gras { font-weight: 700; }
+.cm-editor.cm-lp .cm-lp-italique { font-style: italic; }
+.cm-editor.cm-lp .cm-lp-barre { text-decoration: line-through; text-decoration-color: var(--text-muted); }
+
+.cm-editor.cm-lp .cm-lp-code-en-ligne {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: var(--bg-secondary);
+  border-radius: 5px;
+  padding: 0.12em 0.32em;
+}
+
+.cm-editor.cm-lp .cm-lp-lien {
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-decoration-color: rgba(var(--accent-rgb), 0.55);
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1.5px;
+}
+
+.cm-editor.cm-lp .cm-lp-lien .cm-lp-marque { text-decoration: none; }
+
+/* --- Citations, listes, tâches ----------------------------------------- */
+
+.cm-editor.cm-lp .cm-lp-citation {
+  border-left: 3px solid var(--accent);
+  padding-left: 1em;
+  color: var(--text-secondary);
+}
+
+.cm-editor.cm-lp .cm-lp-puce {
+  position: relative;
+  color: transparent;
+}
+
+.cm-editor.cm-lp .cm-lp-puce::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: var(--accent-icon, var(--accent));
+  font-weight: 700;
+}
+
+.cm-editor.cm-lp .cm-lp-case {
+  display: inline-block;
+  box-sizing: border-box;
+  width: 1.05em;
+  height: 1.05em;
+  margin: 0 0.45em 0 0.05em;
+  vertical-align: -0.15em;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 0.3em;
+  background: var(--surface);
+  cursor: pointer;
+  position: relative;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.cm-editor.cm-lp .cm-lp-case:hover { border-color: var(--accent); }
+
+.cm-editor.cm-lp .cm-lp-case-cochee {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.cm-editor.cm-lp .cm-lp-case-cochee::after {
+  content: '';
+  position: absolute;
+  left: 32%;
+  top: 12%;
+  width: 28%;
+  height: 52%;
+  border: solid var(--on-accent);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.cm-editor.cm-lp .cm-lp-fait {
+  color: var(--text-muted);
+  text-decoration: line-through;
+  text-decoration-color: rgba(var(--ink-rgb), 0.3);
+}
+
+/* --- Séparateur, blocs de code ----------------------------------------- */
+
+.cm-editor.cm-lp .cm-lp-hr {
+  background: linear-gradient(var(--border-strong), var(--border-strong)) center / 100% 1px no-repeat;
+}
+
+.cm-editor.cm-lp .cm-lp-bloc-code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  line-height: 1.6;
+  background: var(--bg-secondary);
+  padding: 0 1.1em;
+}
+
+.cm-editor.cm-lp .cm-lp-bloc-code-debut {
+  border-top-left-radius: var(--radius-sm);
+  border-top-right-radius: var(--radius-sm);
+  padding-top: 0.5em;
+}
+
+.cm-editor.cm-lp .cm-lp-bloc-code-fin {
+  border-bottom-left-radius: var(--radius-sm);
+  border-bottom-right-radius: var(--radius-sm);
+  padding-bottom: 0.5em;
+}
