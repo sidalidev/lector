@@ -9,6 +9,7 @@ import { foldGutter, bracketMatching, indentOnInput, syntaxHighlighting, default
 import { markdownLanguage, markdownKeymap, pasteURLAsLink } from '@codemirror/lang-markdown';
 import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
 import { defaultKeymap, indentWithTab } from '@codemirror/commands';
+import { modeEcriture } from './editor/livePreview/index.js';
 import './MarkdownEditor.css';
 
 const fontSizeCompartment = new Compartment();
@@ -49,14 +50,12 @@ function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, e
       doc: (typeof content === 'function' ? content() : content) || '',
       extensions: [
         ...(extensions || []),
-        lineNumbers(),
-        highlightActiveLine(),
+        // Mis en forme par défaut ; « Show Markdown syntax » rend le mode source.
+        modeEcriture({ source: [lineNumbers(), highlightActiveLine(), foldGutter(), syntaxHighlighting(defaultHighlightStyle)] }),
         ...(partage ? [] : [history()]),
-        foldGutter(),
         bracketMatching(),
         closeBrackets(),
         indentOnInput(),
-        syntaxHighlighting(defaultHighlightStyle),
         new LanguageSupport(markdownLanguage),
         Prec.high(keymap.of(markdownKeymap)),
         pasteURLAsLink,

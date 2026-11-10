@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  Search, Sidebar, PanelRight, Maximize2, Zap, FilePlus, FolderDown, Cloud, Info, CalendarCheck, ListPlus, Share2
+  Search, Sidebar, PanelRight, Maximize2, Zap, FilePlus, FolderDown, Cloud, Info, CalendarCheck, ListPlus, Share2, Hash
 } from 'lucide-react';
+import { syntaxeVisible, basculerSyntaxe } from './editor/livePreview/reglage.js';
 import normalizeSearch from '../utils/normalizeSearch';
 import { t } from '../services/i18n'
 import fileSystem from '../services/fileSystem';
@@ -24,6 +25,7 @@ function CommandPalette({ onClose, onCommand }) {
       ...(!isCapacitor && !fileSystem.isElectron() ? [
         { id: 'share', label: t('cmd.share'), description: t('cmd.shareDesc'), icon: Share2, keywords: 'share collaborate together co-write link partager' },
       ] : []),
+      { id: 'markdown-syntax', label: t(syntaxeVisible() ? 'cmd.hideSyntax' : 'cmd.showSyntax'), description: t('cmd.syntaxDesc'), icon: Hash, keywords: 'markdown syntax source raw live preview bear formatted editor', run: basculerSyntaxe },
       { id: 'search', label: t('cmd.search'), description: t('cmd.searchDesc'), icon: Search, keywords: 'search chercher find' },
       { id: 'sidebar', label: t('cmd.sidebar'), description: t('cmd.sidebarDesc'), icon: Sidebar, keywords: 'sidebar barre laterale panel' },
       { id: 'right-sidebar', label: t('cmd.rightSidebar'), description: t('cmd.rightSidebarDesc'), icon: PanelRight, keywords: 'right sidebar toc table matieres panneau droit' },
@@ -64,7 +66,8 @@ function CommandPalette({ onClose, onCommand }) {
   }, [selectedIndex]);
 
   const execute = (cmd) => {
-    onCommand(cmd.id)
+    if (cmd.run) cmd.run()
+    else onCommand(cmd.id)
     onClose()
   };
 
