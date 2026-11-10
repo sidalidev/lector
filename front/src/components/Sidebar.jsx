@@ -353,7 +353,7 @@ function Sidebar({ dirPath, rootDirPath, currentFilePath, focusFolderPath, onFoc
   return (
     <aside className="sidebar" aria-label={t('sidebar.panel')} style={hidden ? { display: 'none' } : undefined}>
       {/* Today : les tâches datées de toutes les notes, en tête de la navigation */}
-      {onOpenToday && rootDirPath && !rootDirPath.startsWith('hosted://') && (
+      {onOpenToday && rootDirPath && (
         <div className="sidebar-today-row">
           <button
             className={`sidebar-today ${todayActive ? 'active' : ''}`}

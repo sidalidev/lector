@@ -1,16 +1,3 @@
-/* Screen reader only: texte invisible mais lu par les lecteurs d'écran */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
 /* Animation partagée: utilisée par Flashcards, MindMap, ChatPanel, DocumentView, YouTubeImport */
 .titlebar-version {
   font-size: 10px;
@@ -929,12 +916,6 @@ button,
   -webkit-touch-callout: none;
 }
 
-/* Allow text selection only in document content */
-.document-content {
-  -webkit-user-select: text;
-  user-select: text;
-}
-
 /* Smooth momentum scrolling everywhere */
 .document-view,
 .mobile-popover-content,
@@ -1018,11 +999,6 @@ button,
   .document-view {
     overflow: visible !important;
     height: auto !important;
-  }
-
-  .document-content {
-    max-width: 100% !important;
-    padding: 0 !important;
   }
 }
 

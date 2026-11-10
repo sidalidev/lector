@@ -259,11 +259,6 @@
   background: var(--bg-secondary);
 }
 
-.cm-editor.cm-lp .cm-lp-mermaid {
-  min-height: 40px;
-  color: var(--text-muted);
-}
-
 /* Recherche dans la note */
 .cm-editor .cm-recherche {
   background: rgba(var(--accent-rgb), 0.25);

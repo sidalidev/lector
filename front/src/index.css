@@ -232,8 +232,7 @@
 }
 
 /* Titres de l'interface : Bricolage Grotesque 700, interlettrage -2 % */
-h1, h2, h3,
-.font-display {
+h1, h2, h3 {
   font-family: var(--font-display);
   letter-spacing: var(--display-tracking);
 }
@@ -324,10 +323,6 @@ pre code {
 /* Drag regions */
 .drag-region {
   -webkit-app-region: drag;
-}
-
-.no-drag {
-  -webkit-app-region: no-drag;
 }
 
 /* Global Animations */

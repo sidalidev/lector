@@ -11,7 +11,6 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import en from "../../locales/en.js";
-import fr from "../../locales/fr.js";
 import { pageSync, PAGE, SOURCE } from "../../../../tools/page-sync.mjs";
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), "../../../..");
@@ -19,9 +18,7 @@ const lire = (chemin) => readFileSync(join(RACINE, chemin), "utf8");
 const privacy = lire("front/landing/privacy.html");
 
 test("D16 : pas de « code public » tant que le dépôt est privé ; détails techniques servis par le site", () => {
-  for (const [nom, texte] of [["en.js", JSON.stringify(en)], ["fr.js", JSON.stringify(fr)]]) {
-    assert.doesNotMatch(texte, /open.source|code is public|code est public/i, nom);
-  }
+  assert.doesNotMatch(JSON.stringify(en), /open.source|code is public/i, "en.js");
   for (const f of ["Explication.jsx", "KitSecours.jsx"]) {
     assert.doesNotMatch(lire(`front/src/components/${f}`), /github\.com/, f);
   }
@@ -32,11 +29,9 @@ test("D16 : pas de « code public » tant que le dépôt est privé ; détails t
 });
 
 test("D19 : le QR n'est annoncé que là où il se scanne ; sinon les 12 mots", () => {
-  for (const [langue, t, mots, navigateurs] of [["en", en, /12 words/, /some browsers/i], ["fr", fr, /12 mots/, /certains navigateurs/i]]) {
-    for (const cle of ["sync.show.intro", "sync.kit.qr"]) {
-      assert.match(t[cle], mots, `${langue} ${cle}`);
-      assert.match(t[cle], navigateurs, `${langue} ${cle}`);
-    }
+  for (const cle of ["sync.show.intro", "sync.kit.qr"]) {
+    assert.match(en[cle], /12 words/, cle);
+    assert.match(en[cle], /some browsers/i, cle);
   }
 });
 
@@ -45,7 +40,7 @@ test("D27 : la politique dit combien de temps les sauvegardes gardent les blocs 
   const effacement = /<h2>9\. Deleting your data<\/h2>\s*<p>([\s\S]*?)<\/p>/.exec(privacy)[1];
   assert.match(effacement, /backups/i);
   assert.match(effacement, /only copy/i);
-  assert.doesNotMatch(JSON.stringify([en, fr]), /about 6|environ 6/);
+  assert.doesNotMatch(JSON.stringify(en), /about 6/);
 });
 
 test("D18 et D26 : les pages du site ne chargent rien d'un autre site", () => {
@@ -76,13 +71,11 @@ test("D31 : le README décrit la mise à jour d'Android par APK signé, pas par 
   }
 });
 
-test("limite anti-partage : message humain, sans code ni statut, dans les deux langues", () => {
-  for (const [langue, t] of [["en", en], ["fr", fr]]) {
-    for (const cle of ["cloud.chain.err.CHAIN_READ_LIMITED", "cloud.chain.err.HTTP_429"]) {
-      const texte = t[cle];
-      assert.ok(texte, `${langue} ${cle}`);
-      assert.doesNotMatch(texte, /429|[A-Z]{2,}_[A-Z]{2,}|HTTP|\u2014/, `${langue} ${cle}`);
-    }
+test("limite anti-partage : message humain, sans code ni statut", () => {
+  for (const cle of ["cloud.chain.err.CHAIN_READ_LIMITED", "cloud.chain.err.HTTP_429"]) {
+    const texte = en[cle];
+    assert.ok(texte, cle);
+    assert.doesNotMatch(texte, /429|[A-Z]{2,}_[A-Z]{2,}|HTTP|\u2014/, cle);
   }
   assert.match(en["cloud.chain.err.CHAIN_READ_LIMITED"], /too many different networks/);
   assert.match(en["cloud.chain.err.CHAIN_READ_LIMITED"], /keep syncing/);

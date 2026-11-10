@@ -1,13 +1,8 @@
 import en from '../locales/en'
 
-// L'interface est en anglais seulement. Les textes français restent dans
-// locales/fr.js pour plus tard (et pour les tests de textes), mais ne sont ni
-// proposés ni chargés par l'app.
-const LOCALES = { en }
-let currentLocale = 'en'
-
+// L'interface est en anglais seulement.
 function t(key, params) {
-  let str = LOCALES[currentLocale]?.[key] ?? LOCALES.en[key] ?? key
+  let str = en[key] ?? key
   if (params) {
     for (const [k, v] of Object.entries(params))
       str = str.replaceAll(`{${k}}`, v)
@@ -15,12 +10,9 @@ function t(key, params) {
   return str
 }
 
-function setLocale(lang) {
-  if (lang !== 'en') return
-  currentLocale = lang
-  window.dispatchEvent(new Event('lector-locale-changed'))
-}
+// Gardées pour les appelants : une seule langue, rien à changer.
+function setLocale() {}
 
-function getLocale() { return currentLocale }
+function getLocale() { return 'en' }
 
 export { t, setLocale, getLocale }

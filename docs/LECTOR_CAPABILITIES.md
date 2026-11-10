@@ -20,7 +20,7 @@ Lector est un éditeur et lecteur Markdown léger, gratuit, sans compte et sans 
 
 **Plateformes :** macOS, Windows et Linux (Electron ; seul macOS est publié par `deploy/deploy.sh`), iOS et Android (Capacitor ; mise à jour OTA du bundle web sur iOS, APK signé sur Android), web (navigateur).
 
-**Poids :** le JavaScript du premier affichage de `/app/` pèse environ 80 Ko gzip (budget de 150 Ko vérifié par `npm run test:poids`) ; la page partagée `/d/` environ 185 Ko. Mermaid et la coloration du code ne se chargent que lorsque la note affichée en contient. Polices : Figtree et Bricolage Grotesque en WOFF2, sous-ensemble latin ; les autres ne se chargent que si une note en a besoin.
+**Poids :** le JavaScript du premier affichage de `/app/` pèse environ 80 Ko gzip (budget de 150 Ko vérifié par `npm run test:poids`) ; la page partagée `/d/` environ 185 Ko. La coloration du code ne se charge que lorsque la note affichée en contient. Polices : Figtree et Bricolage Grotesque en WOFF2, sous-ensemble latin ; les autres ne se chargent que si une note en a besoin.
 
 ---
 
@@ -58,11 +58,7 @@ Lector est un éditeur et lecteur Markdown léger, gratuit, sans compte et sans 
 
 ## Diagrammes
 
-| Moteur | Bloc de code | Librairie | Notes |
-|--------|-------------------|-----------|-------|
-| Mermaid | ` ```mermaid ` | mermaid@11 | flowchart, sequence, class, state, ER, pie, gantt, etc. Mode `strict`, chargé à la demande, plein écran au clic |
-
-Aucun autre moteur de diagramme.
+Aucun moteur de diagramme (Mermaid retiré en 2.2) : un bloc ` ```mermaid ` s'affiche comme du code.
 
 ---
 
@@ -96,7 +92,6 @@ Un fichier `.html` cité dans une note s'affiche dans un cadre isolé (protocole
 **Langages :** Bash, C, C++, C#, CSS, Diff, Dockerfile, Go, INI/TOML, Java, JavaScript, JSON, Kotlin, Lua, Makefile, Markdown, PHP, Python, Ruby, Rust, SCSS, SQL, Swift, TypeScript, XML/HTML, YAML (et leurs alias courants). Un autre langage, ou un bloc sans langage, s'affiche en texte brut.
 
 - Bouton copier (API presse-papiers)
-- Les blocs `mermaid` sont rendus comme diagrammes
 
 ---
 
@@ -168,17 +163,6 @@ Ne sont jamais rendus : les scripts, iframes, feuilles de style, objets, formula
 | `Cmd+0` | Taille de police par défaut (17 px) |
 | `Escape` | Fermer la recherche ou le mode focus |
 
-### Navigation Vim (dans le document)
-
-| Touche | Action |
-|--------|--------|
-| `j` | Défiler vers le bas (80 px) |
-| `k` | Défiler vers le haut (80 px) |
-| `h` | Défiler vers la gauche (80 px) |
-| `l` | Défiler vers la droite (80 px) |
-| `g` | Aller en haut |
-| `G` (Shift+G) | Aller en bas |
-
 ---
 
 ## Fichiers du vault
@@ -237,7 +221,7 @@ Sécurité du rendu et de l'accès au disque (CSP, assainissement des documents,
 
 ## Export
 
-- **PDF** (impression) : document en cours, ou dossier entier fusionné en un PDF ; pas sur mobile
+- Les fichiers `.md` du vault sont l'export (export PDF retiré en 2.2)
 
 ---
 
@@ -247,7 +231,6 @@ Sécurité du rendu et de l'accès au disque (CSP, assainissement des documents,
 |-----------|---------|------|
 | App | `App.jsx` | Logique principale, raccourcis, état |
 | DocumentView | `DocumentView.jsx` | Rendu Markdown, médias, tâches cochables |
-| MermaidBlock | `MermaidBlock.jsx` | Diagrammes Mermaid, chargés à la demande |
 | CodeBlock | `CodeBlock.jsx` | Blocs de code, highlight.js à la demande |
 | Sidebar | `Sidebar.jsx` | Navigateur de fichiers, favoris, récents |
 | FloatingTOC | `FloatingTOC.jsx` | Sommaire |
@@ -267,7 +250,7 @@ Sécurité du rendu et de l'accès au disque (CSP, assainissement des documents,
 - En-tête YAML
 - Visualisation de PDF
 - Fiches de révision, quiz, assistant IA, lecture à voix haute, partitions et musique, import de transcriptions, carte mentale, graphe de notes, surlignages, étiquettes (`NON_GOALS.md`)
-- Diagrammes autres que Mermaid
+- Diagrammes (Mermaid compris)
 - Rendu des maths (KaTeX)
 - Synchronisation des images et autres fichiers non markdown
 - Pages publiques : un document partagé ne se lit jamais sans la clé du lien

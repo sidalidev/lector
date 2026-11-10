@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { RefreshCw } from 'lucide-react'
 import AppMark from './AppMark'
 import { t } from '../services/i18n'
 import * as vaultSetup from '../services/vaultSetup'
@@ -10,22 +9,12 @@ import './Onboarding.css'
  * - « Start » crée Lector Vault (ou rouvre celui qui existe) et ouvre la note
  *   d'accueil ; la synchro se règle plus tard, depuis l'app.
  * - « I already use Lector » crée un dossier vide et ouvre la saisie des 12 mots.
- * OnboardingSync reste pour un état d'avant cette version gardé en localStorage.
  */
 
 function cheminLisible(chemin) {
   if (!chemin) return null
   const home = window.electron?.getHomePath?.()
   return home && chemin.startsWith(home) ? `~${chemin.slice(home.length)}` : chemin
-}
-
-function Points({ etape }) {
-  return (
-    <div className="onboarding-dots" aria-hidden="true">
-      <span className={etape === 1 ? 'is-active' : ''} />
-      <span className={etape === 2 ? 'is-active' : ''} />
-    </div>
-  )
 }
 
 export function OnboardingWhere({ onReady, onAlreadyUser, onDemo, firstRun = true }) {
@@ -127,28 +116,6 @@ export function OnboardingWhere({ onReady, onAlreadyUser, onDemo, firstRun = tru
             {exists ? t('onboarding.where.other') : t('onboarding.where.existing')}
           </button>
         )}
-      </div>
-    </div>
-  )
-}
-
-export function OnboardingSync({ onSetUp, onSkip }) {
-  return (
-    <div className="onboarding">
-      <div className="onboarding-inner">
-        <div className="onboarding-icon"><RefreshCw size={28} strokeWidth={2} /></div>
-        <h1 className="onboarding-title">{t('onboarding.sync.title')}</h1>
-        <p className="onboarding-body">{t('onboarding.sync.free')}</p>
-        <p className="onboarding-body">{t('onboarding.sync.text')}</p>
-        <div className="onboarding-actions">
-          <button type="button" className="onboarding-primary" onClick={onSetUp}>
-            {t('onboarding.sync.setUp')}
-          </button>
-          <button type="button" className="onboarding-secondary" onClick={onSkip}>
-            {t('onboarding.sync.skip')}
-          </button>
-        </div>
-        <Points etape={2} />
       </div>
     </div>
   )

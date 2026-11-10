@@ -13,7 +13,7 @@ import { t } from '../services/i18n';
 // Bear). Chargé à la demande avec CodeMirror.
 const MarkdownEditor = lazy(() => import('./MarkdownEditor'));
 
-const ecrivable = (chemin) => !!chemin && !chemin.startsWith('demo://') && !chemin.startsWith('hosted://');
+const ecrivable = (chemin) => !!chemin && !chemin.startsWith('demo://');
 
 const DocumentView = memo(forwardRef(function DocumentView({
   content,
@@ -279,7 +279,6 @@ const DocumentView = memo(forwardRef(function DocumentView({
           fontSize={fontSize}
           options={options}
           principal
-          readOnly={filePath?.startsWith('hosted://')}
         />
       </Suspense>
     </div>

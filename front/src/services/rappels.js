@@ -87,7 +87,7 @@ async function enParallele(elements, fn) {
  * on ne retire alors aucun rappel déjà programmé.
  */
 export async function collecterTaches(root) {
-  if (!root || root.startsWith('hosted://')) return { taches: [], complet: false }
+  if (!root) return { taches: [], complet: false }
 
   if (fileSystem.isElectron() && window.electron?.taches && !root.includes('://')) {
     const r = await window.electron.taches.collecter(root)

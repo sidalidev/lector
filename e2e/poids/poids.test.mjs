@@ -1,7 +1,6 @@
 // Budget de poids de l'app web : échoue si le premier affichage de /app/
-// télécharge plus de JS que prévu, ou si mermaid (et d3, qu'il embarque) arrive
-// sans qu'aucune note ne le demande. KaTeX est retiré : il ne doit jamais
-// revenir. Mesuré sur front/dist (npm run build d'abord),
+// télécharge plus de JS que prévu, ou si mermaid, d3 ou KaTeX reviennent :
+// ils sont retirés de l'app. Mesuré sur front/dist (npm run build d'abord),
 // dans Chrome sans fenêtre, comme servi par nginx en prod.
 // Lancer : npm run test:poids
 import { test, before, after } from 'node:test'
@@ -41,7 +40,7 @@ test(`/app/ : moins de ${BUDGET_APP} Ko de JS au premier affichage, sans mermaid
   }
 })
 
-test("/app/?demo : une note sans diagramme n'apporte ni mermaid, ni KaTeX, ni d3", async () => {
+test("/app/?demo : une note n'apporte ni mermaid, ni KaTeX, ni d3", async () => {
   const r = await mesurer(navigateur, `${base}/app/?demo`, '.cm-lp-h1')
   for (const [nom, signe] of Object.entries(INTERDITS)) {
     const coupable = r.fichiers.find((f) => f.type === '.js' && signe.test(f.texte))

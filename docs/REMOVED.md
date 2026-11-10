@@ -14,7 +14,11 @@ Lector became a light Markdown editor and viewer. Every feature not about editin
 | **YouTube transcript import** (yt-dlp, desktop) | An importer, not an editor feature. A link to a YouTube, Vimeo or Rumble video still shows the video. |
 | **Reading ruler, auto-scroll, highlights panel, tags, mind map and note graph** | Extra views around a note. The rendered Markdown, the table of contents and focus mode stay. |
 | **Math rendering** (KaTeX, with remark-math and rehype-katex, their fonts and styles) | A library, fonts and styles to load for a use most notes never have. `$...$` and `$$...$$` now stay plain text. |
-| **EPUB export, window opacity slider** (desktop), **`.srt` subtitle display**, the duplicate reading progress bar | Little used, and each one more code to load and maintain. PDF export (print) stays. |
+| **EPUB export, window opacity slider** (desktop), **`.srt` subtitle display**, the duplicate reading progress bar | Little used, and each one more code to load and maintain. |
+| **Mermaid diagrams** | The heaviest library left (mermaid and d3), for a use most notes never have. A ```` ```mermaid ```` block now shows as plain code. |
+| **PDF export** of a note or a folder (print) | A print window built from a second Markdown renderer. The Markdown files are the export. |
+| **Vim-style navigation keys** (j, k, h, l, g, G) | They scrolled the old reading view, which no longer exists: notes open straight in the editor. |
+| **Hosted training mode** (`?hosted=`, `/formation/`) | Read-only documents served for a training session, not part of the editor. |
 
 ## 2.0.0
 

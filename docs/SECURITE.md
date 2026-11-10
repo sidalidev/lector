@@ -10,7 +10,7 @@ Définie dans `front/vite.config.js` et posée en tête de `index.html` (balise 
 |---|---|---|
 | `default-src` | `'self'` | rien d'autre par défaut |
 | `script-src` | `'self'` | seulement les fichiers de l'app : jamais de script en ligne, ni `eval`, ni WebAssembly |
-| `style-src` | `'self' 'unsafe-inline'` | styles posés par Preact et Mermaid |
+| `style-src` | `'self' 'unsafe-inline'` | styles posés par Preact et CodeMirror |
 | `img-src`, `media-src` | `'self' data: blob: https: http: lector-local:` | images et vidéos des documents |
 | `font-src` | `'self' data:` | polices embarquées |
 | `connect-src` | `'self'`, `https://lector.dockerbop.fr`, `wss://lector.dockerbop.fr`, `wss://lector.sidali.dev` | synchro et relais de co-écriture seulement (l'app mobile n'est pas sur son origine) ; aucun autre service n'est appelé |
@@ -22,7 +22,7 @@ En développement seulement, les scripts en ligne de Vite passent par un nonce t
 
 ## 2. Assainissement du HTML des documents
 
-`front/src/utils/schemaMarkdown.js` : la liste blanche de GitHub (`rehype-sanitize`), plus ce que Lector écrit lui-même avant le rendu (titres annotés, repères de ligne) et quelques balises de mise en forme. Jamais de script, d'iframe, de feuille de style, d'objet, de formulaire, de `<base>`, de `<link>` ni de gestionnaire d'événement ; les liens et les sources n'acceptent que `http`, `https`, `mailto` et les chemins relatifs. Le style en ligne est gardé sauf ce qui pourrait recouvrir l'interface ou charger une ressource. Mermaid tourne en mode `strict`. L'export d'un dossier en fenêtre d'impression échappe le texte des documents avant de le mettre en forme (`front/src/utils/impression.js`).
+`front/src/utils/schemaMarkdown.js` : la liste blanche de GitHub (`rehype-sanitize`), plus ce que Lector écrit lui-même avant le rendu (titres annotés, repères de ligne) et quelques balises de mise en forme. Jamais de script, d'iframe, de feuille de style, d'objet, de formulaire, de `<base>`, de `<link>` ni de gestionnaire d'événement ; les liens et les sources n'acceptent que `http`, `https`, `mailto` et les chemins relatifs. Le style en ligne est gardé sauf ce qui pourrait recouvrir l'interface ou charger une ressource.
 
 ## 3. Ordinateur : accès du renderer au disque
 
@@ -48,7 +48,7 @@ Ce que l'hébergeur peut faire : supprimer le casier chiffré de cette chaîne, 
 
 ## Tests
 
-- `e2e/flows/securite-rendu.spec.js` : un document piégé (HTML brut, Mermaid, liens `javascript:`) ne lance aucun script et garde ce que Lector affiche ; la CSP est en place.
+- `e2e/flows/securite-rendu.spec.js` : un document piégé (HTML brut, liens `javascript:`) ne lance aucun script et garde ce que Lector affiche ; la CSP est en place.
 - `e2e/flows/electron-acces.spec.js` et `front/desktop/acces.test.cjs` : vrai processus principal, bac à sable, lectures et écritures refusées hors des dossiers ouverts et pour un autre type de fichier, liens symboliques.
 - `e2e/flows/impression.spec.js` : l'export en fenêtre d'impression échappe le texte des documents.
 - `front/desktop/verrou.test.cjs` : nouvelle chaîne et tout effacer refusés verrou fermé.

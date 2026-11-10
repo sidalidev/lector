@@ -1,4 +1,4 @@
-// Blocs rendus dans l'éditeur mis en forme : tableaux et diagrammes mermaid.
+// Blocs rendus dans l'éditeur mis en forme : les tableaux.
 //
 // Un bloc s'affiche rendu tant que le curseur n'y est pas ; un clic dessus y
 // place le curseur et rend le Markdown éditable. Les décorations de bloc
@@ -21,7 +21,7 @@ const champFocus = StateField.define({
 const suiviFocus = EditorView.focusChangeEffect.of((_state, focus) => effetFocus.of(focus))
 
 // --- Repérage des blocs ---
-/** Tableaux et blocs ```mermaid du document : [{ type, from, to, texte }]. */
+/** Tableaux du document : [{ type, from, to, texte }]. */
 export function trouverBlocs(state) {
   const arbre = ensureSyntaxTree(state, state.doc.length, 100) || syntaxTree(state)
   const doc = state.doc
@@ -34,19 +34,8 @@ export function trouverBlocs(state) {
         blocs.push({ type: 'table', from, to, texte: doc.sliceString(from, to) })
         return false
       }
-      if (n.name === 'FencedCode') {
-        const info = n.node.getChild('CodeInfo')
-        const langue = info ? doc.sliceString(info.from, info.to).trim().toLowerCase() : ''
-        if (langue === 'mermaid') {
-          const from = doc.lineAt(n.from).from
-          const to = doc.lineAt(n.to).to
-          const lignes = doc.sliceString(from, to).split('\n')
-          const fermeture = lignes.length > 1 && /^\s*(```|~~~)/.test(lignes[lignes.length - 1])
-          const code = lignes.slice(1, fermeture ? -1 : undefined).join('\n')
-          blocs.push({ type: 'mermaid', from, to, texte: code })
-        }
-        return false
-      }
+      // Un bloc de code reste du code : pas de tableau à chercher dedans.
+      if (n.name === 'FencedCode') return false
       return undefined
     },
   })
@@ -112,31 +101,6 @@ class TableauWidget extends WidgetType {
   ignoreEvent() { return false }
 }
 
-class MermaidWidget extends WidgetType {
-  constructor(code) { super(); this.code = code }
-  eq(autre) { return autre.code === this.code }
-  get estimatedHeight() { return 320 }
-  toDOM(view) {
-    const el = document.createElement('div')
-    el.className = 'cm-lp-bloc cm-lp-mermaid'
-    el.textContent = '…'
-    // Mermaid (lourd) n'est chargé que si une note en contient un.
-    Promise.all([import('../../MermaidBlock.jsx'), import('react'), import('react-dom/client')])
-      .then(([{ default: MermaidBlock }, { createElement }, { createRoot }]) => {
-        if (el.__detruit) return
-        el.textContent = ''
-        el.__racine = createRoot(el)
-        el.__racine.render(createElement(MermaidBlock, { code: this.code }))
-        setTimeout(() => view.requestMeasure(), 300)
-      })
-      .catch(() => { el.textContent = this.code })
-    return el
-  }
-  destroy(el) { el.__detruit = true; el.__racine?.unmount() }
-  // Les boutons du diagramme (plein écran) gardent leur clic.
-  ignoreEvent(e) { return !!(e.target instanceof Element && e.target.closest('button')) }
-}
-
 // --- Champ des décorations de bloc ---
 function decorer(state, blocs) {
   const focus = state.field(champFocus)
@@ -144,8 +108,7 @@ function decorer(state, blocs) {
   for (const b of blocs) {
     const touche = focus && state.selection.ranges.some((r) => r.from <= b.to && r.to >= b.from)
     if (touche) continue
-    const widget = b.type === 'table' ? new TableauWidget(b.texte) : new MermaidWidget(b.texte)
-    deco.push(Decoration.replace({ widget, block: true }).range(b.from, b.to))
+    deco.push(Decoration.replace({ widget: new TableauWidget(b.texte), block: true }).range(b.from, b.to))
   }
   return Decoration.set(deco)
 }

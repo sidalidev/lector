@@ -205,7 +205,6 @@
     "electron-updater": "^6.7.3",
     "lib0": "^0.2.120",
     "lucide-react": "^0.562.0",
-    "mermaid": "^11.12.2",
     "preact": "10.29.8",
     "y-codemirror.next": "^0.3.6",
     "y-protocols": "^1.0.7",

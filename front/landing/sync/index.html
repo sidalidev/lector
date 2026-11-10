@@ -80,7 +80,7 @@
 </ul>
 <p><strong>Il ne voit pas</strong> : le contenu, les chemins, les titres, les noms de dossiers, l&#x27;arborescence, les extensions, <code>S</code>, les 12 mots, les clés. Un ancien bloc <code>&lt;!-- lector-generated --&gt;</code> (résumés et cartes écrits par les versions d&#x27;avant la 2.2, jamais affiché) fait partie du <code>.md</code>, donc du bloc chiffré.</p>
 <p><strong>Il ne journalise jamais</strong> : la preuve, <code>pathEnc</code>, un corps de requête, une IP, un <code>id</code> de chaîne complet (8 premiers caractères au plus). Les tests le vérifient dans la sortie du serveur.</p>
-<p><strong>Rien d&#x27;autre ne passe par lui.</strong> L&#x27;export PDF se fait sur l&#x27;appareil (impression). Lector n&#x27;envoie le texte d&#x27;un document à aucun autre service.</p>
+<p><strong>Rien d&#x27;autre ne passe par lui.</strong> Lector n&#x27;envoie le texte d&#x27;un document à aucun autre service.</p>
 <h2 id="3-cryptographie">3. Cryptographie</h2>
 <p>Tout est dans <code>front/src/services/chaine/crypto.js</code> : HKDF-SHA256, HMAC-SHA256, AES-256-GCM, BIP39. Un seul module ES, sans DOM, qui tourne dans le navigateur, la vue web Capacitor, le processus principal d&#x27;Electron (import dynamique) et Node 22. Il est vérifié contre <code>docs/CHAINE-VECTEURS.json</code>, produits par une implémentation indépendante (<code>node:crypto</code>, <code>generer-vecteurs.mjs</code>).</p>
 <h3 id="31-secret">3.1 Secret</h3>

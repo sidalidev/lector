@@ -33,19 +33,6 @@ ships a new format spec.
 - Footnotes
 - Internal links \`[text](./other-doc.md)\`: clickable, opens in Lector
 
-## Mermaid diagrams
-
-\`\`\`mermaid
-flowchart LR
-  Note[Markdown] --> Render[Lector]
-  Render --> Reader[Beautiful reading]
-\`\`\`
-
-Supported Mermaid types: \`flowchart\`, \`sequenceDiagram\`, \`classDiagram\`,
-\`gantt\`, \`pie\`, \`stateDiagram-v2\`, \`erDiagram\`, \`gitGraph\`,
-\`mindmap\`, \`timeline\`, \`quadrantChart\`, \`xychart-beta\`. Click a
-diagram to open it fullscreen with zoom and pan.
-
 ## Code with syntax highlighting
 
 \`\`\`python
@@ -72,6 +59,7 @@ few more are colored; any other language shows as plain code. Click the copy ico
 ## What's NOT rendered (yet)
 
 - Math: \`$...$\` and \`$$...$$\` stay plain text (no LaTeX / KaTeX rendering)
+- Diagrams: \`\`\`mermaid blocks show as plain code
 - HTML \`<script>\` or \`<style>\` outside sandboxed iframes
 - Custom fonts in markdown
 - Interactive widgets (sliders, forms) outside iframe embeds
@@ -89,7 +77,6 @@ few more are colored; any other language shows as plain code. Click the copy ico
 - Keep markdown files under 1 MB for snappy rendering
 - Prefer 1 H1 per file (used as title)
 - Put hero images at 1600×640 or similar landscape ratios
-- Use \`\`\`mermaid for diagrams instead of screenshots: they stay sharp at any zoom
 
 ---
 

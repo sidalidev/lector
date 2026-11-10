@@ -10,16 +10,20 @@ Lector stays a light Markdown editor: everything not about writing or viewing Ma
 - The assistant and everything that called an AI or voice provider: chat, generated summaries, keywords, glossary, difficulty and mind maps, the API keys screen, the local command-line assistant on a computer, and reading aloud.
 - YouTube transcript import on a computer. A link to a YouTube, Vimeo or Rumble video still shows the video.
 - Reading ruler, auto-scroll, highlights panel, tags, mind map and note graph, the second reading progress bar, subtitle (`.srt`) files.
-- On a computer: EPUB export and the window opacity slider. PDF export stays.
+- On a computer: EPUB export and the window opacity slider.
 - Math rendering (KaTeX): `$...$` and `$$...$$` now stay plain text.
+- Mermaid diagrams: a ```` ```mermaid ```` block now shows as plain code.
+- PDF export of a note or a folder (print).
+- Vim-style navigation keys (j, k, h, l, g, G). ⌘[ and ⌘] still go back and forward.
+- The hosted training mode of the web app (`?hosted=`, `/formation/`).
 
 ### Improved
 - The web app shows your notes much sooner: its startup JavaScript went from about 1.3 MB to about 80 KB (gzip), where the page used to stay blank for about 4 seconds. A shared document (`/d/`) went from about 320 KB to about 185 KB. A test now fails if the startup of the web app grows past 150 KB.
 - The app runs on Preact, a much smaller engine with the same components.
-- Mermaid diagrams and code highlighting load only when the note you open contains them. Code highlighting now uses highlight.js, one language at a time.
+- Code highlighting loads only when the note you open contains code. Code highlighting now uses highlight.js, one language at a time.
 - Lighter fonts: Figtree and Bricolage Grotesque as compressed Latin subsets; other fonts load only when a note needs them.
 - A lighter editor.
-- The formats guide written in your vault on a computer (`LECTOR-FORMATS.md`) now says math is no longer rendered.
+- The formats guide written in your vault on a computer (`LECTOR-FORMATS.md`) now says math and Mermaid diagrams are no longer rendered.
 
 ### Privacy
 - Fewer outgoing connections: Lector no longer contacts Anthropic, ElevenLabs, `paulrosen.github.io` or `surikov.github.io`, and no longer runs yt-dlp. What is left: sync and updates (`lector.dockerbop.fr`, `github.com`), videos you link to (YouTube, Vimeo, Rumble) and "Search the web" (Google). The About screen lists them.

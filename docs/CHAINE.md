@@ -56,7 +56,7 @@ Rien à réinitialiser, rien à facturer, rien qui relie le casier à une person
 
 **Il ne journalise jamais** : la preuve, `pathEnc`, un corps de requête, une IP, un `id` de chaîne complet (8 premiers caractères au plus). Les tests le vérifient dans la sortie du serveur.
 
-**Rien d'autre ne passe par lui.** L'export PDF se fait sur l'appareil (impression). Lector n'envoie le texte d'un document à aucun autre service.
+**Rien d'autre ne passe par lui.** Lector n'envoie le texte d'un document à aucun autre service.
 
 ## 3. Cryptographie
 

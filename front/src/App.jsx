@@ -1,13 +1,12 @@
 import { useState, useEffect, useCallback, useRef, useMemo, useSyncExternalStore, lazy, Suspense } from 'react';
 import {
-  Folder, Sliders, List, X, Focus, Download, Minus, Plus,
-  RefreshCw, FolderDown, Info, Share2, History
+  Folder, Sliders, List, X, Focus, Minus, Plus,
+  RefreshCw, Info, Share2, History
 } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import RightSidebar from './components/FloatingTOC';
 import ErrorBoundary from './components/ErrorBoundary';
 import Tooltip from './components/Tooltip';
-import { OnboardingWhere, OnboardingSync } from './components/Onboarding';
 import CloudStatusIndicator from './components/CloudStatusIndicator';
 import fileSystem from './services/fileSystem';
 import syncService from './services/syncService';
@@ -19,7 +18,6 @@ import * as rappels from './services/rappels'
 import { vueAujourdhui } from './services/taches/taches.js'
 import { haptique } from './services/haptique'
 import { messageChaine } from './utils/messagesErreur'
-import { echapperHtml, markdownVersHtmlImpression } from './utils/impression'
 import { allerALigne, ecrireALaFin, remplacerTexte } from './services/editeurCourant'
 import './App.css';
 
@@ -46,6 +44,8 @@ const SharePanel = lazy(() => import('./components/collab/SharePanel'));
 const Historique = lazy(() => import('./components/Historique'));
 // Navigateur : la clé de 12 mots tient lieu de compte (créer ou se connecter).
 const EntreeWeb = lazy(() => import('./components/EntreeWeb'));
+// Premier lancement sur ordinateur et mobile : jamais dans le paquet web.
+const OnboardingWhere = lazy(() => import('./components/Onboarding').then((m) => ({ default: m.OnboardingWhere })));
 const ESTWEB = !fileSystem.isElectron() && !fileSystem.isCapacitor();
 // Partage en temps réel : version web d'abord. Sur ordinateur et mobile, le
 // document partagé doit encore être relié au fichier .md du vault (docs/collab-design.md § 9).
@@ -67,22 +67,14 @@ const haptic = (style = 'light') => {
 // --- History helpers ---
 const SESSION_KEY = 'lector-last-session';
 const SOURCE_TYPE_KEY = 'lector-source-type';
-// Premier lancement en cours : { step: 'sync', welcome } tant que l'écran
-// « Sync your devices? » n'a pas reçu de réponse (l'app tuée y revient).
-const ONBOARDING_KEY = 'lector-onboarding';
 const ONBOARDING_DONE_KEY = 'lector-onboarding-done';
 
-// Utilisateur d'avant cet écran (une source déjà choisie) : le premier
-// lancement est derrière lui, l'écran « Sync your devices? » ne s'impose pas.
+// Une source déjà choisie : le premier lancement est derrière l'utilisateur.
+// L'ancien écran « Sync your devices? » (clé lector-onboarding) n'existe plus.
 try {
-  if (localStorage.getItem(SOURCE_TYPE_KEY) && !localStorage.getItem(ONBOARDING_KEY)) {
-    localStorage.setItem(ONBOARDING_DONE_KEY, '1');
-  }
+  if (localStorage.getItem(SOURCE_TYPE_KEY)) localStorage.setItem(ONBOARDING_DONE_KEY, '1');
+  localStorage.removeItem('lector-onboarding');
 } catch { /* stockage indisponible */ }
-
-function lireOnboarding() {
-  try { return JSON.parse(localStorage.getItem(ONBOARDING_KEY) || 'null'); } catch { return null; }
-}
 const MAX_HISTORY = 50;
 
 function loadHistory() {
@@ -142,7 +134,6 @@ function App() {
   const [popoverClosing, setPopoverClosing] = useState(false);
   const [syncRevision, setSyncRevision] = useState(0);
   const [showSourcePicker, setShowSourcePicker] = useState(() => !localStorage.getItem(SOURCE_TYPE_KEY));
-  const [onboarding, setOnboarding] = useState(() => lireOnboarding());
   const [updateReady, setUpdateReady] = useState(null); // version string or null
   const [updateDismissed, setUpdateDismissed] = useState(false);
   const [showShare, setShowShare] = useState(false);
@@ -299,34 +290,7 @@ function App() {
       try {
         await fileSystem.ensurePlatform();
 
-        // Mode hosted : ?hosted=nom → charge les docs depuis /formation/nom/docs/
         const urlParams = new URLSearchParams(window.location.search)
-        const hostedId = urlParams.get('hosted')
-        if (hostedId) {
-          setShowSourcePicker(false)
-          setRootDirPath(`hosted://${hostedId}`)
-          try {
-            const res = await fetch(`/formation/${hostedId}/manifest.json`)
-            const manifest = await res.json()
-            // Charger le premier doc
-            if (manifest.files?.length > 0) {
-              const firstFile = manifest.files[0]
-              const docRes = await fetch(`/formation/${hostedId}/docs/${encodeURIComponent(firstFile)}`)
-              const content = await docRes.text()
-              const data = {
-                content,
-                fileName: firstFile,
-                filePath: `hosted://${hostedId}/${firstFile}`,
-                dirPath: `hosted://${hostedId}`,
-                type: 'markdown',
-              }
-              setCurrentDoc(data)
-            }
-          } catch (err) {
-            console.error('[Lector] Hosted mode error:', err)
-          }
-          return
-        }
 
         // ?demo : la démo embarquée, sans rien persister (captures, tests).
         if (urlParams.has('demo') && !localStorage.getItem(SOURCE_TYPE_KEY)) {
@@ -616,7 +580,7 @@ function App() {
       if (name === 'command-palette') setShowCommandPalette(prev => !prev);
       else if (name === 'about') setShowAbout(true);
       else if (name === 'quick-open') setShowQuickOpen(prev => !prev);
-      else if (name === 'new-task') { if (rootDirPathRef.current && !rootDirPathRef.current.startsWith('hosted://')) setShowNewTask(true); }
+      else if (name === 'new-task') { if (rootDirPathRef.current) setShowNewTask(true); }
       else if (name === 'refresh-files') {
         // Re-scan vault from disk + re-read current open doc (catches edits made
         // by external tools: terminal, scripts, other editors)
@@ -799,36 +763,9 @@ function App() {
         setFocusMode(false);
       }
 
-      // Skip Vim navigation if in input
+      // Dans un champ de saisie, les raccourcis suivants restent au champ
       if (isInput) return;
 
-      // Vim-like navigation: j/k (vertical), h/l (horizontal), gg/G (top/bottom)
-      const docView = window.document.querySelector('.document-view');
-      if (e.key === 'j') {
-        e.preventDefault();
-        if (docView) docView.scrollTop += 80;
-      }
-      if (e.key === 'k') {
-        e.preventDefault();
-        if (docView) docView.scrollTop -= 80;
-      }
-      if (e.key === 'h') {
-        e.preventDefault();
-        if (docView) docView.scrollLeft -= 80;
-      }
-      if (e.key === 'l') {
-        e.preventDefault();
-        if (docView) docView.scrollLeft += 80;
-      }
-      // g for top, G for bottom
-      if (e.key === 'g' && !e.shiftKey) {
-        e.preventDefault();
-        if (docView) docView.scrollTop = 0;
-      }
-      if (e.key === 'G' || (e.key === 'g' && e.shiftKey)) {
-        e.preventDefault();
-        if (docView) docView.scrollTop = docView.scrollHeight;
-      }
       // Cmd+[ and Cmd+] for history navigation
       if ((e.metaKey || e.ctrlKey) && e.key === '[') {
         e.preventDefault();
@@ -949,7 +886,7 @@ function App() {
 
   const handleNewTask = useCallback(() => {
     const root = rootDirPathRef.current;
-    if (!root || root.startsWith('hosted://')) return;
+    if (!root) return;
     setMobilePopover(null);
     setShowNewTask(true);
   }, []);
@@ -1000,7 +937,6 @@ function App() {
     if (rejoindre) {
       setSidebarRefreshKey(k => k + 1);
       setShowSourcePicker(false);
-      localStorage.removeItem(ONBOARDING_KEY);
       localStorage.setItem(ONBOARDING_DONE_KEY, '1');
       setCloudPanelReason('JOIN');
       setShowCloudPanel(true);
@@ -1012,7 +948,6 @@ function App() {
     setShowSourcePicker(false);
     // Plus d'écran « Sync your devices? » : la note d'accueil s'ouvre tout de
     // suite, la synchro se règle depuis l'app quand on en a besoin.
-    localStorage.removeItem(ONBOARDING_KEY);
     localStorage.setItem(ONBOARDING_DONE_KEY, '1');
     if (welcome) fileSystem.openFileByPath(welcome).catch(() => {});
   }, []);
@@ -1024,7 +959,6 @@ function App() {
       const bv = await import('./services/browserVault');
       if (await bv.connu().catch(() => null) && await bv.ouvrir()) copieVersChaine.current = bv.RACINE;
     } catch { /* pas de notes locales */ }
-    localStorage.removeItem(ONBOARDING_KEY);
     localStorage.setItem(ONBOARDING_DONE_KEY, '1');
     await ouvrirVaultSynchronise('cloud://');
     if (nouvelle) {
@@ -1034,19 +968,6 @@ function App() {
       if (welcome) fileSystem.openFileByPath(welcome).catch(() => {});
     }
   }, [ouvrirVaultSynchronise]);
-
-  // Écran 2 : réponse à « Sync your devices? ».
-  const terminerOnboarding = useCallback((synchro) => {
-    const welcome = onboarding?.welcome;
-    localStorage.removeItem(ONBOARDING_KEY);
-    localStorage.setItem(ONBOARDING_DONE_KEY, '1');
-    setOnboarding(null);
-    if (welcome) fileSystem.openFileByPath(welcome).catch(() => {});
-    if (synchro) {
-      if (!fileSystem.isElectron()) copieVersChaine.current = rootDirPathRef.current;
-      setShowCloudPanel(true);
-    }
-  }, [onboarding]);
 
   const handleReturnToSourcePicker = useCallback(() => {
     setCurrentDoc(null);
@@ -1095,45 +1016,6 @@ function App() {
     }
   }, [newFileName, rootDirPath])
 
-  // Export dossier du document courant → ouvrir dans une fenêtre print pour PDF
-  const handleExportFolderPdf = useCallback(async () => {
-    const dirPath = currentDoc?.dirPath || rootDirPath;
-    if (!dirPath) return;
-    const folderName = dirPath.split('/').pop();
-    const markdown = await fileSystem.readFolderAsMarkdown(dirPath);
-    if (!markdown) { alert(t('cmd.noMarkdownInFolder')); return; }
-
-    // Ouvrir une nouvelle fenêtre avec le contenu formaté pour impression
-    const printWin = window.open('', '_blank');
-    if (!printWin) return;
-    printWin.document.write(`<!DOCTYPE html>
-<html><head>
-<title>Export: ${echapperHtml(folderName)}</title>
-<style>
-  body { font-family: 'Literata', Georgia, serif; font-size: 14px; line-height: 1.8; color: #1F2A22; max-width: 800px; margin: 0 auto; padding: 40px; }
-  h1 { font-size: 28px; margin: 2em 0 0.5em; page-break-before: always; }
-  h1:first-child { page-break-before: avoid; }
-  h2 { font-size: 22px; margin: 1.5em 0 0.5em; }
-  h3 { font-size: 18px; margin: 1.2em 0 0.4em; }
-  code { font-family: 'JetBrains Mono', monospace; background: #f5f3f0; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
-  pre { background: #f5f3f0; padding: 16px; border-radius: 8px; overflow-x: auto; }
-  pre code { background: none; padding: 0; }
-  hr { border: none; border-top: 2px solid #E8E4DF; margin: 3em 0; }
-  blockquote { border-left: 4px solid #D4A574; margin: 1em 0; padding: 0.5em 1em; color: #6B6560; }
-  table { border-collapse: collapse; width: 100%; margin: 1em 0; }
-  th, td { border: 1px solid #E8E4DF; padding: 8px 12px; text-align: left; }
-  th { background: #f5f3f0; font-weight: 600; }
-  img { max-width: 100%; height: auto; }
-  @media print { h1 { page-break-before: always; } h1:first-child { page-break-before: avoid; } }
-</style>
-</head><body></body></html>`);
-    // Texte des documents échappé : une balise écrite dans un document reste du texte.
-    const html = markdownVersHtmlImpression(markdown);
-    printWin.document.body.innerHTML = html;
-    printWin.document.close();
-    setTimeout(() => printWin.print(), 500);
-  }, [currentDoc?.dirPath, rootDirPath]);
-
   if (showSourcePicker && ESTWEB) {
     return (
       <div className="app">
@@ -1147,21 +1029,15 @@ function App() {
   if (showSourcePicker) {
     return (
       <div className="app">
-        <OnboardingWhere
-          onReady={handleVaultReady}
-          onAlreadyUser={(r) => handleVaultReady(r, { rejoindre: true })}
-          onDemo={handleSourceDemo}
-          firstRun={!localStorage.getItem(ONBOARDING_DONE_KEY)}
-        />
+        <Suspense fallback={<div className="onboarding" aria-busy="true" />}>
+          <OnboardingWhere
+            onReady={handleVaultReady}
+            onAlreadyUser={(r) => handleVaultReady(r, { rejoindre: true })}
+            onDemo={handleSourceDemo}
+            firstRun={!localStorage.getItem(ONBOARDING_DONE_KEY)}
+          />
+        </Suspense>
         {panneauSynchro}
-      </div>
-    );
-  }
-
-  if (onboarding?.step === 'sync') {
-    return (
-      <div className="app">
-        <OnboardingSync onSetUp={() => terminerOnboarding(true)} onSkip={() => terminerOnboarding(false)} />
       </div>
     );
   }
@@ -1417,12 +1293,6 @@ function App() {
                 case 'search': if (currentDoc) setShowSearch(true); break;
                 case 'sidebar': setShowSidebar(prev => !prev); break;
                 case 'right-sidebar': setShowRightSidebar(prev => !prev); break;
-                case 'export-pdf':
-                  if (currentDoc) fileSystem.exportPdf(currentDoc.fileName);
-                  break;
-                case 'export-folder-pdf':
-                  if (rootDirPath) handleExportFolderPdf();
-                  break;
                 case 'about': setShowAbout(true); break;
                 case 'cloud': setShowCloudPanel(true); break;
                 case 'new-file': handleNewFile(); break;
@@ -1579,31 +1449,6 @@ function App() {
                         <span className="tool-label">{t('app.focus')}</span>
                       </button>
                     </Tooltip>
-
-                    <Tooltip text={t('tooltip.export')} position="bottom">
-                      <button
-                        className="mobile-tool-btn"
-                        onClick={async () => {
-                          if (currentDoc) await fileSystem.exportPdf(currentDoc.fileName);
-                          closeMobilePopover();
-                        }}
-                      >
-                        <span className="tool-icon"><Download size={20} /></span>
-                        <span className="tool-label">{t('app.export')}</span>
-                      </button>
-                    </Tooltip>
-
-                    {(currentDoc?.dirPath || rootDirPath) && (
-                      <Tooltip text={t('cmd.exportFolderPdfDesc')} position="bottom">
-                        <button
-                          className="mobile-tool-btn"
-                          onClick={() => { handleExportFolderPdf(); closeMobilePopover(); }}
-                        >
-                          <span className="tool-icon"><FolderDown size={20} /></span>
-                          <span className="tool-label">{t('cmd.exportFolderPdf')}</span>
-                        </button>
-                      </Tooltip>
-                    )}
 
                     <Tooltip text={t('cmd.aboutDesc')} position="bottom">
                       <button

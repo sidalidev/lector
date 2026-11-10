@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  Search, Sidebar, PanelRight, Maximize2, Zap, FilePlus, FolderDown, Cloud, Info, CalendarCheck, ListPlus, Share2, Hash, History
+  Search, Sidebar, PanelRight, Maximize2, FilePlus, Cloud, Info, CalendarCheck, ListPlus, Share2, Hash, History
 } from 'lucide-react';
 import { syntaxeVisible, basculerSyntaxe } from './editor/livePreview/reglage.js';
 import normalizeSearch from '../utils/normalizeSearch';
@@ -31,11 +31,6 @@ function CommandPalette({ onClose, onCommand }) {
       { id: 'sidebar', label: t('cmd.sidebar'), description: t('cmd.sidebarDesc'), icon: Sidebar, keywords: 'sidebar barre laterale panel' },
       { id: 'right-sidebar', label: t('cmd.rightSidebar'), description: t('cmd.rightSidebarDesc'), icon: PanelRight, keywords: 'right sidebar toc table matieres panneau droit' },
       { id: 'new-file', label: t('cmd.newFile'), description: t('cmd.newFileDesc'), icon: FilePlus, keywords: 'new file nouveau fichier creer create note' },
-      // Export PDF : pas sur mobile (impression indisponible)
-      ...(!isCapacitor ? [
-        { id: 'export-pdf', label: t('cmd.exportPdf'), description: t('cmd.exportPdfDesc'), icon: Zap, keywords: 'export pdf imprimer' },
-        { id: 'export-folder-pdf', label: t('cmd.exportFolderPdf'), description: t('cmd.exportFolderPdfDesc'), icon: FolderDown, keywords: 'export folder dossier pdf all tout formation' },
-      ] : []),
       { id: 'about', label: t('cmd.about'), description: t('cmd.aboutDesc'), icon: Info, keywords: 'about version privacy credits fonts a propos' },
       ...(!isCapacitor ? [
         { id: 'cloud', label: t('cmd.cloud'), description: t('cmd.cloudDesc'), icon: Cloud, keywords: 'vault cloud sync synchro chaine chain appareil device nuage' },

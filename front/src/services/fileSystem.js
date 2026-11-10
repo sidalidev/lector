@@ -203,28 +203,6 @@ class FileSystemService {
       this._emit('fileOpened', data);
       return data;
     }
-    // Mode hosted : fetch le fichier depuis le serveur
-    if (filePath?.startsWith('hosted://')) {
-      const parts = filePath.replace('hosted://', '').split('/')
-      const hostedId = parts[0]
-      const fileName = parts.slice(1).join('/')
-      try {
-        const res = await fetch(`/formation/${hostedId}/docs/${encodeURIComponent(fileName)}`)
-        const content = await res.text()
-        const data = {
-          content,
-          fileName,
-          filePath,
-          dirPath: `hosted://${hostedId}`,
-          type: fileName.toLowerCase().endsWith('.md') ? 'markdown' : 'text',
-        }
-        this._emit('fileOpened', data)
-        return data
-      } catch (err) {
-        console.error('openFileByPath hosted error:', err)
-        return null
-      }
-    }
     // Vault du navigateur (dossier privé ou dossier du disque choisi)
     if (filePath?.startsWith('browser://')) {
       const bv = await import('./browserVault');
@@ -344,19 +322,6 @@ class FileSystemService {
         isDirectory: false,
       }));
     }
-    // Mode hosted : fetch le manifest
-    if (dirPath?.startsWith('hosted://')) {
-      const hostedId = dirPath.replace('hosted://', '')
-      try {
-        const res = await fetch(`/formation/${hostedId}/manifest.json`)
-        const manifest = await res.json()
-        return (manifest.files || []).map(f => ({
-          name: f,
-          path: `hosted://${hostedId}/${f}`,
-          isDirectory: false,
-        }))
-      } catch { return [] }
-    }
     if (dirPath?.startsWith('browser://')) {
       const bv = await import('./browserVault');
       try { return await bv.lister(dirPath); } catch (err) {
@@ -450,16 +415,6 @@ class FileSystemService {
         await chaine.traiterErreurChaine(err);
         return null;
       }
-    }
-    // Mode hosted
-    if (filePath?.startsWith('hosted://')) {
-      const parts = filePath.replace('hosted://', '').split('/')
-      const hostedId = parts[0]
-      const fileName = parts.slice(1).join('/')
-      try {
-        const res = await fetch(`/formation/${hostedId}/docs/${encodeURIComponent(fileName)}`)
-        return await res.text()
-      } catch { return null }
     }
     if (this.isElectron()) {
       const result = await window.electron.openFileByPath(filePath);
@@ -625,20 +580,6 @@ class FileSystemService {
     // Lector Vault (navigateur) : seuls les fichiers markdown voyagent entre
     // appareils, les médias relatifs ne sont jamais disponibles ici.
     if (basePath?.startsWith('cloud://') || basePath?.startsWith('browser://')) return null;
-    // Mode hosted : charger les médias depuis le serveur
-    if (basePath && basePath.startsWith('hosted://')) {
-      const hostedId = basePath.replace('hosted://', '')
-      const url = `/formation/${hostedId}/docs/${encodeURIComponent(relativePath)}`
-      try {
-        const res = await fetch(url)
-        if (!res.ok) return null
-        const blob = await res.blob()
-        return URL.createObjectURL(blob)
-      } catch (err) {
-        console.warn('[FileSystem] readLocalMedia hosted failed:', relativePath, err)
-        return null
-      }
-    }
     if (this.isElectron()) {
       return window.electron.readLocalFile(relativePath, basePath);
     }
@@ -766,101 +707,6 @@ class FileSystemService {
     }
 
     return [];
-  }
-
-  // ========== Export Operations ==========
-
-  async exportPdf(fileName) {
-    if (this.isElectron()) {
-      return window.electron.exportPdf(fileName);
-    }
-    window.print();
-  }
-
-  /**
-   * Exporte tout un dossier en un seul document.
-   * Retourne le contenu markdown concaténé de tous les .md du dossier (trié par nom).
-   */
-  async readFolderAsMarkdown(dirPath) {
-    await this.ensurePlatform();
-
-    if (this.isElectron()) {
-      // Sur Electron, lister directement les fichiers du dossier
-      const tree = await window.electron.listDirectoryFiles(dirPath);
-      if (!tree || tree.length === 0) return null;
-
-      const mdFiles = [];
-      const extractMd = (items) => {
-        const sorted = [...items].sort((a, b) => a.name.localeCompare(b.name));
-        for (const item of sorted) {
-          if (!item.isDirectory && item.name.endsWith('.md')) {
-            mdFiles.push({ name: item.name, path: item.path });
-          }
-          if (item.isDirectory && item.children) {
-            extractMd(item.children);
-          }
-        }
-      };
-      extractMd(tree);
-
-      if (mdFiles.length === 0) return null;
-
-      const parts = [];
-      for (const file of mdFiles) {
-        try {
-          const content = await window.electron.readFileSilent(file.path);
-          if (content) {
-            const cleanContent = content.replace(/\n*---\n<!-- lector-generated -->[\s\S]*<!-- \/lector-generated -->/g, '');
-            parts.push(cleanContent.trim());
-          }
-        } catch (err) {
-          console.warn(`[FileSystem] Failed to read ${file.name}:`, err.message);
-        }
-      }
-      return parts.length > 0 ? parts.join('\n\n---\n\n') : null;
-    }
-
-    // Capacitor / web fallback
-    const tree = await this.listDirectoryFiles(dirPath);
-    if (!tree) return null;
-
-    const mdFiles = [];
-    const extractMd = (items, parentPath) => {
-      const sorted = [...items].sort((a, b) => a.name.localeCompare(b.name));
-      for (const item of sorted) {
-        const fullPath = parentPath ? `${parentPath}/${item.name}` : item.name;
-        if (!item.isDirectory && item.name.endsWith('.md')) {
-          mdFiles.push({ name: item.name, path: item.path || fullPath });
-        }
-        if (item.isDirectory && item.children) {
-          extractMd(item.children, fullPath);
-        }
-      }
-    };
-    extractMd(tree, '');
-
-    // Lire chaque fichier et concaténer
-    const parts = [];
-    for (const file of mdFiles) {
-      try {
-        let content;
-        if (this.isElectron()) {
-          content = await window.electron.readFileSilent(file.path);
-        } else if (this.isCapacitor()) {
-          const { iCloudService: iCloud } = await initCapacitor();
-          content = await iCloud.readFile(file.path);
-        }
-        if (content) {
-          // Retirer le bloc lector-generated pour l'export
-          const cleanContent = content.replace(/\n*---\n<!-- lector-generated -->[\s\S]*<!-- \/lector-generated -->/g, '');
-          parts.push(cleanContent.trim());
-        }
-      } catch (err) {
-        console.warn(`[FileSystem] Failed to read ${file.name}:`, err.message);
-      }
-    }
-
-    return parts.join('\n\n---\n\n');
   }
 
   // ========== Utility ==========

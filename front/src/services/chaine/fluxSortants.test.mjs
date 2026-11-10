@@ -10,7 +10,6 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { FLUX_SORTANTS, PROTECTIONS } from "../fluxSortants.js";
 import en from "../../locales/en.js";
-import fr from "../../locales/fr.js";
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const lire = (chemin) => readFileSync(join(RACINE, chemin), "utf8");
@@ -33,15 +32,11 @@ test("chaque flux a ses textes et une protection connue", () => {
     ids.add(id);
     assert.ok(PROTECTIONS.includes(protection), `${id} : protection ${protection}`);
     assert.ok(destinations.length > 0, `${id} : aucune destination`);
-    for (const [langue, t] of [["en", en], ["fr", fr]]) {
-      for (const cle of [`flow.${id}.what`, `flow.${id}.detail`, `flow.prot.${protection}`]) {
-        assert.ok(t[cle], `${langue} : ${cle} manquant`);
-      }
+    for (const cle of [`flow.${id}.what`, `flow.${id}.detail`, `flow.prot.${protection}`]) {
+      assert.ok(en[cle], `${cle} manquant`);
     }
   }
-  for (const [langue, t] of [["en", en], ["fr", fr]]) {
-    for (const cle of ["about.flows", "about.flowsIntro"]) assert.ok(t[cle], `${langue} : ${cle} manquant`);
-  }
+  for (const cle of ["about.flows", "about.flowsIntro"]) assert.ok(en[cle], `${cle} manquant`);
 });
 
 // La durée annoncée est celle du serveur aujourd'hui (journal Traefik, 7 jours).

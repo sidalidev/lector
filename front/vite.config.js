@@ -7,7 +7,7 @@ const pkg = JSON.parse(readFileSync('../package.json', 'utf-8'));
 // Politique de sécurité du contenu, posée en tête de index.html : la même pour
 // le web, Capacitor et Electron. Aucun script hors des fichiers de l'app,
 // jamais 'unsafe-eval', ni WebAssembly, ni script en ligne.
-// - style-src 'unsafe-inline' : styles posés par Preact et Mermaid.
+// - style-src 'unsafe-inline' : styles posés par Preact et CodeMirror.
 // - connect-src : serveur de synchro et relais de co-écriture seulement (l'app
 //   mobile n'est pas sur son origine). Aucun autre service n'est appelé.
 // - frame-src : vidéos YouTube, Vimeo, Rumble citées dans une note ; pages
@@ -84,13 +84,12 @@ export default defineConfig(({ command }) => {
       rollupOptions: {
         output: {
           // Par fonction, pas par liste : une liste range aussi les dépendances
-          // communes (React, aides de Vite) dans le morceau de mermaid, que
-          // l'entrée importait alors toujours, même sur la page /d/ d'un invité.
+          // communes (React, aides de Vite) dans un morceau lourd, que l'entrée
+          // importait alors toujours, même sur la page /d/ d'un invité.
           manualChunks(id) {
             if (id.includes('vite/preload-helper') || id.includes('commonjsHelpers')) return 'vendor';
             if (/node_modules\/(preact|lucide-react)\//.test(id)) return 'vendor';
-            if (/node_modules\/mermaid\//.test(id)) return 'mermaid';
-            // Textes de l'interface : partagés par l'app, les schémas et la page /d/.
+            // Textes de l'interface : partagés par l'app et la page /d/.
             if (id.includes('/src/services/i18n') || id.includes('/src/locales/')) return 'i18n';
             return undefined;
           },

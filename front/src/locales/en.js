@@ -11,9 +11,7 @@ const en = {
   'app.files': 'Files',
   'app.tools': 'Tools',
   'app.info': 'Info',
-  'app.edit': 'Edit',
   'app.focus': 'Focus',
-  'app.export': 'Export',
   'app.filesSidebar': 'Files (Left Sidebar)',
   'app.toolsBar': 'Tools (Activity Bar)',
   'app.infoPanel': 'Info (Right Sidebar)',
@@ -25,7 +23,6 @@ const en = {
   'sidebar.filesTab': 'Files',
   'sidebar.favoritesTab': 'Favorites',
   'sidebar.recentsTab': 'Recents',
-  'sidebar.bookmarksTab': 'Bookmarks',
   'sidebar.newFile': 'New document',
   'sidebar.createFirst': 'Create your first document',
   'sidebar.noFiles': 'No .md files',
@@ -35,8 +32,6 @@ const en = {
   'sidebar.recentsHint': 'Opened files will appear here',
   'sidebar.recentSort': 'Recent',
   'sidebar.frequentSort': 'Most viewed',
-  'sidebar.noBookmarks': 'No bookmarks',
-  'sidebar.bookmarksHint': 'Click the bookmark button next to a heading to add it',
   'sidebar.addFavorite': 'Add to favorites',
   'sidebar.removeFavorite': 'Remove from favorites',
   'sidebar.copyPath': 'Copy path',
@@ -88,11 +83,6 @@ const en = {
   'onboarding.reassure.desktop': 'Your notes stay on this computer. Sync is optional and end-to-end encrypted.',
   'onboarding.reassure.android': 'Lector only sees its own folder. Sync is optional and end-to-end encrypted.',
   'onboarding.reassure.ios': 'Your notes stay in the Lector folder of iCloud Drive.',
-  'onboarding.where.body.desktop': 'Lector keeps your notes as plain Markdown files, in a folder you own.',
-  'onboarding.where.body.android': 'Lector keeps your notes as plain Markdown files, in a folder you own.',
-  'onboarding.where.body.ios': 'Lector keeps your notes as plain Markdown files, in the Lector folder of iCloud Drive.',
-  'onboarding.where.body.web': 'Lector keeps your notes as plain Markdown files, in a folder in this browser.',
-  'onboarding.where.create': 'Create my Lector folder',
   'onboarding.where.open': 'Open {name}',
   'onboarding.where.existing': 'Use an existing folder',
   'onboarding.where.other': 'Use another folder',
@@ -100,16 +90,9 @@ const en = {
   'onboarding.android.guide': 'Next, create a folder named Lector Vault, then tap Use this folder.',
   'onboarding.android.toast': 'Create a folder named Lector Vault, then tap Use this folder',
   'onboarding.android.confirmToast': 'Lector Vault is ready. Tap Use this folder to finish',
-  'onboarding.android.reassure': 'Lector only sees this folder. Nothing else on your phone.',
-  'onboarding.web.reassure': 'Nothing leaves this browser unless you turn on sync.',
   'onboarding.error.ICLOUD_UNAVAILABLE': 'iCloud Drive is off on this device. Turn it on in Settings to keep your notes in the Lector folder.',
   'onboarding.error.BROWSER_UNSUPPORTED': 'This browser cannot keep a folder of notes. Try a recent version of Chrome, Safari or Firefox.',
   'onboarding.error.generic': 'Lector could not open this folder. Try again, or pick another folder.',
-  'onboarding.sync.title': 'Sync your devices?',
-  'onboarding.sync.free': 'Free and end-to-end encrypted.',
-  'onboarding.sync.text': 'Made for text: Markdown notes up to 20 MB in total. Keep photos and large files in your usual cloud.',
-  'onboarding.sync.setUp': 'Set up sync',
-  'onboarding.sync.skip': 'Not now',
   'onboarding.copyFailed.one': '1 note could not be copied to sync. It is still in your folder.',
   'onboarding.copyFailed.other': '{n} notes could not be copied to sync. They are still in your folder.',
 
@@ -127,10 +110,6 @@ const en = {
   'cmd.sidebarDesc': 'Toggle sidebar (⌘B)',
   'cmd.rightSidebar': 'Show/hide right panel',
   'cmd.rightSidebarDesc': 'Toggle TOC / keywords / glossary (⌘⇧B)',
-  'cmd.exportPdf': 'Export as PDF',
-  'cmd.exportPdfDesc': 'Export current document as PDF',
-  'cmd.exportFolderPdf': 'Export folder as PDF',
-  'cmd.exportFolderPdfDesc': 'Merge all documents into one PDF',
   'cmd.newFile': 'New file',
   'cmd.newFileDesc': 'Create a new Markdown document',
   'cmd.newFilePrompt': 'File name...',
@@ -167,25 +146,9 @@ const en = {
   'flow.search.detail': 'Opens your browser with the selected text.',
   'flow.prot.e2e': 'End-to-end encrypted',
   'flow.prot.none': 'No document content',
-  'cmd.noMarkdownInFolder': 'No Markdown files in this folder.',
 
-  // DocumentView
-  'doc.expand': 'Expand',
-  'doc.htmlEmbed': 'Embedded HTML content',
-  'doc.readingTime': '{n} min read',
   // Tooltips : descriptions explicatives
-  'tooltip.readingTime': 'Estimated reading time based on word count',
-
-  'tooltip.edit': 'Edit the document source in Markdown',
   'tooltip.focus': 'Hide UI and focus on reading',
-  'tooltip.export': 'Export as PDF',
-  'doc.loadingFrom': 'Loading {name}...',
-  'doc.loadingICloud': 'Loading from iCloud...',
-  'doc.videoUnsupported': 'Your browser does not support video.',
-  'doc.expandImage': 'Expand image',
-  'doc.mediaNotSynced': 'Image not synced: only markdown travels between devices',
-  'doc.removeBookmark': 'Remove bookmark',
-  'doc.addBookmark': 'Add bookmark',
 
   // SearchBar
   'search.placeholder': 'Search...',
@@ -217,9 +180,6 @@ const en = {
   'error.occurred': 'An error occurred',
   'error.retry': 'Retry',
 
-  // CodeBlock
-  'code.copy': 'Copy',
-
   // Time
   'time.justNow': 'just now',
   'time.minutesAgo': '{n}min ago',
@@ -234,13 +194,6 @@ const en = {
   'toc.wholeWord': 'Whole word',
   'toc.summary': 'Table of contents',
   'toc.noHeadings': 'No headings',
-
-  // Diagrammes mermaid
-  'diagram.renderError': 'Render error',
-  'diagram.mermaidError': 'Mermaid render error',
-  'diagram.loadingDiagram': 'Loading diagram...',
-  'diagram.expandDiagram': 'Expand diagram',
-  'diagram.recenter': 'Recenter',
 
   // FullscreenOverlay
   'fullscreen.close': 'Close (Esc)',

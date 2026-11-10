@@ -129,18 +129,6 @@
   margin-left: 2px;
 }
 
-/* Mark-based highlight fallback */
-.search-highlight {
-  background: rgba(var(--accent-rgb), 0.5);
-  border-radius: 2px;
-}
-
-.search-highlight.current {
-  background: var(--accent);
-  color: var(--on-accent);
-  border-radius: 2px;
-}
-
 /* CSS Custom Highlight API styles (zero-DOM-mutation highlighting) */
 ::highlight(search-results) {
   background-color: rgba(var(--accent-rgb), 0.5);

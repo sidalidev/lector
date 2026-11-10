@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 // Un document markdown venu d'ailleurs ne doit jamais exécuter de script dans
-// l'origine de Lector : HTML brut assaini, Mermaid en mode strict, CSP stricte.
+// l'origine de Lector : HTML brut affiché en texte, CSP stricte.
 // Les documents sont servis à la place du contenu de démo, ouvert comme
 // n'importe quel document.
 
@@ -54,18 +54,8 @@ const x = 1
 \`\`\`
 `
 
-const MERMAID = `# Diagram
-
-\`\`\`mermaid
-flowchart TD
-  A["Expand the diagram"] --> B[Next]
-  click A href "javascript:window.__pwn=(window.__pwn||0)+1"
-\`\`\`
-`
-
 const DOCS = [
   { name: 'Hostile.md', content: PIEGE },
-  { name: 'Diagram.md', content: MERMAID },
 ]
 
 const MODULE = `const DOCS = ${JSON.stringify(DOCS)};
@@ -121,23 +111,6 @@ test.describe('Rendu sûr des documents', () => {
     await expect(contenu.locator('.cm-lp-case')).toHaveCount(1)
     await expect(contenu.locator('[role="heading"][aria-level="2"]')).toContainText('Second section')
     await expect(contenu.locator('[data-lp-href="#second-section"]')).toHaveCount(1)
-  })
-
-  test('un lien javascript: dans un diagramme Mermaid ne s\'exécute pas au clic', async ({ page }) => {
-    await page.locator('.file-tree-item', { hasText: 'Diagram' }).click()
-    const svg = page.locator('.cm-lp-mermaid .mermaid-svg svg')
-    await expect(svg).toBeVisible({ timeout: 15000 })
-    await expect(svg).toContainText('Expand the diagram')
-
-    const liens = await svg.evaluate((el) => [...el.querySelectorAll('a')]
-      .map((a) => a.getAttribute('href') || a.getAttribute('xlink:href') || ''))
-    expect(liens.filter((h) => /javascript:/i.test(h))).toEqual([])
-
-    const url = page.url()
-    await svg.locator('text=Expand the diagram').click()
-    await page.waitForTimeout(500)
-    expect(await page.evaluate(() => window.__pwn ?? 0)).toBe(0)
-    expect(page.url()).toBe(url)
   })
 
   test('une CSP stricte bloque tout script en ligne injecté', async ({ page }) => {

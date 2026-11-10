@@ -36,18 +36,6 @@
   margin-bottom: var(--space-lg);
 }
 
-.onboarding-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 64px;
-  height: 64px;
-  border-radius: var(--radius-lg);
-  background: var(--accent-soft);
-  color: var(--on-accent-soft);
-  margin-bottom: var(--space-lg);
-}
-
 .onboarding-title {
   font-family: var(--font-display);
   font-size: 34px;
@@ -147,25 +135,6 @@
   line-height: 1.4;
   color: var(--danger);
   margin: var(--space-md) 0 0;
-}
-
-.onboarding-dots {
-  display: flex;
-  gap: var(--space-sm);
-  margin-top: var(--space-xl);
-}
-
-.onboarding-dots span {
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-full);
-  background: var(--border-strong);
-  transition: background 0.2s ease, width 0.2s ease;
-}
-
-.onboarding-dots span.is-active {
-  width: 20px;
-  background: var(--accent);
 }
 
 /* Choisir un autre dossier : lien discret sous l'écran, pas une troisième action. */

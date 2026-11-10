@@ -31,19 +31,17 @@ Write \`- [ ]\` in any note and tap the box to check it off. Add \`⏰ 2026-11-0
 *Open the sidebar to explore the other sample pages, or tap **Change source** when you're ready to load your own notes.*
 `
 
-const EN_DIAGRAMS = `# Diagrams and code
+const EN_TABLES = `# Tables and code
 
-Lector renders Mermaid diagrams and highlights code: write plain Markdown, get living documents.
+Lector renders tables and highlights code: write plain Markdown, get living documents.
 
-## A flowchart
+## A table
 
-\`\`\`mermaid
-flowchart LR
-    A[Write Markdown] --> B{Lector}
-    B --> C[Beautiful reading]
-    B --> D[Real-time editing]
-    B --> E[Encrypted sync]
-\`\`\`
+| Where | What you get |
+| --- | --- |
+| Write | The Markdown shows on the line you edit |
+| Read | **Beautiful** rendering, everywhere else |
+| Sync | End to end encrypted, between your devices |
 
 ## Code, highlighted
 
@@ -88,7 +86,7 @@ const DOCS = {
   en: [
     { name: 'Welcome to Lector.md', content: EN_WELCOME },
     { name: 'This week.md', content: EN_TASKS },
-    { name: 'Diagrams and code.md', content: EN_DIAGRAMS },
+    { name: 'Tables and code.md', content: EN_TABLES },
   ],
 }
 

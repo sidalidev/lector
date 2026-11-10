@@ -19,11 +19,11 @@ test.describe('Mode démo', () => {
     await expect(page.locator('.file-tree-item')).toHaveCount(3)
   })
 
-  test('naviguer vers le doc des diagrammes rend mermaid dans la note', async ({ page }) => {
+  test('naviguer vers le doc des tableaux rend le tableau dans la note', async ({ page }) => {
     await expect(page.locator('.cm-lp-h1').first()).toBeVisible()
-    await page.locator('.file-tree-item', { hasText: /Diagrams/ }).click()
-    await expect(page.locator('.cm-lp-h1').first()).toContainText(/Diagrams/)
-    await expect(page.locator('.mermaid-svg svg').first()).toBeVisible({ timeout: 15000 })
+    await page.locator('.file-tree-item', { hasText: /Tables/ }).click()
+    await expect(page.locator('.cm-lp-h1').first()).toContainText(/Tables/)
+    await expect(page.locator('.cm-lp-tableau table').first()).toBeVisible()
     // Les formules ne sont pas rendues : $…$ reste du texte.
     await expect(page.locator('.katex')).toHaveCount(0)
   })

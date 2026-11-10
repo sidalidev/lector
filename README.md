@@ -2,11 +2,10 @@
 
 Lector is a light Markdown editor and viewer for your own `.md` files: write, read, and write together in real time.
 
-- Markdown with GitHub extensions, Mermaid diagrams and code highlighting
+- Markdown with GitHub extensions and code highlighting
 - A CodeMirror editor, and real-time co-writing by invitation link, end-to-end encrypted
 - File tree, favorites, recent files, quick open, full-text search, command palette, table of contents, bookmarks on headings, focus mode, themes
 - Tasks and reminders written in your notes
-- PDF export of a note or a folder (print)
 
 ## Principles
 
@@ -77,7 +76,7 @@ Lector is built so that you can keep your documents without it.
 
 - **Your vault is a folder of plain Markdown files.** On a computer, the folder you sync is readable by any text editor, Obsidian or `cat`.
 - **The relay can be self-hosted.** Its code is in `back/` and the production setup (Docker Compose behind a Traefik reverse proxy, nginx for the site and the web app) is in `deploy/`. The web app talks to the relay of the origin it is served from, so a self-hosted web app uses your relay. The desktop and mobile apps point to `lector.dockerbop.fr` for now; a relay address setting is planned.
-- **Export.** On a computer, the vault folder is your export, and you can also export a document or a folder as PDF. On the web and on mobile there is no local vault and no "export everything" yet: the relay may hold the only copy of your documents there, so keep a computer in your chain if you need an offline copy.
+- **Export.** On a computer, the vault folder is your export. On the web and on mobile there is no local vault and no "export everything" yet: the relay may hold the only copy of your documents there, so keep a computer in your chain if you need an offline copy.
 
 ## Development
 

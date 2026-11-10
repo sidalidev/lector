@@ -72,7 +72,7 @@ Le scénario 9 ne parcourt que le dossier de ce casier : les tests de l'API, en 
 ## Écrans (`npm run test:flows`)
 
 - `sync.spec.js` : créer, 12 mots, formulaire du gestionnaire, kit de secours, vérification, quitter, rejoindre, tout effacer, erreurs de saisie. Le lien « Détails techniques » vise la page du site ; sur le web, « Tout effacer » dit que le casier est peut-être la seule copie des documents.
-- `securite-rendu.spec.js` : documents piégés (HTML brut, Mermaid, CSP, polices et scripts tiers), `docs/SECURITE.md`.
+- `securite-rendu.spec.js` : documents piégés (HTML brut, CSP, polices et scripts tiers), `docs/SECURITE.md`.
 - `electron-acces.spec.js` : vrai processus principal en bac à sable, accès au disque limité aux dossiers ouverts.
 - `choix-source.spec.js` : la démo choisie pendant une restauration de session lente (module de la chaîne retardé) reste affichée.
 - `impression.spec.js` : l'export d'un dossier en fenêtre d'impression échappe le texte des documents (balises, liens `javascript:`, guillemets).
