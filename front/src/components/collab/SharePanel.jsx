@@ -14,6 +14,8 @@ export default function SharePanel({ filePath, content, onClose }) {
   const [lien, setLien] = useState(null)
   const [occupe, setOccupe] = useState(false)
   const [message, setMessage] = useState(null)
+  // Comment les autres m'appellent : demandé une fois, gardé dans ce navigateur.
+  const [nom, setNom] = useState(() => stockage.lireProfil()?.nom || '')
   // La note ouverte se relie (ou se délie) du salon tout de suite.
   const prevenir = () => window.dispatchEvent(new CustomEvent('lector-partage', { detail: { chemin: filePath } }))
 
@@ -34,6 +36,7 @@ export default function SharePanel({ filePath, content, onClose }) {
   const creer = async () => {
     setOccupe(true)
     setMessage(null)
+    if (nom.trim() && nom.trim() !== stockage.lireProfil()?.nom) stockage.ecrireProfil(nom)
     try {
       const r = await creerPartage({ texte: content, titre: titreDu(content, filePath?.split('/').pop()), chemin: filePath })
       setPartage(r.enregistrement)
@@ -71,9 +74,21 @@ export default function SharePanel({ filePath, content, onClose }) {
             <button type="button" className="collab-btn collab-btn-danger" onClick={arreter} disabled={occupe}>{t('collab.stop')}</button>
           </>
         ) : (
-          <button type="button" className="collab-btn collab-btn-plein" onClick={creer} disabled={occupe} data-testid="collab-creer">
+          <>
+          <label className="collab-note" htmlFor="collab-nom-proprietaire">{t('collab.name.title')}</label>
+          <input
+            id="collab-nom-proprietaire"
+            className="collab-champ"
+            maxLength={40}
+            value={nom}
+            placeholder={t('collab.name.placeholder')}
+            onChange={(e) => setNom(e.target.value)}
+            data-testid="collab-nom-proprietaire"
+          />
+          <button type="button" className="collab-btn collab-btn-plein" onClick={creer} disabled={occupe || !nom.trim()} data-testid="collab-creer">
             {occupe ? t('collab.share.creating') : t('collab.share.create')}
           </button>
+          </>
         )}
         {message && <p className="collab-note" role="status">{message}</p>}
         <details className="collab-note">

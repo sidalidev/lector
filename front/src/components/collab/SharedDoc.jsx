@@ -131,7 +131,7 @@ export default function SharedDoc() {
   const id = useMemo(() => idSalonDuChemin(location.pathname), [])
   const [phase, setPhase] = useState('chargement') // chargement | abime | nom | pret | arrete-local
   const [enregistrement, setEnregistrement] = useState(null)
-  const [profil, setProfil] = useState(() => stockage.profil())
+  const [profil, setProfil] = useState(() => stockage.lireProfil())
   const [session, setSession] = useState(null)
   const [statut, setStatut] = useState(STATUTS.CONNEXION)
   const [personnes, setPersonnes] = useState([])
@@ -163,7 +163,8 @@ export default function SharedDoc() {
         setTitre(e.titre || titreDu(texteLocalRef.current))
         return setPhase('arrete-local')
       }
-      setPhase('pret')
+      // Premier passage dans ce navigateur : on demande comment l'appeler, une fois.
+      setPhase(stockage.lireProfil() ? 'pret' : 'nom')
     })()
     return () => { annule = true }
   }, [id])

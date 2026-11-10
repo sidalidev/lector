@@ -24,15 +24,12 @@ async function creerPartage(page) {
   }, TEXTE)
 }
 
-// Personne ne tape son prénom : un nom est donné d'office. Ici on le change
-// (clic sur son propre nom) pour reconnaître chacun dans les tests.
+// Premier passage : « What should others call you? », une fois par navigateur.
 async function entrer(page, lien, nom) {
   await page.goto(lien)
-  await expect(page.getByTestId('collab-statut')).toHaveAttribute('data-statut', 'en-ligne')
-  await page.getByTestId('collab-moi').click()
   await page.getByTestId('collab-nom').fill(nom)
-  await page.getByRole('button', { name: 'Save' }).click()
-  await expect(page.getByTestId('collab-personnes')).toContainText(nom)
+  await page.getByRole('button', { name: 'Continue' }).click()
+  await expect(page.getByTestId('collab-statut')).toHaveAttribute('data-statut', 'en-ligne')
 }
 
 const editeur = (page) => page.locator('.cm-content')
@@ -84,6 +81,12 @@ test('deux navigateurs écrivent ensemble, survivent à une coupure, puis le par
   await expect(sid.locator('.cm-ySelectionCaret').first()).toBeAttached()
   await expect(sid.locator('.cm-ySelectionInfo', { hasText: 'Lea' })).toBeAttached()
 
+  // Un clic sur son propre nom pour le changer : les autres voient le nouveau.
+  await lea.getByTestId('collab-moi').click()
+  await lea.getByTestId('collab-nom').fill('Léa')
+  await lea.getByRole('button', { name: 'Save' }).click()
+  await expect(sid.getByTestId('collab-personnes')).toContainText('Léa')
+
   // Le relais ne garde que du chiffré : ni le texte ni les prénoms dans sa base ou son journal.
   const base = fs.readFileSync(path.join(DONNEES, 'test.db')).toString('latin1')
   const journal = fs.readFileSync(path.join(DONNEES, 'serveur.log'), 'utf8')
@@ -132,6 +135,8 @@ test('deux navigateurs écrivent ensemble, survivent à une coupure, puis le par
 
   const tom = await (await browser.newContext()).newPage()
   await tom.goto(lien)
+  await tom.getByTestId('collab-nom').fill('Tom')
+  await tom.getByRole('button', { name: 'Continue' }).click()
   await expect(tom.getByTestId('collab-bandeau')).toContainText('The owner stopped sharing')
   await expect(editeur(tom)).toHaveText('')
 
@@ -148,9 +153,10 @@ test("Partager depuis l'app web : lien, QR, ouverture par l'invité, arrêt", as
   const app = await (await browser.newContext()).newPage()
   await relierApi(app)
   await nouvelleCle(app)
-  await app.evaluate(() => localStorage.setItem('lector-collab-profil', JSON.stringify({ nom: 'Sid', couleur: '#3b7ea1' })))
   await app.locator('.file-tree-item').first().click()
   await app.getByTestId('collab-partager').click()
+  await expect(app.getByTestId('collab-creer')).toBeDisabled()
+  await app.getByTestId('collab-nom-proprietaire').fill('Sid')
   await app.getByTestId('collab-creer').click()
   const lien = await app.getByTestId('collab-lien').inputValue()
   expect(lien).toMatch(/\/d\/[0-9a-f]{32}#[A-Za-z0-9_-]{43}$/)
