@@ -1,10 +1,13 @@
 import { test, expect } from '@playwright/test'
+import { relierApi, nouvelleCle } from './entree.js'
 
-// Mode d'écriture mis en forme (façon Bear), l'éditeur par défaut : la syntaxe
-// Markdown se replie hors de la ligne du curseur, les titres sont en vraie
-// taille, et « Show Markdown syntax » rend le mode source brut.
+// Mode d'écriture mis en forme (façon Bear), le seul mode de l'éditeur : la
+// syntaxe Markdown se replie hors de la ligne du curseur et les titres sont en
+// vraie taille.
 
 test.use({ locale: 'en-US' })
+
+test.beforeEach(async ({ page }) => { await relierApi(page) })
 
 const editeur = (page) => page.locator('.cm-content')
 const ligne = (page, n) => page.locator('.cm-line').nth(n)
@@ -16,9 +19,8 @@ const largeurMarque = (page, n) => ligne(page, n).locator('.cm-lp-cache, .cm-lp-
 const taille = (page, n) => ligne(page, n).evaluate((el) => parseFloat(getComputedStyle(el).fontSize))
 
 async function ouvrirEditeur(page) {
-  await page.goto('/')
-  await page.evaluate(() => localStorage.clear())
-  await page.goto('/?demo')
+  // Une clé neuve ouvre la note d'accueil, vidée ensuite.
+  await nouvelleCle(page)
   await expect(page.locator('.cm-lp-h1').first()).toBeVisible()
   await expect(editeur(page)).toBeVisible()
   await editeur(page).click()
@@ -26,16 +28,7 @@ async function ouvrirEditeur(page) {
   await page.keyboard.press('Backspace')
 }
 
-async function palette(page, commande) {
-  await page.keyboard.press('ControlOrMeta+Shift+p')
-  const p = page.locator('.command-palette')
-  await p.locator('.command-palette-input').fill(commande)
-  await expect(p.locator('.command-palette-item').first()).toContainText(commande)
-  await page.keyboard.press('Enter')
-  await expect(p).toBeHidden()
-}
-
-test('la syntaxe se replie hors de la ligne active, les titres sont grands, et la bascule rend le mode source', async ({ page }) => {
+test('la syntaxe se replie hors de la ligne active et les titres sont grands', async ({ page }) => {
   await ouvrirEditeur(page)
   await expect(page.locator('.cm-editor.cm-lp')).toBeVisible()
   await expect(page.locator('.cm-lineNumbers')).toHaveCount(0)
@@ -63,16 +56,6 @@ test('la syntaxe se replie hors de la ligne active, les titres sont grands, et l
   // Le curseur revient sur le titre : « # » réapparaît.
   await page.keyboard.press('ControlOrMeta+Home')
   expect(await largeurMarque(page, 0)).toBeGreaterThan(0)
-
-  // Mode source brut : plus de mise en forme, numéros de ligne, choix mémorisé.
-  await palette(page, 'Show Markdown syntax')
-  await expect(page.locator('.cm-editor.cm-lp')).toHaveCount(0)
-  await expect(page.locator('.cm-lineNumbers')).toBeVisible()
-  await expect(page.locator('.cm-lp-cache')).toHaveCount(0)
-  expect(await page.evaluate(() => localStorage.getItem('lector-show-markdown-syntax'))).toBe('1')
-
-  await palette(page, 'Hide Markdown syntax')
-  await expect(page.locator('.cm-editor.cm-lp')).toBeVisible()
 })
 
 test('une case à cocher écrit « - [x] » et la date dans le texte', async ({ page }) => {

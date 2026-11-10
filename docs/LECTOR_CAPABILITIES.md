@@ -122,11 +122,11 @@ Ne sont jamais rendus : les scripts, iframes, feuilles de style, objets, formula
 
 ## Navigation et organisation
 
-- Arbre de fichiers dans la barre latérale, favoris, fichiers récents
+- Arbre de fichiers dans la barre latérale
 - Ouverture rapide (`Cmd+P`), recherche dans le document (`Cmd+F`), recherche dans tous les fichiers (`Cmd+Shift+F`)
 - Palette de commandes (`Cmd+Shift+P`)
 - Sommaire flottant (barre latérale droite, `Cmd+Shift+B`) et signets sur les titres
-- Mode focus, thèmes clair et sombre, taille de police
+- Thèmes clair et sombre ; taille du texte fixe (17 px, 15 px sur mobile)
 - Écran « About » avec la liste « What leaves your device » (`front/src/services/fluxSortants.js`)
 - Sur ordinateur, clic droit « Search the web » sur une sélection (Google, dans le navigateur)
 
@@ -159,9 +159,7 @@ Ne sont jamais rendus : les scripts, iframes, feuilles de style, objets, formula
 | `Cmd+N` | Nouvelle tâche |
 | `Cmd+[` | Retour dans l'historique |
 | `Cmd+]` | Avancer dans l'historique |
-| `Cmd++` / `Cmd+-` | Taille de police (±2 px, de 12 à 28 px) |
-| `Cmd+0` | Taille de police par défaut (17 px) |
-| `Escape` | Fermer la recherche ou le mode focus |
+| `Escape` | Fermer la recherche |
 
 ---
 
@@ -232,7 +230,7 @@ Sécurité du rendu et de l'accès au disque (CSP, assainissement des documents,
 | App | `App.jsx` | Logique principale, raccourcis, état |
 | DocumentView | `DocumentView.jsx` | Rendu Markdown, médias, tâches cochables |
 | CodeBlock | `CodeBlock.jsx` | Blocs de code, highlight.js à la demande |
-| Sidebar | `Sidebar.jsx` | Navigateur de fichiers, favoris, récents |
+| Sidebar | `Sidebar.jsx` | Navigateur de fichiers |
 | FloatingTOC | `FloatingTOC.jsx` | Sommaire |
 | MarkdownEditor | `MarkdownEditor.jsx` | Mode édition (CodeMirror 6) |
 | TodayView, NewTask | `TodayView.jsx`, `NewTask.jsx` | Tâches et rappels |

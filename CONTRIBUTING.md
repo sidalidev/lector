@@ -4,7 +4,7 @@
 npm ci && npm run dev
 ```
 
-That is all you need to run the app in your browser at http://localhost:5173 (Node.js 22 or later). The demo content works without a relay.
+That runs the app in your browser at http://localhost:5173 (Node.js 22 or later). To create a key and open notes, also run a local relay (below).
 
 ## Run everything
 

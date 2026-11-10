@@ -84,7 +84,7 @@ export default function TodayView({ rootDirPath, onOpenTask, onNewTask, onNoteCh
   const vue = useMemo(() => vueAujourdhui(taches, maintenant), [taches, maintenant])
   const total = vue.enRetard.length + vue.aujourdhui.length + vue.aVenir.length
   // Démo : rien n'est programmé, donc rien à autoriser.
-  const rappelsAVenir = !rootDirPath?.startsWith('demo://') && etat.taches.some((x) => !x.fait && x.rappel !== null && x.rappel > maintenant)
+  const rappelsAVenir = etat.taches.some((x) => !x.fait && x.rappel !== null && x.rappel > maintenant)
   const web = !fileSystem.isElectron() && !fileSystem.isCapacitor()
 
   const cocher = async (tache) => {

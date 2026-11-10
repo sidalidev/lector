@@ -17,7 +17,6 @@
   padding: 4px 6px;
 }
 
-
 .right-toc-item {
   display: block;
   width: 100%;
@@ -59,10 +58,6 @@
   opacity: 0.7;
 }
 
-/* Keywords in right sidebar */
-
-/* Glossary in right sidebar */
-
 /* Section label */
 .right-section-label {
   font-size: 0.85em;
@@ -73,12 +68,6 @@
   padding: 10px 8px 4px;
   font-family: var(--font-sans);
 }
-
-/* Onglets IA sans données: visibles mais atténués */
-
-/* État vide IA: avec hint pour générer */
-
-/* Bouton Générer dans les états vides IA */
 
 /* Empty state */
 .right-sidebar-empty {
@@ -95,10 +84,6 @@
   margin: 2px 0;
   font-size: inherit;
 }
-
-/* Tab badge */
-
-/* Review list */
 
 /* Inline search bar (mobile popover) */
 .right-sidebar-search {
@@ -205,9 +190,6 @@
 /* Scrollbar */
 .right-sidebar-content::-webkit-scrollbar { width: 4px; }
 .right-sidebar-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-
-/* Hide in focus/presentation mode */
-.focus-mode .right-sidebar-container { display: none; }
 
 @keyframes tocSlideIn {
   from { transform: scaleX(0); }

@@ -52,11 +52,6 @@ function publier(partiel) {
 
 /** Contenu d'une note, ou null. Sur ordinateur, lecture sans ouvrir le document. */
 export async function lireNote(chemin) {
-  if (chemin?.startsWith('demo://')) {
-    const { getDemoFile } = await import('./demoContent')
-    const { getLocale } = await import('./i18n')
-    return getDemoFile(getLocale(), chemin.replace('demo://', ''))?.content ?? null
-  }
   if (fileSystem.isElectron() && !chemin?.startsWith('cloud://') && !chemin?.startsWith('browser://')) {
     return window.electron.readFileSilent(chemin)
   }
@@ -148,8 +143,7 @@ export function actualiser(root) {
       const { taches, complet } = await collecterTaches(root)
       if (etat.root !== root) return
       publier({ taches, pret: true, complet })
-      // Démo : rien n'est persisté, rien n'est programmé.
-      if (complet && !root.startsWith('demo://')) await programmer(rappelsAProgrammer(taches, Date.now()))
+      if (complet) await programmer(rappelsAProgrammer(taches, Date.now()))
     } catch (err) {
       console.warn('[Lector] Reminders not refreshed:', err?.message || err)
       if (etat.root === root) publier({ pret: true })

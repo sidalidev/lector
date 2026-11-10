@@ -19,7 +19,7 @@ test.describe('Command Palette', () => {
     await page.keyboard.press('Meta+Shift+p')
     const palette = page.locator('.command-palette')
     const input = palette.locator('.command-palette-input')
-    for (const recherche of ['api keys', 'flashcards', 'youtube', 'read aloud', 'ruler', 'auto-scroll', 'highlights', 'learn']) {
+    for (const recherche of ['api keys', 'flashcards', 'youtube', 'read aloud', 'ruler', 'auto-scroll', 'highlights', 'learn', 'focus', 'markdown syntax', 'pdf']) {
       await input.fill(recherche)
       await expect(palette.locator('.command-palette-empty'), recherche).toBeVisible()
     }

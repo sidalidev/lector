@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo, useSyncExternalStore, lazy, Suspense } from 'react';
 import {
-  Folder, Sliders, List, X, Focus, Minus, Plus,
+  Folder, Sliders, List, X,
   RefreshCw, Info, Share2, History
 } from 'lucide-react';
 import Sidebar from './components/Sidebar';
@@ -64,7 +64,7 @@ const haptic = (style = 'light') => {
   } catch { /* ignore */ }
 };
 
-// --- History helpers ---
+// --- Clés de session ---
 const SESSION_KEY = 'lector-last-session';
 const SOURCE_TYPE_KEY = 'lector-source-type';
 const ONBOARDING_DONE_KEY = 'lector-onboarding-done';
@@ -75,48 +75,18 @@ try {
   if (localStorage.getItem(SOURCE_TYPE_KEY)) localStorage.setItem(ONBOARDING_DONE_KEY, '1');
   localStorage.removeItem('lector-onboarding');
 } catch { /* stockage indisponible */ }
-const MAX_HISTORY = 50;
-
-function loadHistory() {
-  return storage.get('history', []);
-}
-
-function saveHistory(entries) {
-  storage.set('history', entries.slice(0, MAX_HISTORY));
-  syncService.markGlobalDirty();
-}
-
-function recordFileOpen(filePath, fileName) {
-  const entries = loadHistory();
-  const idx = entries.findIndex(e => e.filePath === filePath);
-  const now = new Date().toISOString();
-  if (idx >= 0) {
-    entries[idx].openCount += 1;
-    entries[idx].lastOpenedAt = now;
-    // Move to front
-    const [item] = entries.splice(idx, 1);
-    entries.unshift(item);
-  } else {
-    entries.unshift({ filePath, fileName, lastOpenedAt: now, openCount: 1 });
-  }
-  saveHistory(entries);
-  return entries.slice(0, MAX_HISTORY);
-}
-
 function App() {
   // storage.get(key, default) wraps localStorage with 'lector-' prefix + JSON parse
   const { t } = useTranslation()
 
   const [currentDoc, setCurrentDoc] = useState(null);
   const [rootDirPath, setRootDirPath] = useState(null);
-  const [recentFiles, setRecentFiles] = useState(() => loadHistory());
   const [showSidebar, setShowSidebar] = useState(() => storage.get('showSidebar', true));
   const [showSearch, setShowSearch] = useState(false);
 
   // New states with persistence
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [fontSize, setFontSize] = useState(() => storage.get('fontSize', 17));
   const [showQuickOpen, setShowQuickOpen] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
@@ -132,13 +102,11 @@ function App() {
   const [isMobile, setIsMobile] = useState(false);
   const [mobilePopover, setMobilePopover] = useState(null); // null | 'files' | 'tools' | 'info'
   const [popoverClosing, setPopoverClosing] = useState(false);
-  const [syncRevision, setSyncRevision] = useState(0);
   const [showSourcePicker, setShowSourcePicker] = useState(() => !localStorage.getItem(SOURCE_TYPE_KEY));
   const [updateReady, setUpdateReady] = useState(null); // version string or null
   const [updateDismissed, setUpdateDismissed] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [focusMode, setFocusMode] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showCloudPanel, setShowCloudPanel] = useState(false);
   // Pourquoi l'écran Synchronisation s'ouvre tout seul (CHAIN_UNKNOWN, NO_CHAIN)
@@ -209,33 +177,14 @@ function App() {
   // Save all preferences in a single debounced effect
   useEffect(() => {
     const t = setTimeout(() => {
-      const prefs = { fontSize, showSidebar, sidebarWidth, rightSidebarWidth, showRightSidebar };
+      const prefs = { showSidebar, sidebarWidth, rightSidebarWidth, showRightSidebar };
       for (const [k, v] of Object.entries(prefs)) {
         storage.set(k, v);
       }
       syncService.markGlobalDirty();
     }, 300);
     return () => clearTimeout(t);
-  }, [fontSize, showSidebar, sidebarWidth, rightSidebarWidth, showRightSidebar]);
-
-  // Élément de la vue document : un état, pas une ref, car DocumentView arrive
-  // après coup (chargé à la demande) et l'écouteur de défilement doit suivre.
-  const [documentViewEl, setDocumentViewEl] = useState(null);
-  const progressRef = useRef(null);
-
-  // Barre de progression de lecture: scroll listener sur le document-view
-  useEffect(() => {
-    const el = documentViewEl;
-    if (!el || !currentDoc) return;
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = el;
-      const pct = scrollHeight > clientHeight ? scrollTop / (scrollHeight - clientHeight) : 0;
-      if (progressRef.current) progressRef.current.style.width = `${pct * 100}%`;
-    };
-    el.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-    return () => el.removeEventListener('scroll', handleScroll);
-  }, [documentViewEl, currentDoc?.filePath]);
+  }, [showSidebar, sidebarWidth, rightSidebarWidth, showRightSidebar]);
 
   // Add to history when opening new doc
   const addToHistory = useCallback((doc) => {
@@ -268,35 +217,11 @@ function App() {
   // asynchrone, ne réaffiche plus le choix de la source par-dessus.
   const sourceChoisie = useRef(false);
 
-  // Mode démo : contenu embarqué, rien n'est persisté.
-  // Le picker revient au prochain lancement tant qu'une vraie source n'est pas choisie.
-  const handleSourceDemo = useCallback(async () => {
-    sourceChoisie.current = true;
-    setRootDirPath('demo://');
-    setShowSourcePicker(false);
-    try {
-      const { getDemoFiles } = await import('./services/demoContent');
-      const { getLocale } = await import('./services/i18n');
-      const first = getDemoFiles(getLocale())[0];
-      await fileSystem.openFileByPath(`demo://${first.name}`);
-    } catch (err) {
-      console.error('demo mode error:', err);
-    }
-  }, []);
-
   // Restore last session on mount
   useEffect(() => {
     const restoreSession = async () => {
       try {
         await fileSystem.ensurePlatform();
-
-        const urlParams = new URLSearchParams(window.location.search)
-
-        // ?demo : la démo embarquée, sans rien persister (captures, tests).
-        if (urlParams.has('demo') && !localStorage.getItem(SOURCE_TYPE_KEY)) {
-          handleSourceDemo();
-          return;
-        }
 
         // Ordinateur : avec une chaîne, on démarre toujours sur le vault synchronisé.
         if (fileSystem.isElectron() && window.electron?.cloud?.status) {
@@ -339,17 +264,6 @@ function App() {
         }
 
         const sourceType = localStorage.getItem(SOURCE_TYPE_KEY);
-
-        // Session demo:// résiduelle (état transitoire jamais censé être persisté) → purge
-        try {
-          const st = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
-          if (st?.filePath?.startsWith('demo://') || st?.rootDirPath?.startsWith('demo://')) {
-            localStorage.removeItem(SESSION_KEY);
-            localStorage.removeItem(SOURCE_TYPE_KEY);
-            setShowSourcePicker(true);
-            return;
-          }
-        } catch {}
 
         // No source type saved → show picker
         if (!sourceType) {
@@ -591,15 +505,10 @@ function App() {
     });
   }, []);
 
-  // Initialize sync service + focus-triggered pull + sync re-render
+  // Initialize sync service + focus-triggered pull
   useEffect(() => {
     // Init sync
     syncService.initialize();
-
-    // Re-render when sync pulls new data
-    const unsub = syncService.onSyncComplete(() => {
-      setSyncRevision(r => r + 1);
-    });
 
     // Pull on window focus/foreground
     const handleFocus = () => syncService.pullChanged();
@@ -614,18 +523,11 @@ function App() {
     document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
-      unsub();
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibility);
       syncService.destroy();
     };
   }, []);
-
-  // Reload data from localStorage when sync pulls new data
-  useEffect(() => {
-    if (syncRevision === 0) return;
-    setRecentFiles(loadHistory());
-  }, [syncRevision]);
 
   useEffect(() => {
     // Utiliser le service fileSystem unifié.
@@ -655,19 +557,15 @@ function App() {
       addToHistory(data);
       // Auto-dismiss source picker when a file is opened externally
       setShowSourcePicker(false);
-      // Mode démo : ne rien persister (ni source, ni session, ni récents).
-      // Le picker doit revenir au prochain lancement.
-      if (data?.filePath?.startsWith('demo://')) return;
       if (!localStorage.getItem(SOURCE_TYPE_KEY)) {
         localStorage.setItem(SOURCE_TYPE_KEY, 'file');
       }
-      // Save session & update history
+      // Save session
       if (data?.filePath) {
         localStorage.setItem(SESSION_KEY, JSON.stringify({
           filePath: data.filePath,
           rootDirPath: rootDirPath || data.dirPath,
         }));
-        setRecentFiles(recordFileOpen(data.filePath, data.fileName));
       }
     });
 
@@ -757,11 +655,8 @@ function App() {
         e.preventDefault();
         setShowSearch(true);
       }
-      // Escape : ferme la recherche et le mode focus
-      if (e.key === 'Escape') {
-        setShowSearch(false);
-        setFocusMode(false);
-      }
+      // Escape : ferme la recherche
+      if (e.key === 'Escape') setShowSearch(false);
 
       // Dans un champ de saisie, les raccourcis suivants restent au champ
       if (isInput) return;
@@ -774,19 +669,6 @@ function App() {
       if ((e.metaKey || e.ctrlKey) && e.key === ']') {
         e.preventDefault();
         goForward();
-      }
-      // Cmd+Plus/Minus for font size
-      if ((e.metaKey || e.ctrlKey) && (e.key === '=' || e.key === '+')) {
-        e.preventDefault();
-        setFontSize(prev => Math.min(prev + 2, 28));
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === '-') {
-        e.preventDefault();
-        setFontSize(prev => Math.max(prev - 2, 12));
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === '0') {
-        e.preventDefault();
-        setFontSize(17);
       }
     };
 
@@ -1033,7 +915,6 @@ function App() {
           <OnboardingWhere
             onReady={handleVaultReady}
             onAlreadyUser={(r) => handleVaultReady(r, { rejoindre: true })}
-            onDemo={handleSourceDemo}
             firstRun={!localStorage.getItem(ONBOARDING_DONE_KEY)}
           />
         </Suspense>
@@ -1044,7 +925,7 @@ function App() {
 
   return (
     <Suspense fallback={null}>
-    <div className={`app${focusMode ? ' focus-mode' : ''}`}>
+    <div className="app">
       {/* Titlebar: minimal : titre + pastille update */}
       <div className="titlebar drag-region">
         <div className="titlebar-center">
@@ -1053,12 +934,12 @@ function App() {
             <span className="titlebar-version">v{APP_VERSION}</span>
           </div>
           <CloudStatusIndicator onClick={() => setShowCloudPanel(true)} />
-          {currentDoc && !showToday && !currentDoc.filePath?.startsWith('demo://') && (
+          {currentDoc && !showToday && (
             <button className="titlebar-share titlebar-icone" onClick={() => setShowHistory(true)} title={t('history.title')} aria-label={t('history.title')} data-testid="historique-ouvrir">
               <History size={13} />
             </button>
           )}
-          {PARTAGE_POSSIBLE && currentDoc && !showToday && !currentDoc.filePath?.startsWith('demo://') && (
+          {PARTAGE_POSSIBLE && currentDoc && !showToday && (
             <button className="titlebar-share" onClick={() => setShowShare(true)} title={t('collab.share.title')} data-testid="collab-partager">
               <Share2 size={13} />
               {t('collab.share')}
@@ -1145,7 +1026,6 @@ function App() {
                 currentFilePath={currentDoc?.filePath}
                 focusFolderPath={focusFolderPath}
                 onFocusFolderHandled={() => setFocusFolderPath(null)}
-                recentFiles={recentFiles}
                 onFileSelected={() => {}}
                 onReturnHome={handleReturnToSourcePicker}
                 onNewFile={handleNewFile}
@@ -1203,12 +1083,10 @@ function App() {
               <ErrorBoundary>
                 <Suspense fallback={<div className="document-view" />}>
                   <DocumentView
-                    ref={setDocumentViewEl}
                     content={currentDoc.content}
                     dirPath={currentDoc.dirPath}
                     filePath={currentDoc.filePath}
                     onOpenLocalFile={handleOpenLocalFile}
-                    fontSize={fontSize}
                     onDocInfo={setDocInfo}
                     onContentChange={handleContentChange}
                   />
@@ -1218,12 +1096,6 @@ function App() {
             <div className="empty-content"><p style={{ color: 'var(--text-muted)', textAlign: 'center', marginTop: 80 }}>{t('source.subtitle')}</p></div>
           )}
 
-          {/* Barre de progression de lecture: en bas de la zone document */}
-          {currentDoc && !showToday && (
-            <div className="doc-read-progress">
-              <div ref={progressRef} className="doc-read-progress-fill" />
-            </div>
-          )}
         </div>
 
         {/* Right Sidebar: desktop only (mobile uses popover) */}
@@ -1287,7 +1159,6 @@ function App() {
             onClose={() => setShowCommandPalette(false)}
             onCommand={(id) => {
               switch (id) {
-                case 'focus': setFocusMode(prev => !prev); break;
                 case 'share': if (PARTAGE_POSSIBLE && currentDoc) setShowShare(true); break;
                 case 'history': if (currentDoc) setShowHistory(true); break;
                 case 'search': if (currentDoc) setShowSearch(true); break;
@@ -1422,7 +1293,6 @@ function App() {
                     currentFilePath={currentDoc?.filePath}
                     focusFolderPath={focusFolderPath}
                     onFocusFolderHandled={() => setFocusFolderPath(null)}
-                    recentFiles={recentFiles}
                     onFileSelected={() => closeMobilePopover()}
                     onReturnHome={() => { closeMobilePopover(); handleReturnToSourcePicker(); }}
                     onNewFile={handleNewFile}
@@ -1437,19 +1307,6 @@ function App() {
                 {/* TOOLS PANEL */}
                 {mobilePopover === 'tools' && (
                   <div className="mobile-tools-grid">
-                    <Tooltip text={t('tooltip.focus')} position="bottom">
-                      <button
-                        className={`mobile-tool-btn ${focusMode ? 'active' : ''}`}
-                        onClick={() => {
-                          setFocusMode(prev => !prev);
-                          closeMobilePopover();
-                        }}
-                      >
-                        <span className="tool-icon"><Focus size={20} /></span>
-                        <span className="tool-label">{t('app.focus')}</span>
-                      </button>
-                    </Tooltip>
-
                     <Tooltip text={t('cmd.aboutDesc')} position="bottom">
                       <button
                         className="mobile-tool-btn"
@@ -1459,16 +1316,6 @@ function App() {
                         <span className="tool-label">{t('app.about')}</span>
                       </button>
                     </Tooltip>
-
-                    <div className="mobile-font-group">
-                      <button className="font-btn" onClick={() => setFontSize(prev => Math.max(prev - 2, 12))}>
-                        <Minus size={16} />
-                      </button>
-                      <span className="font-size-value">{fontSize}</span>
-                      <button className="font-btn" onClick={() => setFontSize(prev => Math.min(prev + 2, 28))}>
-                        <Plus size={16} />
-                      </button>
-                    </div>
 
                   </div>
                 )}

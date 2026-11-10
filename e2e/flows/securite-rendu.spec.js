@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test'
+import { relierApi, nouvelleCle } from './entree.js'
 
 // Un document markdown venu d'ailleurs ne doit jamais exécuter de script dans
-// l'origine de Lector : HTML brut affiché en texte, CSP stricte.
-// Les documents sont servis à la place du contenu de démo, ouvert comme
-// n'importe quel document.
+// l'origine de Lector : HTML brut affiché en texte, CSP stricte. Le document
+// piégé remplace le texte de la note d'accueil d'une clé neuve.
 
 test.use({ locale: 'en-US' })
 
@@ -54,28 +54,18 @@ const x = 1
 \`\`\`
 `
 
-const DOCS = [
-  { name: 'Hostile.md', content: PIEGE },
-]
-
-const MODULE = `const DOCS = ${JSON.stringify(DOCS)};
-export function getDemoFiles() { return DOCS }
-export function getDemoFile(locale, name) { return DOCS.find(f => f.name === name) || DOCS[0] }
-`
-
-async function ouvrirDemo(page) {
-  await page.goto('/?demo')
-  await expect(page.locator('.cm-lp-h1').first()).toContainText('Hostile')
-}
-
 test.beforeEach(async ({ page }) => {
-  // Le module de démo (source en développement, morceau construit sinon).
-  await page.route(/demoContent[^/]*\.js(\?.*)?$/, (route) =>
-    route.fulfill({ contentType: 'application/javascript', body: MODULE }))
-  await page.goto('/')
-  await page.evaluate(() => localStorage.clear())
-  await page.reload()
-  await ouvrirDemo(page)
+  await relierApi(page)
+  await nouvelleCle(page)
+  const contenu = page.locator('.cm-content')
+  await expect(page.locator('.cm-lp-h1').first()).toContainText('Welcome to Lector')
+  await contenu.click()
+  await page.keyboard.press('ControlOrMeta+a')
+  await page.keyboard.press('Backspace')
+  await page.keyboard.insertText(PIEGE)
+  // Le curseur quitte la note : tout est rendu, rien n'est en cours d'écriture.
+  await contenu.evaluate((el) => el.blur())
+  await expect(page.locator('.cm-lp-h1').first()).toContainText('Hostile')
 })
 
 test.describe('Rendu sûr des documents', () => {
@@ -140,8 +130,11 @@ test('aucune police ni aucun script ne vient d\'un tiers au lancement', async ({
     const { hostname } = new URL(req.url())
     if (hostname !== 'localhost' && hostname !== '127.0.0.1') tiers.push(req.url())
   })
+  // La note piégée part 1 s après la dernière frappe : on la laisse s'enregistrer.
+  await page.waitForTimeout(1500)
   await page.reload()
-  await ouvrirDemo(page)
+  await page.locator('.file-tree-item', { hasText: 'Welcome to Lector' }).click()
+  await expect(page.locator('.cm-lp-h1').first()).toContainText('Hostile')
   const polices = await page.evaluate(async () => {
     await document.fonts.ready
     return [...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family.replace(/"/g, ''))

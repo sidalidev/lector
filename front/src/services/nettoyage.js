@@ -22,6 +22,11 @@ const CLES_MORTES = [
   'lector-autoScrollSpeed',
   'lector-showChatPanel',
   'lector-window-opacity',
+  // Retirés ensuite : favoris, récents, taille du texte, bascule de la syntaxe.
+  'lector-starred-items',
+  'lector-history',
+  'lector-fontSize',
+  'lector-show-markdown-syntax',
 ]
 
 // Données par document des fonctions retirées : fiches et révisions, quiz,

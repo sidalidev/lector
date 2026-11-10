@@ -16,42 +16,8 @@
   color: inherit;
 }
 
-/* Markdown syntax: headers */
-.markdown-editor-container .ͼ1i { /* ATX heading mark */
-  color: var(--accent-primary);
-  font-weight: 700;
-}
-
-/* Bold */
-.markdown-editor-container .ͼ1f {
-  font-weight: 700;
-}
-
-/* Emphasis/italic */
-.markdown-editor-container .ͼ1e {
-  font-style: italic;
-}
-
-/* Links */
-.markdown-editor-container .ͼ1g {
-  color: var(--accent-primary);
-  text-decoration: underline;
-}
-
-/* Inline code */
-.markdown-editor-container .ͼ1a {
-  background: var(--bg-secondary);
-  border-radius: 3px;
-  padding: 1px 4px;
-  font-size: 0.9em;
-}
-
-/* Mobile: hide line numbers, adjust padding */
+/* Mobile : marges plus serrées */
 @media (max-width: 768px) {
-  .markdown-editor-container .cm-gutters {
-    display: none !important;
-  }
-
   .markdown-editor-container .cm-content {
     padding: 16px 20px 86px !important;
     font-size: 15px !important;

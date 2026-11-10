@@ -187,22 +187,6 @@ class FileSystemService {
 
   async openFileByPath(filePath) {
     await this.ensurePlatform();
-    // Mode demo : contenu embarqué, aucun compte ni fichier requis
-    if (filePath?.startsWith('demo://')) {
-      const { getDemoFile } = await import('./demoContent');
-      const { getLocale } = await import('./i18n');
-      const name = filePath.replace('demo://', '');
-      const file = getDemoFile(getLocale(), name);
-      const data = {
-        content: file.content,
-        fileName: file.name,
-        filePath: `demo://${file.name}`,
-        dirPath: 'demo://',
-        type: 'markdown',
-      };
-      this._emit('fileOpened', data);
-      return data;
-    }
     // Vault du navigateur (dossier privé ou dossier du disque choisi)
     if (filePath?.startsWith('browser://')) {
       const bv = await import('./browserVault');
@@ -312,16 +296,6 @@ class FileSystemService {
 
   async listDirectoryFiles(dirPath) {
     await this.ensurePlatform();
-    // Mode demo : liste embarquée
-    if (dirPath?.startsWith('demo://')) {
-      const { getDemoFiles } = await import('./demoContent');
-      const { getLocale } = await import('./i18n');
-      return getDemoFiles(getLocale()).map(f => ({
-        name: f.name,
-        path: `demo://${f.name}`,
-        isDirectory: false,
-      }));
-    }
     if (dirPath?.startsWith('browser://')) {
       const bv = await import('./browserVault');
       try { return await bv.lister(dirPath); } catch (err) {
@@ -442,13 +416,6 @@ class FileSystemService {
 
   async writeFile(filePath, content) {
     await this.ensurePlatform();
-    // Démo : en mémoire seulement, rien n'est persisté.
-    if (filePath?.startsWith('demo://')) {
-      const { setDemoFile } = await import('./demoContent');
-      const { getLocale } = await import('./i18n');
-      setDemoFile(getLocale(), filePath.replace('demo://', ''), content);
-      return true;
-    }
     if (filePath?.startsWith('browser://')) {
       const bv = await import('./browserVault');
       return bv.ecrire(filePath, content);
@@ -492,10 +459,6 @@ class FileSystemService {
   // Créer un nouveau fichier dans un dossier SAF (Android) ou iCloud (iOS)
   async createNewFile(dirPath, fileName, content = '') {
     await this.ensurePlatform()
-    if (dirPath === 'demo://') {
-      await this.writeFile(`demo://${fileName}`, content)
-      return { uri: `demo://${fileName}`, fileName, success: true }
-    }
     if (dirPath?.startsWith('browser://')) {
       const bv = await import('./browserVault')
       const uri = dirPath.endsWith('://') ? `${dirPath}${fileName}` : `${dirPath}/${fileName}`

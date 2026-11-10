@@ -18,7 +18,7 @@ Related documents: the privacy policy (`PRIVACY.md`), the record of server data 
 |---|---|
 | Your Markdown documents | Plain files in your vault folder (desktop). In the relay as encrypted blocks when sync is on. In the browser or mobile app, decrypted in memory while you read them. |
 | The chain secret `S` (12 words) | Desktop: `userData/cloud-secrets.dat`, encrypted with the system keychain through Electron `safeStorage` when available. Web and mobile: never stored; only non-exportable `CryptoKey` objects and the proof are kept in IndexedDB. Your password manager or printed recovery kit, if you saved it there. |
-| Favorites, recent files, bookmarks, settings | Page storage of the app (browser storage on web and mobile). |
+| Settings | Page storage of the app (browser storage on web and mobile). |
 
 ## 3. What is protected
 
@@ -48,7 +48,7 @@ Every request carries the chain identifier and a proof `P`, both derived from `S
 
 ### 4.1 Documents on your device
 
-**Lector does not encrypt your vault at rest.** On desktop, your documents are ordinary `.md` files in a folder you chose; your operating system protects them like any other file (account password, disk encryption such as FileVault or BitLocker if you turned it on). On web and mobile, documents are fetched from the relay and decrypted in memory; app data (favorites, settings, keys) lives in the browser storage of the app. The About screen says so. Local encryption is planned, not built.
+**Lector does not encrypt your vault at rest.** On desktop, your documents are ordinary `.md` files in a folder you chose; your operating system protects them like any other file (account password, disk encryption such as FileVault or BitLocker if you turned it on). On web and mobile, documents are fetched from the relay and decrypted in memory; app data (settings, keys) lives in the browser storage of the app. The About screen says so. Local encryption is planned, not built.
 
 Consequence: anyone who can read your disk or your unlocked session can read your documents. "Erase everything" deletes the chain and the local keys, and on desktop can move the vault folder to the system Trash, but it does not securely wipe files.
 

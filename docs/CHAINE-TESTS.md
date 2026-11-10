@@ -77,8 +77,8 @@ Le scénario 9 ne parcourt que le dossier de ce casier : les tests de l'API, en 
 - `choix-source.spec.js` : la démo choisie pendant une restauration de session lente (module de la chaîne retardé) reste affichée.
 - `impression.spec.js` : l'export d'un dossier en fenêtre d'impression échappe le texte des documents (balises, liens `javascript:`, guillemets).
 - `collab.spec.js` : co-écriture dans deux navigateurs, coupure réseau, lien abîmé refusé, partage depuis l'app web puis arrêt.
-- `command-palette.spec.js` : ouverture et fermeture de la palette ; aucune commande des fonctions retirées en 2.2 (clés API, fiches, YouTube, lecture à voix haute, règle, défilement automatique, surlignages), ni licence ni Kindle ; la commande About ouvre son écran.
-- `app.spec.js`, `demo-mode.spec.js` : bases de l'app, mode démo.
+- `command-palette.spec.js` : ouverture et fermeture de la palette ; aucune commande des fonctions retirées en 2.2 (clés API, fiches, YouTube, lecture à voix haute, règle, défilement automatique, surlignages, mode focus, syntaxe Markdown, PDF), ni licence ni Kindle ; la commande About ouvre son écran.
+- `app.spec.js` : bases de l'app.
 
 ## Poids du démarrage (`npm run test:poids`, `e2e/poids/`)
 

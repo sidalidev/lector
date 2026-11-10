@@ -12,13 +12,18 @@ Lector became a light Markdown editor and viewer. Every feature not about editin
 | **Flashcards, spaced repetition, quizzes, scores and streaks** | Study tools, not editing or viewing. Their data, kept per document in the app storage, is deleted at startup. |
 | **AI assistant** (chat, summaries, keywords, glossary, difficulty, generated mind maps, the API keys screen, the local command-line assistant on desktop) and **reading aloud** (ElevenLabs) | They sent your text to a provider and needed API keys kept on the device. Saved keys are deleted at startup (`userData/api-keys.dat` on desktop, the `lector-keys` database on web and mobile). |
 | **YouTube transcript import** (yt-dlp, desktop) | An importer, not an editor feature. A link to a YouTube, Vimeo or Rumble video still shows the video. |
-| **Reading ruler, auto-scroll, highlights panel, tags, mind map and note graph** | Extra views around a note. The rendered Markdown, the table of contents and focus mode stay. |
+| **Reading ruler, auto-scroll, highlights panel, tags, mind map and note graph** | Extra views around a note. The rendered Markdown and the table of contents stay. |
 | **Math rendering** (KaTeX, with remark-math and rehype-katex, their fonts and styles) | A library, fonts and styles to load for a use most notes never have. `$...$` and `$$...$$` now stay plain text. |
 | **EPUB export, window opacity slider** (desktop), **`.srt` subtitle display**, the duplicate reading progress bar | Little used, and each one more code to load and maintain. |
 | **Mermaid diagrams** | The heaviest library left (mermaid and d3), for a use most notes never have. A ```` ```mermaid ```` block now shows as plain code. |
 | **PDF export** of a note or a folder (print) | A print window built from a second Markdown renderer. The Markdown files are the export. |
 | **Vim-style navigation keys** (j, k, h, l, g, G) | They scrolled the old reading view, which no longer exists: notes open straight in the editor. |
 | **Hosted training mode** (`?hosted=`, `/formation/`) | Read-only documents served for a training session, not part of the editor. |
+| **Demo mode** (`?demo`, built-in sample notes) | A second set of notes and code paths kept only for screenshots and tests. A new key opens a welcome note. |
+| **Focus mode** and the **reading progress bar** | The editor already shows only the note; the bar duplicated the scroll bar. |
+| **"Show Markdown syntax"** (raw source mode, with line numbers and folding) | One editor mode is enough: the syntax shows on the line being edited. |
+| **Favorites and recent files** (sidebar tabs) | The file tree, quick open (⌘P) and search find any note. Saved lists are deleted at startup. |
+| **Text size** (⌘+, ⌘−, ⌘0 and the mobile setting) | The browser zoom does the same. The saved size is deleted at startup. |
 
 ## 2.0.0
 

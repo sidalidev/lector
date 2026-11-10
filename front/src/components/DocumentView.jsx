@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo, forwardRef, memo, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, memo, lazy, Suspense } from 'react';
 import fileSystem from '../services/fileSystem';
 import syncService from '../services/syncService';
 import storage from '../services/storage';
@@ -13,23 +13,17 @@ import { t } from '../services/i18n';
 // Bear). Chargé à la demande avec CodeMirror.
 const MarkdownEditor = lazy(() => import('./MarkdownEditor'));
 
-const ecrivable = (chemin) => !!chemin && !chemin.startsWith('demo://');
+const ecrivable = (chemin) => !!chemin;
 
-const DocumentView = memo(forwardRef(function DocumentView({
+const DocumentView = memo(function DocumentView({
   content,
   dirPath,
   filePath,
   onOpenLocalFile,
-  fontSize = 17,
   onDocInfo,
   onContentChange,
-}, ref) {
+}) {
   const internalRef = useRef(null);
-  const setRefs = useCallback((node) => {
-    internalRef.current = node;
-    if (typeof ref === 'function') ref(node);
-    else if (ref) ref.current = node;
-  }, [ref]);
 
   // --- Texte : l'éditeur le possède, on l'enregistre 1 s après la dernière frappe ---
   // `valeur` ne change que pour imposer un texte venu d'ailleurs (autre appareil,
@@ -246,7 +240,7 @@ const DocumentView = memo(forwardRef(function DocumentView({
   }, [filePath]);
 
   return (
-    <div ref={setRefs} className="document-view document-view-edit">
+    <div ref={internalRef} className="document-view document-view-edit">
       {saveError && <div className="doc-save-error" role="alert">{saveError}</div>}
       {enAttente > 0 && (
         <div className="doc-hors-ligne" role="status" data-testid="hors-ligne">
@@ -276,13 +270,12 @@ const DocumentView = memo(forwardRef(function DocumentView({
           extensions={liaisonRef.current?.extensions || null}
           content={liaisonRef.current ? liaisonRef.current.texte : (valeur.chemin === filePath ? valeur.texte : content)}
           onChange={handleChange}
-          fontSize={fontSize}
           options={options}
           principal
         />
       </Suspense>
     </div>
   );
-}));
+});
 
 export default DocumentView;

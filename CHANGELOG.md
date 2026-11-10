@@ -16,6 +16,11 @@ Lector stays a light Markdown editor: everything not about writing or viewing Ma
 - PDF export of a note or a folder (print).
 - Vim-style navigation keys (j, k, h, l, g, G). ⌘[ and ⌘] still go back and forward.
 - The hosted training mode of the web app (`?hosted=`, `/formation/`).
+- Demo mode (`?demo`): a new key opens a welcome note instead.
+- Focus mode and the reading progress bar.
+- "Show Markdown syntax" (raw source mode): the formatted editor is the only mode, the syntax shows on the line you edit.
+- Favorites and recent files in the sidebar. The file tree, quick open (⌘P) and search remain.
+- Text size (⌘+, ⌘−, ⌘0): use the browser or system zoom.
 
 ### Improved
 - The web app shows your notes much sooner: its startup JavaScript went from about 1.3 MB to about 80 KB (gzip), where the page used to stay blank for about 4 seconds. A shared document (`/d/`) went from about 320 KB to about 185 KB. A test now fails if the startup of the web app grows past 150 KB.

@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  Search, Sidebar, PanelRight, Maximize2, FilePlus, Cloud, Info, CalendarCheck, ListPlus, Share2, Hash, History
+  Search, Sidebar, PanelRight, FilePlus, Cloud, Info, CalendarCheck, ListPlus, Share2, History
 } from 'lucide-react';
-import { syntaxeVisible, basculerSyntaxe } from './editor/livePreview/reglage.js';
 import normalizeSearch from '../utils/normalizeSearch';
 import { t } from '../services/i18n'
 import fileSystem from '../services/fileSystem';
@@ -20,13 +19,11 @@ function CommandPalette({ onClose, onCommand }) {
     const all = [
       { id: 'today', label: t('cmd.today'), description: t('cmd.todayDesc'), icon: CalendarCheck, keywords: 'today tasks todo due overdue reminders week agenda' },
       { id: 'new-task', label: t('cmd.newTask'), description: t('cmd.newTaskDesc'), icon: ListPlus, keywords: 'new task todo reminder inbox add rappel tache', shortcut: fileSystem.isElectron() ? '⌘N' : null },
-      { id: 'focus', label: t('cmd.focus'), description: t('cmd.focusDesc'), icon: Maximize2, keywords: 'focus zen distraction' },
       // Partage en temps réel : navigateur seulement pour l'instant (docs/collab-design.md § 9).
       ...(!isCapacitor && !fileSystem.isElectron() ? [
         { id: 'history', label: t('cmd.history'), description: t('cmd.historyDesc'), icon: History, keywords: 'history versions restore undo previous revision historique' },
         { id: 'share', label: t('cmd.share'), description: t('cmd.shareDesc'), icon: Share2, keywords: 'share collaborate together co-write link partager' },
       ] : []),
-      { id: 'markdown-syntax', label: t(syntaxeVisible() ? 'cmd.hideSyntax' : 'cmd.showSyntax'), description: t('cmd.syntaxDesc'), icon: Hash, keywords: 'markdown syntax source raw live preview bear formatted editor', run: basculerSyntaxe },
       { id: 'search', label: t('cmd.search'), description: t('cmd.searchDesc'), icon: Search, keywords: 'search chercher find' },
       { id: 'sidebar', label: t('cmd.sidebar'), description: t('cmd.sidebarDesc'), icon: Sidebar, keywords: 'sidebar barre laterale panel' },
       { id: 'right-sidebar', label: t('cmd.rightSidebar'), description: t('cmd.rightSidebarDesc'), icon: PanelRight, keywords: 'right sidebar toc table matieres panneau droit' },
@@ -62,8 +59,7 @@ function CommandPalette({ onClose, onCommand }) {
   }, [selectedIndex]);
 
   const execute = (cmd) => {
-    if (cmd.run) cmd.run()
-    else onCommand(cmd.id)
+    onCommand(cmd.id)
     onClose()
   };
 

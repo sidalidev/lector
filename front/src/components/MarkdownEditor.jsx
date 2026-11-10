@@ -1,8 +1,8 @@
 import { useRef, useEffect, memo } from 'react';
-import { EditorView, lineNumbers, highlightActiveLine, keymap, drawSelection } from '@codemirror/view';
-import { EditorState, Compartment, Prec, Transaction } from '@codemirror/state';
+import { EditorView, keymap, drawSelection } from '@codemirror/view';
+import { EditorState, Prec, Transaction } from '@codemirror/state';
 import { history, historyKeymap } from '@codemirror/commands';
-import { foldGutter, bracketMatching, indentOnInput, syntaxHighlighting, defaultHighlightStyle, LanguageSupport } from '@codemirror/language';
+import { bracketMatching, indentOnInput, LanguageSupport } from '@codemirror/language';
 // Pas markdown() : sa valeur par défaut embarque le langage HTML, donc aussi
 // JavaScript et CSS (un tiers de l'éditeur). La grammaire Markdown (GFM), la
 // suite des listes à Entrée et le collage d'URL en lien suffisent.
@@ -14,15 +14,6 @@ import { surlignages, creerApi } from './editor/apiEditeur.js';
 import { inscrire, desinscrire } from '../services/editeurCourant.js';
 import './MarkdownEditor.css';
 
-const fontSizeCompartment = new Compartment();
-
-function makeFontSizeExtension(size) {
-  return EditorView.theme({
-    '&': { fontSize: `${size}px` },
-    '.cm-gutters': { fontSize: `${size * 0.75}px` },
-  });
-}
-
 // `extensions` : extensions CodeMirror en plus, fournies par l'appelant. Le
 // document partagé (collab/) y passe la liaison Yjs : l'historique et le
 // contenu viennent alors du Y.Text, pas de `content` ni de history().
@@ -31,7 +22,8 @@ function makeFontSizeExtension(size) {
 // `options` : images locales et liens de note (voir livePreview/options.js).
 // `principal` : l'éditeur de la note ouverte ; le sommaire et la recherche le
 // pilotent (services/editeurCourant.js) et la page défile autour de lui.
-function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, extensions = null, options = null, principal = false, readOnly = false, onView = null }) {
+// Taille du texte fixe : 17 px pour la note, 16 px pour la page partagée.
+function MarkdownEditor({ content, onChange, autoFocus = false, extensions = null, options = null, principal = false, readOnly = false, onView = null }) {
   const partage = !!extensions;
   const containerRef = useRef(null);
   const viewRef = useRef(null);
@@ -60,8 +52,8 @@ function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, e
         surlignages(),
         // Curseur dessiné par l'éditeur (le natif ne s'épaissit pas) : voir livePreview.css.
         drawSelection({ cursorBlinkRate: 1100 }),
-        // Mis en forme par défaut ; « Show Markdown syntax » rend le mode source.
-        modeEcriture({ source: [lineNumbers(), highlightActiveLine(), foldGutter(), syntaxHighlighting(defaultHighlightStyle)] }),
+        // Mis en forme, le seul mode d'écriture.
+        modeEcriture(),
         ...(partage ? [] : [history()]),
         bracketMatching(),
         closeBrackets(),
@@ -70,7 +62,6 @@ function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, e
         Prec.high(keymap.of(markdownKeymap)),
         pasteURLAsLink,
         EditorView.lineWrapping,
-        fontSizeCompartment.of(makeFontSizeExtension(fontSize)),
         keymap.of([
           ...defaultKeymap.filter(k => k.key !== 'Mod-f' && k.key !== 'Mod-h'),
           ...(partage ? [] : historyKeymap),
@@ -86,9 +77,10 @@ function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, e
         }),
         EditorView.theme({
           // L'éditeur principal grandit avec le texte : c'est la page qui défile.
-          '&': principal ? { minHeight: '100%' } : {
+          '&': principal ? { minHeight: '100%', fontSize: '17px' } : {
             height: '100%',
             flex: '1',
+            fontSize: '16px',
           },
           '.cm-scroller': {
             overflow: principal ? 'visible' : 'auto',
@@ -101,24 +93,6 @@ function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, e
             padding: '32px clamp(16px, 3vw, 36px)',
             caretColor: 'var(--accent-primary)',
           },
-          '.cm-gutters': {
-            background: 'var(--bg-primary)',
-            border: 'none',
-            color: 'var(--text-muted)',
-            opacity: '0.5',
-            transition: 'opacity 0.2s',
-          },
-          '&.cm-focused .cm-gutters': {
-            opacity: '1',
-          },
-          '.cm-activeLineGutter': {
-            background: 'transparent',
-            color: 'var(--text-secondary)',
-          },
-          '.cm-activeLine': {
-            background: 'var(--bg-secondary)',
-            borderRadius: '2px',
-          },
           '.cm-cursor, .cm-dropCursor': {
             borderLeft: '3px solid var(--accent-primary)',
             borderRadius: '2px',
@@ -130,9 +104,6 @@ function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, e
           // CodeMirror restent : il relance le cycle à chaque frappe).
           '.cm-cursorLayer': {
             animationTimingFunction: 'ease-in-out !important',
-          },
-          '.cm-foldGutter': {
-            color: 'var(--text-muted)',
           },
         }),
       ],
@@ -177,15 +148,6 @@ function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, e
       });
     }
   }, [content]);
-
-  // Dynamic font size
-  useEffect(() => {
-    const view = viewRef.current;
-    if (!view) return;
-    view.dispatch({
-      effects: fontSizeCompartment.reconfigure(makeFontSizeExtension(fontSize)),
-    });
-  }, [fontSize]);
 
   return <div ref={containerRef} className="markdown-editor-container" />;
 }

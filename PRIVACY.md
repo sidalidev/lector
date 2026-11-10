@@ -75,7 +75,7 @@ No analytics, no cookies, nothing loaded from other websites. The reverse proxy 
 
 ## On your device
 
-Lector stores your preferences, recent files, favorites, bookmarks and sync state on your device. On desktop, the sync secret is encrypted with the system's secure storage when available. On web and mobile, the 12 words are never kept: only non-exportable encryption keys.
+Lector stores your preferences and sync state on your device. On desktop, the sync secret is encrypted with the system's secure storage when available. On web and mobile, the 12 words are never kept: only non-exportable encryption keys.
 
 Lector 2.2 no longer has an assistant, reading aloud or study tools. At startup it deletes what earlier versions left on the device for them: API keys, flashcards, quizzes, highlights, tags, cached answers, chat history and reading activity.
 

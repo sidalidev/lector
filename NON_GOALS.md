@@ -20,8 +20,9 @@ Lector stays a light Markdown editor: everything it loads at startup has to be w
 - **AI features**: chat, summaries, keywords, glossaries, generated mind maps. Use any tool you like on your `.md` files; Lector does not need to embed one.
 - **Music**: sheet music, ABC notation, chords and tabs, MIDI, Guitar Pro, MusicXML. Large libraries and sounds fetched from other sites, for a use far from note taking.
 - **Media import**: YouTube transcripts and other importers. A link to a video still shows the video; fetching content into notes is another tool's job.
-- **Reading aids and extra views**: reading ruler, auto-scroll, highlights panel, tags, mind map and note graph, text to speech, EPUB export, window opacity, subtitle files. Lector keeps one way to read a note: the rendered Markdown, with a table of contents and focus mode.
+- **Reading aids and extra views**: reading ruler, auto-scroll, highlights panel, tags, mind map and note graph, text to speech, EPUB export, window opacity, subtitle files. Lector keeps one way to read a note: the rendered Markdown, with a table of contents.
 - **Diagram rendering** (Mermaid and other engines): a heavy library for a use most notes never have. A diagram block stays readable as plain code.
+- **Extra modes and lists around the editor**: a demo mode, focus mode, a raw source mode ("Show Markdown syntax"), favorites and recent files, a text size setting. The editor shows formatted Markdown at one size; the file tree, quick open and search find any note.
 - **Math rendering** (KaTeX): its library, fonts and styles weigh more than most notes need. `$...$` and `$$...$$` stay readable as plain text.
 
 ## Not now, maybe later

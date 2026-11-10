@@ -11,7 +11,6 @@ const en = {
   'app.files': 'Files',
   'app.tools': 'Tools',
   'app.info': 'Info',
-  'app.focus': 'Focus',
   'app.filesSidebar': 'Files (Left Sidebar)',
   'app.toolsBar': 'Tools (Activity Bar)',
   'app.infoPanel': 'Info (Right Sidebar)',
@@ -20,22 +19,10 @@ const en = {
   'sidebar.panel': 'Side panel',
   'sidebar.searchFile': 'Search file...',
   'sidebar.changeSource': 'Change source',
-  'sidebar.filesTab': 'Files',
-  'sidebar.favoritesTab': 'Favorites',
-  'sidebar.recentsTab': 'Recents',
   'sidebar.newFile': 'New document',
   'sidebar.createFirst': 'Create your first document',
   'sidebar.noFiles': 'No .md files',
-  'sidebar.noFavorites': 'No favorites',
-  'sidebar.favoritesHint': 'Right-click a file to add to favorites',
-  'sidebar.noRecent': 'No recent files',
-  'sidebar.recentsHint': 'Opened files will appear here',
-  'sidebar.recentSort': 'Recent',
-  'sidebar.frequentSort': 'Most viewed',
-  'sidebar.addFavorite': 'Add to favorites',
-  'sidebar.removeFavorite': 'Remove from favorites',
   'sidebar.copyPath': 'Copy path',
-  'sidebar.removeFromFavorites': 'Remove from favorites',
 
   // Pastille de synchro (barre de titre)
   'cloud.status.joinChain': 'join the chain',
@@ -86,7 +73,6 @@ const en = {
   'onboarding.where.open': 'Open {name}',
   'onboarding.where.existing': 'Use an existing folder',
   'onboarding.where.other': 'Use another folder',
-  'onboarding.where.demo': 'Explore a sample',
   'onboarding.android.guide': 'Next, create a folder named Lector Vault, then tap Use this folder.',
   'onboarding.android.toast': 'Create a folder named Lector Vault, then tap Use this folder',
   'onboarding.android.confirmToast': 'Lector Vault is ready. Tap Use this folder to finish',
@@ -99,11 +85,6 @@ const en = {
   // CommandPalette
   'cmd.searchCommand': 'Search command...',
   'cmd.noResults': 'No command found',
-  'cmd.focus': 'Focus mode',
-  'cmd.showSyntax': 'Show Markdown syntax',
-  'cmd.hideSyntax': 'Hide Markdown syntax',
-  'cmd.syntaxDesc': 'Switch the editor between formatted writing and raw Markdown',
-  'cmd.focusDesc': 'Hide sidebar and title bar',
   'cmd.search': 'Search in document',
   'cmd.searchDesc': 'Open search bar (⌘F)',
   'cmd.sidebar': 'Show/hide sidebar',
@@ -147,9 +128,6 @@ const en = {
   'flow.prot.e2e': 'End-to-end encrypted',
   'flow.prot.none': 'No document content',
 
-  // Tooltips : descriptions explicatives
-  'tooltip.focus': 'Hide UI and focus on reading',
-
   // SearchBar
   'search.placeholder': 'Search...',
   'search.noResults': 'None',
@@ -179,13 +157,6 @@ const en = {
   // ErrorBoundary
   'error.occurred': 'An error occurred',
   'error.retry': 'Retry',
-
-  // Time
-  'time.justNow': 'just now',
-  'time.minutesAgo': '{n}min ago',
-  'time.hoursAgo': '{n}h ago',
-  'time.daysAgo': '{n}d ago',
-  'time.monthsAgo': '{n}mo ago',
 
   // FloatingTOC (RightSidebar)
   'toc.searchPlaceholder': 'Search in document...',
@@ -324,7 +295,7 @@ const en = {
   'sync.ex.erase.simple': 'Erase the whole locker from the server, for every device.',
   'sync.ex.erase.why': 'The encrypted documents disappear from the server and the 12 words no longer open anything. This computer forgets its chain key. Its vault folder stays, unless you tick the box to move it to the Trash; the folders of your other computers are not touched, but browsers and phones, which read the locker, lose the documents. Server backups keep the encrypted blocks for up to 6 months.',
   'sync.ex.eraseWeb.simple': 'Erase the whole locker from the server, for every device. On this device, it may be the only copy of your documents.',
-  'sync.ex.eraseWeb.why': 'Here, documents are not kept in a folder: they are read from the locker. Unless a computer of the chain keeps them in its vault folder, erasing loses them for good, and the 12 words no longer open anything. This device also forgets everything Lector kept here: history, favorites and settings.',
+  'sync.ex.eraseWeb.why': 'Here, documents are not kept in a folder: they are read from the locker. Unless a computer of the chain keeps them in its vault folder, erasing loses them for good, and the 12 words no longer open anything. This device also forgets everything Lector kept here: history and settings.',
   'sync.erase.word': 'ERASE',
   'sync.erase.prompt': 'Type {word} to confirm.',
   'sync.erase.submit': 'Erase everything',

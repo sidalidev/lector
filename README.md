@@ -4,7 +4,7 @@ Lector is a light Markdown editor and viewer for your own `.md` files: write, re
 
 - Markdown with GitHub extensions and code highlighting
 - A CodeMirror editor, and real-time co-writing by invitation link, end-to-end encrypted
-- File tree, favorites, recent files, quick open, full-text search, command palette, table of contents, bookmarks on headings, focus mode, themes
+- File tree, quick open, full-text search, command palette, table of contents, themes
 - Tasks and reminders written in your notes
 
 ## Principles

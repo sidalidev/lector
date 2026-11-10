@@ -17,7 +17,7 @@ function cheminLisible(chemin) {
   return home && chemin.startsWith(home) ? `~${chemin.slice(home.length)}` : chemin
 }
 
-export function OnboardingWhere({ onReady, onAlreadyUser, onDemo, firstRun = true }) {
+export function OnboardingWhere({ onReady, onAlreadyUser, firstRun = true }) {
   const [sugg, setSugg] = useState(null)
   const [busy, setBusy] = useState(false)
   const [erreur, setErreur] = useState(null)
@@ -72,11 +72,6 @@ export function OnboardingWhere({ onReady, onAlreadyUser, onDemo, firstRun = tru
               disabled={busy}
             >
               {exists ? t('onboarding.where.open', { name: sugg.name }) : t('onboarding.start')}
-            </button>
-          )}
-          {sansDossier && onDemo && (
-            <button type="button" className="onboarding-primary" onClick={onDemo} disabled={busy}>
-              {t('onboarding.where.demo')}
             </button>
           )}
           {firstRun && !exists && !sansDossier && onAlreadyUser && (

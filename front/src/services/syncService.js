@@ -329,11 +329,8 @@ class SyncService {
   // --- Global push/pull ---
 
   _buildGlobalData() {
-    const starredItems = this._jsonParse(localStorage.getItem('lector-starred-items')) || [];
-    const history = this._jsonParse(localStorage.getItem('lector-history')) || [];
-
     // Collect preferences
-    const prefKeys = ['fontSize', 'showSidebar', 'sidebarWidth', 'rightSidebarWidth', 'showRightSidebar'];
+    const prefKeys = ['showSidebar', 'sidebarWidth', 'rightSidebarWidth', 'showRightSidebar'];
     const preferences = { lastModified: new Date().toISOString() };
     for (const key of prefKeys) {
       const val = localStorage.getItem(`lector-${key}`);
@@ -346,23 +343,15 @@ class SyncService {
       version: 1,
       lastModified: new Date().toISOString(),
       deviceId: this.deviceId,
-      starredItems,
       preferences,
-      history,
     };
   }
 
   _applyGlobalData(data) {
     if (!data) return;
 
-    if (data.starredItems) {
-      localStorage.setItem('lector-starred-items', JSON.stringify(data.starredItems));
-    }
-    if (data.history?.length > 0) {
-      localStorage.setItem('lector-history', JSON.stringify(data.history));
-    }
     if (data.preferences) {
-      const prefKeys = ['fontSize', 'showSidebar', 'sidebarWidth', 'rightSidebarWidth', 'showRightSidebar'];
+      const prefKeys = ['showSidebar', 'sidebarWidth', 'rightSidebarWidth', 'showRightSidebar'];
       for (const key of prefKeys) {
         if (data.preferences[key] !== undefined) {
           localStorage.setItem(`lector-${key}`, JSON.stringify(data.preferences[key]));
