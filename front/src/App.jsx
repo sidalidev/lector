@@ -1125,12 +1125,23 @@ function App() {
   };
 
   // Écran 1 : le dossier des notes est prêt (créé, rouvert ou choisi).
-  const handleVaultReady = useCallback(async ({ rootDirPath: dossier, sourceType }) => {
+  const handleVaultReady = useCallback(async ({ rootDirPath: dossier, sourceType }, { rejoindre = false } = {}) => {
     sourceChoisie.current = true;
     localStorage.setItem(SOURCE_TYPE_KEY, sourceType);
     localStorage.setItem(SESSION_KEY, JSON.stringify({ rootDirPath: dossier }));
     setCurrentDoc(null);
     setRootDirPath(dossier);
+    // Déjà utilisateur : dossier vide (pas de note d'accueil qui partirait dans
+    // sa chaîne), puis droit aux 12 mots.
+    if (rejoindre) {
+      setSidebarRefreshKey(k => k + 1);
+      setShowSourcePicker(false);
+      localStorage.removeItem(ONBOARDING_KEY);
+      localStorage.setItem(ONBOARDING_DONE_KEY, '1');
+      setCloudPanelReason('JOIN');
+      setShowCloudPanel(true);
+      return;
+    }
     const { bienvenue } = await import('./services/vaultSetup');
     const welcome = await bienvenue(dossier);
     setSidebarRefreshKey(k => k + 1);
@@ -1263,6 +1274,7 @@ function App() {
       <div className="app">
         <OnboardingWhere
           onReady={handleVaultReady}
+          onAlreadyUser={(r) => handleVaultReady(r, { rejoindre: true })}
           onDemo={handleSourceDemo}
           firstRun={!localStorage.getItem(ONBOARDING_DONE_KEY)}
         />

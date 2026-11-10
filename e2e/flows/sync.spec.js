@@ -177,6 +177,28 @@ test.describe('Synchronisation dans le navigateur', () => {
     await expect(page.getByRole('alert')).toContainText('No chain matches these words')
   })
 
+  test("accueil « J'utilise déjà Lector » : droit aux 12 mots, sans note d'accueil", async ({ page, browser }) => {
+    const mots = await creerChaine(page)
+    await page.getByLabel('I saved them').check()
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await page.getByRole('button', { name: 'Check later' }).click()
+    await page.getByRole('button', { name: 'Open my documents' }).click()
+
+    // Un autre navigateur, premier lancement.
+    const autre = await (await browser.newContext()).newPage()
+    await relierApi(autre)
+    await autre.goto('/')
+    await autre.getByRole('button', { name: 'I already use Lector on another device' }).click()
+    // Pas d'écran « Sync your devices? » : on arrive directement sur la saisie.
+    await expect(autre.getByRole('button', { name: 'Set up sync' })).toHaveCount(0)
+    const champ = autre.locator('input[autocomplete="current-password"]')
+    await expect(champ).toBeVisible()
+    await champ.fill(mots.join(' '))
+    await autre.getByRole('button', { name: 'Join', exact: true }).click()
+    await expect(autre.locator('.panel')).toHaveCount(0)
+    await expect(autre.locator('.titlebar')).toBeVisible()
+  })
+
   test('rejoindre : mots invalides et chaîne inconnue sont deux erreurs distinctes, jamais de création', async ({ page }) => {
     await ouvrirSynchro(page)
     await page.getByRole('button', { name: 'Join', exact: true }).click()

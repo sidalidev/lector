@@ -28,7 +28,7 @@ function Points({ etape }) {
   )
 }
 
-export function OnboardingWhere({ onReady, onDemo, firstRun = true }) {
+export function OnboardingWhere({ onReady, onAlreadyUser, onDemo, firstRun = true }) {
   const [sugg, setSugg] = useState(null)
   const [busy, setBusy] = useState(false)
   const [erreur, setErreur] = useState(null)
@@ -41,13 +41,13 @@ export function OnboardingWhere({ onReady, onDemo, firstRun = true }) {
     return () => { vivant = false }
   }, [])
 
-  const agir = async (fn) => {
+  const agir = async (fn, suite = onReady) => {
     if (busy) return
     setBusy(true)
     setErreur(null)
     try {
       const r = await fn()
-      if (r) await onReady(r)
+      if (r) await suite(r)
     } catch (err) {
       setErreur(err?.code || 'UNKNOWN')
     } finally {
@@ -102,6 +102,16 @@ export function OnboardingWhere({ onReady, onDemo, firstRun = true }) {
               disabled={busy}
             >
               {exists ? t('onboarding.where.other') : t('onboarding.where.existing')}
+            </button>
+          )}
+          {platform === 'web' && firstRun && !sansDossier && onAlreadyUser && (
+            <button
+              type="button"
+              className="onboarding-secondary"
+              onClick={() => agir(() => vaultSetup.creer(sugg), onAlreadyUser)}
+              disabled={busy}
+            >
+              {t('onboarding.where.alreadyUser')}
             </button>
           )}
         </div>

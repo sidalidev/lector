@@ -88,6 +88,7 @@ const en = {
   'onboarding.where.body.web': 'Lector keeps your notes as plain Markdown files, in a folder in this browser.',
   'onboarding.where.create': 'Create my Lector folder',
   'onboarding.where.open': 'Open {name}',
+  'onboarding.where.alreadyUser': 'I already use Lector on another device',
   'onboarding.where.existing': 'Use an existing folder',
   'onboarding.where.other': 'Use another folder',
   'onboarding.where.demo': 'Explore a sample',

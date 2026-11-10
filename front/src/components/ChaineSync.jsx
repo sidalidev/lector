@@ -113,6 +113,8 @@ function tirerQuestions() {
 function vueDepuis(e, raison) {
   if (e?.pending) return 'pending'
   if (e?.code === 'CHAIN_UNKNOWN' || (raison === 'CHAIN_UNKNOWN' && !e?.hasChain)) return 'unknown'
+  // Accueil « J'utilise déjà Lector » : droit aux 12 mots, sans créer de chaîne.
+  if (raison === 'JOIN' && !e?.hasChain) return 'join'
   return e?.hasChain ? 'etat' : 'offer'
 }
 
