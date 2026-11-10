@@ -122,7 +122,7 @@ Limits (environment variables, defaults):
 |---|---|
 | Stored bytes per room `COLLAB_ROOM_QUOTA_BYTES` | 10 MB |
 | Frame size `COLLAB_MAX_FRAME_BYTES` | 1 MiB |
-| People connected per room `COLLAB_MAX_PEERS` | 16 |
+| People connected per room `COLLAB_MAX_PEERS` | 100 |
 | Rooms created per network per hour `COLLAB_CREATE_PER_HOUR` | 20 |
 | Open connections per network `COLLAB_CONN_PER_IP` | 32 |
 | Frames per connection | 300 per 10 s |

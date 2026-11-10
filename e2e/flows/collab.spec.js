@@ -56,7 +56,7 @@ test('deux navigateurs écrivent ensemble, survivent à une coupure, puis le par
   const lea = await ctxLea.newPage()
 
   const lien = await creerPartage(sid)
-  expect(lien).toMatch(/\/d\/[0-9a-f]{32}#[A-Za-z0-9_-]{43}$/)
+  expect(lien).toMatch(/\/d\/[0-9a-f]{32}#[0-9a-f]{64}$/)
 
   // Le propriétaire ouvre son lien : il garde la main (Partager, Arrêter).
   await entrer(sid, lien, 'Sid')
@@ -159,7 +159,7 @@ test("Partager depuis l'app web : lien, QR, ouverture par l'invité, arrêt", as
   await app.getByTestId('collab-nom-proprietaire').fill('Sid')
   await app.getByTestId('collab-creer').click()
   const lien = await app.getByTestId('collab-lien').inputValue()
-  expect(lien).toMatch(/\/d\/[0-9a-f]{32}#[A-Za-z0-9_-]{43}$/)
+  expect(lien).toMatch(/\/d\/[0-9a-f]{32}#[0-9a-f]{64}$/)
   await expect(app.getByRole('img', { name: 'Link to this shared document' })).toBeVisible()
 
   const invite = await (await browser.newContext()).newPage()

@@ -119,18 +119,24 @@ export async function dechiffrerMessage(salon, nature, texte) {
 }
 
 // ---------------------------------------------------------------------------
-// Lien d'invitation : https://<hôte>/d/<idSalon>#<base64url(K)>
+// Lien d'invitation : https://<hôte>/d/<idSalon>#<K en hexadécimal>
 // La clé est dans le fragment : un navigateur ne l'envoie jamais au serveur.
+// Hexadécimal (0-9, a-f) : aucune messagerie ne coupe le lien sur un « - » ou
+// un « _ » final, ce qui arrivait avec base64url. Les anciens liens restent lus.
 // ---------------------------------------------------------------------------
 
 export async function lienInvitation(origine, K) {
   const base = String(origine || "").replace(/\/$/, "");
-  return `${base}/d/${await deriverIdSalon(K)}#${octetsVersBase64url(cle(K))}`;
+  const hex = Array.from(cle(K), (o) => o.toString(16).padStart(2, "0")).join("");
+  return `${base}/d/${await deriverIdSalon(K)}#${hex}`;
 }
 
 /** Lit la clé d'un fragment (« #… » ou « … »). Lève une erreur s'il est mal formé. */
 export function cleDuFragment(fragment) {
   const texte = String(fragment ?? "").replace(/^#/, "");
+  // Clé hexadécimale ; ce qu'une messagerie aurait collé après (ponctuation) est ignoré.
+  const hex = /^([0-9a-f]{64})(?![0-9a-z])/i.exec(texte);
+  if (hex) return Uint8Array.from(hex[1].match(/../g), (h) => parseInt(h, 16));
   if (!RE_CLE_TEXTE.test(texte)) throw new Error("Lien incomplet : clé absente ou mal formée");
   const K = base64urlVersOctets(texte);
   if (K.length !== TAILLE_CLE) throw new Error("Lien incomplet : clé de mauvaise taille");

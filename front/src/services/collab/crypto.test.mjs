@@ -76,6 +76,17 @@ test("Lien abîmé ou recollé avec une autre clé : refusé", async () => {
   await assert.rejects(lireLien("https://x.test/d/123#abc"), /identifiant/);
 });
 
+test("Lien : clé en hexadécimal, qu'aucune messagerie ne coupe ; ponctuation collée après ignorée ; anciens liens lus", async () => {
+  const K = nouvelleCle();
+  const lien = await lienInvitation("https://x.test", K);
+  assert.match(lien, /#[0-9a-f]{64}$/);
+  const hash = new URL(lien).hash;
+  assert.deepEqual(cleDuFragment(hash + "."), K);
+  assert.deepEqual(cleDuFragment(hash.toUpperCase()), K);
+  // Lien envoyé avant ce changement (base64url).
+  assert.deepEqual(cleDuFragment("#" + Buffer.from(K).toString("base64url")), K);
+});
+
 test("Message : aller-retour, remplissage au multiple de 64 octets", async () => {
   const salon = await preparerSalon(nouvelleCle());
   for (const taille of [0, 1, 59, 60, 61, 1000]) {

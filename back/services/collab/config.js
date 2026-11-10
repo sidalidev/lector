@@ -11,7 +11,7 @@ function lireConfig(surcharges = {}) {
     quotaOctets: entierEnv('COLLAB_ROOM_QUOTA_BYTES', 10 * 1024 * 1024),
     // Taille d'une trame WebSocket (JSON, base64url compris).
     maxTrame: entierEnv('COLLAB_MAX_FRAME_BYTES', 1024 * 1024),
-    maxPersonnes: entierEnv('COLLAB_MAX_PEERS', 16),
+    maxPersonnes: entierEnv('COLLAB_MAX_PEERS', 100),
     creationsParHeure: entierEnv('COLLAB_CREATE_PER_HOUR', 20),
     connexionsParIp: entierEnv('COLLAB_CONN_PER_IP', 32),
     maxSalons: entierEnv('COLLAB_MAX_ROOMS', 10000),
