@@ -9,9 +9,13 @@ import { keymap, EditorView } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
 import * as Y from 'yjs'
 import { yCollab, yUndoManagerKeymap } from 'y-codemirror.next'
-import { Download, Lock, Share2, X } from 'lucide-react'
+import { Download, History, Lock, Share2, X } from 'lucide-react'
 import MarkdownEditor from '../MarkdownEditor'
 import LienPartage from './LienPartage'
+import Historique from '../Historique'
+import { noter } from '../../services/historique.js'
+import { suivre, suivreAuteurs } from '../../services/collab/suivi.js'
+import { appliquerTexte } from '../../services/collab/salon.js'
 import { t } from '../../services/i18n'
 import { cleDuFragment, deriverIdSalon, idSalonDuChemin, cleVersTexte } from '../../services/collab/crypto.js'
 import {
@@ -102,7 +106,7 @@ const LIBELLES = {
   [STATUTS.PLEIN]: 'collab.status.full',
 }
 
-function Editeur({ session, lectureSeule }) {
+function Editeur({ session, lectureSeule, onView }) {
   // Calculées une fois par session : MarkdownEditor ne lit ses extensions qu'au montage.
   const extensions = useMemo(() => {
     const annuler = new Y.UndoManager(session.texte)
@@ -118,6 +122,7 @@ function Editeur({ session, lectureSeule }) {
       content={() => session.texte.toString()}
       extensions={extensions}
       autoFocus={!lectureSeule}
+      onView={onView}
     />
   )
 }
@@ -136,6 +141,10 @@ export default function SharedDoc() {
   const [message, setMessage] = useState(null)
   const [arreteParMoi, setArreteParMoi] = useState(false)
   const texteLocalRef = useRef('')
+  const vueRef = useRef(null)
+  const [suivi, setSuivi] = useState(null)
+  const arretSuiviRef = useRef(null)
+  const [historique, setHistorique] = useState(false)
 
   // 1. Lien → enregistrement local
   useEffect(() => {
@@ -170,12 +179,20 @@ export default function SharedDoc() {
       const majPersonnes = () => setPersonnes(personnesDe(s.presence, s.doc.clientID))
       s.presence.on('change', majPersonnes)
       majPersonnes()
+      // Historique des versions, sur cet appareil : une version toutes les 5 minutes d'écriture.
+      const auteurs = suivreAuteurs(s.doc, s.presence, profil.nom)
+      const avant = s.texte.toString()
+      let minuteurVersion = null
       const majTexte = () => {
         texteLocalRef.current = s.texte.toString()
         setTitre(titreDu(texteLocalRef.current, enregistrement.titre || t('collab.loading')))
+        clearTimeout(minuteurVersion)
+        minuteurVersion = setTimeout(() => noter(enregistrement.id, s.texte.toString(), { auteurs: auteurs.prendre(), avant }), 1500)
       }
       s.texte.observe(majTexte)
       majTexte()
+      const fermer = s.fermer
+      s.fermer = () => { clearTimeout(minuteurVersion); auteurs.arreter(); return fermer() }
       setSession(s)
     })()
     const auRevoir = () => s?.client.sauverMaintenant()
@@ -194,6 +211,25 @@ export default function SharedDoc() {
   useEffect(() => {
     if (enregistrement?.role === 'proprietaire' && enregistrement.cle) lienDu(enregistrement).then(setLien)
   }, [enregistrement])
+
+  // Suivre quelqu'un : son curseur reste à l'écran jusqu'à ce que je fasse défiler ou tape.
+  const basculerSuivi = (client) => {
+    arretSuiviRef.current?.()
+    arretSuiviRef.current = null
+    if (suivi === client || !session) { setSuivi(null); return }
+    setSuivi(client)
+    arretSuiviRef.current = suivre({
+      presence: session.presence,
+      doc: session.doc,
+      client,
+      aller: (p) => {
+        const v = vueRef.current
+        if (v) v.dispatch({ effects: EditorView.scrollIntoView(Math.min(p, v.state.doc.length), { y: 'center' }) })
+      },
+      surFin: () => setSuivi(null),
+    })
+  }
+  useEffect(() => () => arretSuiviRef.current?.(), [session])
 
   const telecharger = useCallback(() => telechargerMarkdown(texteLocalRef.current, titre), [titre])
 
@@ -242,12 +278,25 @@ export default function SharedDoc() {
           {!arrete && (
             <ul className="collab-personnes" aria-label={t('collab.people', { n: personnes.length })} data-testid="collab-personnes">
               {personnes.map((p) => (
-                <li key={p.client} title={p.moi ? `${p.nom} (${t('collab.you')})` : p.nom} style={{ '--couleur': p.couleur }}>
-                  <span className="collab-avatar" aria-hidden="true">{p.nom.slice(0, 1).toUpperCase()}</span>
-                  <span className="collab-nom">{p.nom}</span>
+                <li key={p.client} title={p.moi ? `${p.nom} (${t('collab.you')})` : t(suivi === p.client ? 'collab.following' : 'collab.follow', { name: p.nom })} style={{ '--couleur': p.couleur }}>
+                  <button
+                    type="button"
+                    className={`collab-personne ${suivi === p.client ? 'suivi' : ''}`}
+                    disabled={p.moi}
+                    aria-pressed={suivi === p.client}
+                    onClick={() => basculerSuivi(p.client)}
+                  >
+                    <span className="collab-avatar" aria-hidden="true">{p.nom.slice(0, 1).toUpperCase()}</span>
+                    <span className="collab-nom">{suivi === p.client ? t('collab.following', { name: p.nom }) : p.nom}</span>
+                  </button>
                 </li>
               ))}
             </ul>
+          )}
+          {session && (
+            <button type="button" className="collab-icone" onClick={() => setHistorique(true)} aria-label={t('history.title')} title={t('history.title')} data-testid="historique-ouvrir">
+              <History size={16} />
+            </button>
           )}
           <button type="button" className="collab-icone" onClick={() => setPanneau(panneau === 'vie-privee' ? null : 'vie-privee')} aria-label={t('collab.privacy.title')} title={t('collab.privacy.title')}>
             <Lock size={16} />
@@ -277,13 +326,21 @@ export default function SharedDoc() {
       {bandeau && <div className={`collab-bandeau ${arrete ? 'collab-bandeau-fin' : ''}`} role="status" data-testid="collab-bandeau">{bandeau}</div>}
       <main className="collab-editeur" data-testid="collab-editeur">
         {session ? (
-          <Editeur session={session} lectureSeule={arrete} />
+          <Editeur session={session} lectureSeule={arrete} onView={(v) => { vueRef.current = v }} />
         ) : phase === 'arrete-local' ? (
           <pre className="collab-copie">{texteLocalRef.current}</pre>
         ) : (
           <div className="collab-centre collab-note">{t('collab.loading')}</div>
         )}
       </main>
+      {historique && session && (
+        <Historique
+          doc={enregistrement.id}
+          texteActuel={texteLocalRef.current}
+          onRestaurer={(texte) => appliquerTexte(session.texte, texte, null)}
+          onFermer={() => setHistorique(false)}
+        />
+      )}
     </div>
   )
 }

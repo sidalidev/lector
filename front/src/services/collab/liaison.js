@@ -13,6 +13,7 @@ import { keymap } from '@codemirror/view'
 import { yCollab, yUndoManagerKeymap } from 'y-codemirror.next'
 import { ouvrirSession, stockage } from './partage.js'
 import { appliquerTexte } from './salon.js'
+import { suivre, suivreAuteurs } from './suivi.js'
 
 /** Les personnes présentes, moi exclu : [{ client, nom, couleur }]. */
 function autresPersonnes(presence, moi) {
@@ -35,12 +36,18 @@ export async function relier(enregistrement, { onStatut, onPersonnes } = {}) {
   const majPersonnes = () => onPersonnes?.(autresPersonnes(session.presence, session.doc.clientID))
   session.presence.on('change', majPersonnes)
   majPersonnes()
+  const auteurs = suivreAuteurs(session.doc, session.presence, profil.nom)
   return {
+    /** Suit le curseur de `client` ; renvoie la fonction d'arrêt. */
+    suivre: (client, aller, surFin) => suivre({ presence: session.presence, doc: session.doc, client, aller, surFin }),
+    /** Prénoms de ceux qui ont écrit depuis le dernier appel. */
+    prendreAuteurs: () => auteurs.prendre(),
     texte: () => session.texte.toString(),
     extensions: [keymap.of(yUndoManagerKeymap), yCollab(session.texte, session.presence, { undoManager: annuler })],
     appliquerFichier: (texte) => appliquerTexte(session.texte, texte),
     async fermer() {
       session.presence.off('change', majPersonnes)
+      auteurs.arreter()
       session.client.sauverMaintenant()
       await session.fermer()
     },

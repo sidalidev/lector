@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback, useMemo, forwardRef, memo, la
 import fileSystem from '../services/fileSystem';
 import syncService from '../services/syncService';
 import storage from '../services/storage';
-import { allerALigne, ligneEnHaut, titresDe } from '../services/editeurCourant';
+import { allerALigne, allerAPosition, ligneEnHaut, titresDe } from '../services/editeurCourant';
+import { noter } from '../services/historique';
 import { messageChaine } from '../utils/messagesErreur';
 import { partageDuFichier } from '../services/collab/stockage.js';
 import './DocumentView.css';
@@ -36,6 +37,7 @@ const DocumentView = memo(forwardRef(function DocumentView({
   const texteRef = useRef(content);       // ce que montre l'éditeur
   const enregistreRef = useRef(content);  // dernier texte écrit (ou lu) sur le disque
   const minuteurRef = useRef(null);
+  const ouvertureRef = useRef({ chemin: filePath, texte: content }); // texte à l'ouverture : première version
   const [saveError, setSaveError] = useState(null);
 
   const onContentChangeRef = useRef(onContentChange);
@@ -50,6 +52,8 @@ const DocumentView = memo(forwardRef(function DocumentView({
         enregistreRef.current = texte;
         onContentChangeRef.current?.(texte);
       }
+      // Historique des versions (sur cet appareil) : qui a écrit, d'après le salon.
+      noter(chemin, texte, { auteurs: liaisonRef.current?.prendreAuteurs() ?? [], avant: ouvertureRef.current?.chemin === chemin ? ouvertureRef.current.texte : null });
     } catch (err) {
       // Casier plein, document trop gros, modifié ailleurs… : affiché au-dessus de la note.
       setSaveError(messageChaine(err));
@@ -61,6 +65,7 @@ const DocumentView = memo(forwardRef(function DocumentView({
   useEffect(() => {
     texteRef.current = content;
     enregistreRef.current = content;
+    ouvertureRef.current = { chemin: filePath, texte: content };
     setValeur({ chemin: filePath, texte: content });
     setSaveError(null);
     return () => {
@@ -76,6 +81,16 @@ const DocumentView = memo(forwardRef(function DocumentView({
   const [liaison, setLiaison] = useState(null);      // { chemin, extensions, texte(), appliquerFichier, fermer }
   const [personnes, setPersonnes] = useState([]);
   const [verifPartage, setVerifPartage] = useState(0);
+  const [suivi, setSuivi] = useState(null);           // client suivi (son curseur reste à l'écran)
+  const arretSuiviRef = useRef(null);
+  const basculerSuivi = (client) => {
+    arretSuiviRef.current?.();
+    arretSuiviRef.current = null;
+    if (suivi === client || !liaisonRef.current) { setSuivi(null); return; }
+    setSuivi(client);
+    arretSuiviRef.current = liaisonRef.current.suivre(client, allerAPosition, () => setSuivi(null));
+  };
+  useEffect(() => () => arretSuiviRef.current?.(), [filePath]);
   const liaisonRef = useRef(null);
   liaisonRef.current = liaison?.chemin === filePath ? liaison : null;
 
@@ -228,7 +243,17 @@ const DocumentView = memo(forwardRef(function DocumentView({
       {liaisonRef.current && personnes.length > 0 && (
         <ul className="doc-presence" aria-label={`${personnes.length} here`}>
           {personnes.map((p) => (
-            <li key={p.client} style={{ '--couleur': p.couleur }}><span aria-hidden="true" />{p.nom}</li>
+            <li key={p.client} style={{ '--couleur': p.couleur }}>
+              <button
+                type="button"
+                className={suivi === p.client ? 'suivi' : ''}
+                aria-pressed={suivi === p.client}
+                title={suivi === p.client ? `Following ${p.nom}` : `Follow ${p.nom}`}
+                onClick={() => basculerSuivi(p.client)}
+              >
+                <span aria-hidden="true" />{suivi === p.client ? `Following ${p.nom}` : p.nom}
+              </button>
+            </li>
           ))}
         </ul>
       )}

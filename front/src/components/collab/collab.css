@@ -313,3 +313,25 @@
   .collab-personnes li { padding-right: 2px; }
   .collab-btn { padding: 0 10px; }
 }
+
+/* Un clic sur quelqu'un : suivre son curseur */
+.collab-personne {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.collab-personne:disabled {
+  cursor: default;
+}
+
+.collab-personnes li:has(.suivi) {
+  background: var(--couleur);
+  color: #fff;
+}

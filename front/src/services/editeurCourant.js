@@ -17,6 +17,12 @@ export function allerALigne(n, options) { return courant?.allerALigne(n, options
 /** Ligne du fichier en haut de l'écran (pour le sommaire et la position de lecture). */
 export function ligneEnHaut() { return courant?.ligneEnHaut() ?? null }
 
+/** Fait défiler jusqu'à la position `pos` du texte (curseur d'un co-auteur). */
+export function allerAPosition(pos) { courant?.allerAPosition(pos) }
+
+/** Remplace le texte de la note (restauration d'une version). */
+export function remplacerTexte(texte) { courant?.remplacerTexte(texte) }
+
 /** Place le curseur à la fin de la note et donne le focus. */
 export function ecrireALaFin() { courant?.ecrireALaFin() }
 

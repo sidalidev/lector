@@ -1036,6 +1036,13 @@
 }
 
 .doc-presence li {
+  pointer-events: auto;
+}
+
+.doc-presence button {
+  border: none;
+  font: inherit;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1048,7 +1055,16 @@
   font-weight: 600;
 }
 
-.doc-presence li span {
+.doc-presence button.suivi {
+  background: var(--couleur);
+  color: #fff;
+}
+
+.doc-presence button.suivi span {
+  background: #fff;
+}
+
+.doc-presence button span {
   width: 8px;
   height: 8px;
   border-radius: 50%;

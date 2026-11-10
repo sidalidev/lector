@@ -1103,3 +1103,9 @@ button,
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+.titlebar-icone {
+  width: 26px;
+  padding: 0;
+  justify-content: center;
+}

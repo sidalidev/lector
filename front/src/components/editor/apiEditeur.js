@@ -84,6 +84,24 @@ export function creerApi(view) {
       return view.state.doc.lineAt(bloc.from).number
     },
 
+    allerAPosition(pos) {
+      const p = Math.max(0, Math.min(pos, view.state.doc.length))
+      view.dispatch({ effects: EditorView.scrollIntoView(p, { y: 'center' }) })
+    },
+
+    // Remplace le texte par une seule modification minimale (annulable, et
+    // transmise aux co-auteurs comme une frappe dans une note partagée).
+    remplacerTexte(texte) {
+      const ancien = view.state.doc.toString()
+      if (ancien === texte) return
+      let debut = 0
+      const max = Math.min(ancien.length, texte.length)
+      while (debut < max && ancien.charCodeAt(debut) === texte.charCodeAt(debut)) debut++
+      let fin = 0
+      while (fin < max - debut && ancien.charCodeAt(ancien.length - 1 - fin) === texte.charCodeAt(texte.length - 1 - fin)) fin++
+      view.dispatch({ changes: { from: debut, to: ancien.length - fin, insert: texte.slice(debut, texte.length - fin) } })
+    },
+
     ecrireALaFin() {
       const fin = view.state.doc.length
       view.focus()

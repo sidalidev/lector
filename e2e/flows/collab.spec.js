@@ -168,6 +168,31 @@ test("Partager depuis l'app web : lien, QR, ouverture par l'invité, arrêt", as
   await expect(editeur(invite)).toContainText('EXT. HARBOUR - DAWN')
   await expect(invite.locator('.cm-ySelectionInfo', { hasText: 'Sid' })).toBeVisible()
   await app.waitForTimeout(1500) // enregistrement de la note (1 s après la dernière frappe)
+
+  // Suivre Lea : un clic sur son prénom ; je fais défiler, le suivi s'arrête.
+  const puce = app.locator('.doc-presence button', { hasText: 'Lea' })
+  await puce.click()
+  await expect(puce).toHaveAttribute('aria-pressed', 'true')
+  await expect(puce).toContainText('Following Lea')
+  await app.mouse.wheel(0, -300)
+  await expect(puce).toHaveAttribute('aria-pressed', 'false')
+
+  // Historique : la note d'avant le partage, puis la version écrite à deux, avec les prénoms.
+  await app.getByTestId('historique-ouvrir').click()
+  const versions = app.getByTestId('historique-version')
+  await expect(versions).toHaveCount(2)
+  await expect(versions.first()).toContainText('Lea')
+  await expect(app.getByTestId('historique-apercu')).toContainText('INT. KITCHEN - NIGHT')
+  await versions.last().click()
+  await app.getByTestId('historique-restaurer').click()
+  // Restaurée chez moi et chez Lea : la scène écrite à deux disparaît.
+  await expect.poll(async () => { await enBas(); return editeur(app).textContent() }).not.toContain('INT. KITCHEN')
+  await expect(editeur(invite)).not.toContainText('INT. KITCHEN')
+  // Annuler la restauration la défait (Cmd+Z), comme une frappe.
+  await editeur(app).click()
+  await app.keyboard.press('ControlOrMeta+z')
+  await expect(editeur(invite)).toContainText('INT. KITCHEN - NIGHT')
+  await app.waitForTimeout(1500)
   await app.getByTestId('collab-partager').click()
 
   app.once('dialog', (d) => d.accept())

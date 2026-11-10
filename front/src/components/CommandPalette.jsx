@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  Search, Sidebar, PanelRight, Maximize2, Zap, FilePlus, FolderDown, Cloud, Info, CalendarCheck, ListPlus, Share2, Hash
+  Search, Sidebar, PanelRight, Maximize2, Zap, FilePlus, FolderDown, Cloud, Info, CalendarCheck, ListPlus, Share2, Hash, History
 } from 'lucide-react';
 import { syntaxeVisible, basculerSyntaxe } from './editor/livePreview/reglage.js';
 import normalizeSearch from '../utils/normalizeSearch';
@@ -23,6 +23,7 @@ function CommandPalette({ onClose, onCommand }) {
       { id: 'focus', label: t('cmd.focus'), description: t('cmd.focusDesc'), icon: Maximize2, keywords: 'focus zen distraction' },
       // Partage en temps réel : navigateur seulement pour l'instant (docs/collab-design.md § 9).
       ...(!isCapacitor && !fileSystem.isElectron() ? [
+        { id: 'history', label: t('cmd.history'), description: t('cmd.historyDesc'), icon: History, keywords: 'history versions restore undo previous revision historique' },
         { id: 'share', label: t('cmd.share'), description: t('cmd.shareDesc'), icon: Share2, keywords: 'share collaborate together co-write link partager' },
       ] : []),
       { id: 'markdown-syntax', label: t(syntaxeVisible() ? 'cmd.hideSyntax' : 'cmd.showSyntax'), description: t('cmd.syntaxDesc'), icon: Hash, keywords: 'markdown syntax source raw live preview bear formatted editor', run: basculerSyntaxe },

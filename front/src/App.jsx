@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, useSyncExternalStore, lazy, Suspense } from 'react';
 import {
   Folder, Sliders, List, X, Focus, Download, Minus, Plus,
-  RefreshCw, FolderDown, Info, Share2
+  RefreshCw, FolderDown, Info, Share2, History
 } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import RightSidebar from './components/FloatingTOC';
@@ -20,7 +20,7 @@ import { vueAujourdhui } from './services/taches/taches.js'
 import { haptique } from './services/haptique'
 import { messageChaine } from './utils/messagesErreur'
 import { echapperHtml, markdownVersHtmlImpression } from './utils/impression'
-import { allerALigne, ecrireALaFin } from './services/editeurCourant'
+import { allerALigne, ecrireALaFin, remplacerTexte } from './services/editeurCourant'
 import './App.css';
 
 const APP_VERSION = __APP_VERSION__ || '0.0.0'
@@ -43,6 +43,7 @@ const TodayView = lazy(() => import('./components/TodayView'));
 const NewTask = lazy(() => import('./components/NewTask'));
 // Co-écriture : chargée à l'ouverture du panneau seulement (Yjs hors du paquet principal).
 const SharePanel = lazy(() => import('./components/collab/SharePanel'));
+const Historique = lazy(() => import('./components/Historique'));
 // Partage en temps réel : version web d'abord. Sur ordinateur et mobile, le
 // document partagé doit encore être relié au fichier .md du vault (docs/collab-design.md § 9).
 const PARTAGE_POSSIBLE = typeof window !== 'undefined' && !window.electron && !window.Capacitor?.isNativePlatform?.();
@@ -142,6 +143,7 @@ function App() {
   const [updateReady, setUpdateReady] = useState(null); // version string or null
   const [updateDismissed, setUpdateDismissed] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showCloudPanel, setShowCloudPanel] = useState(false);
@@ -1138,6 +1140,11 @@ function App() {
             <span className="titlebar-version">v{APP_VERSION}</span>
           </div>
           <CloudStatusIndicator onClick={() => setShowCloudPanel(true)} />
+          {currentDoc && !showToday && !currentDoc.filePath?.startsWith('demo://') && (
+            <button className="titlebar-share titlebar-icone" onClick={() => setShowHistory(true)} title={t('history.title')} aria-label={t('history.title')} data-testid="historique-ouvrir">
+              <History size={13} />
+            </button>
+          )}
           {PARTAGE_POSSIBLE && currentDoc && !showToday && !currentDoc.filePath?.startsWith('demo://') && (
             <button className="titlebar-share" onClick={() => setShowShare(true)} title={t('collab.share.title')} data-testid="collab-partager">
               <Share2 size={13} />
@@ -1369,6 +1376,7 @@ function App() {
               switch (id) {
                 case 'focus': setFocusMode(prev => !prev); break;
                 case 'share': if (PARTAGE_POSSIBLE && currentDoc) setShowShare(true); break;
+                case 'history': if (currentDoc) setShowHistory(true); break;
                 case 'search': if (currentDoc) setShowSearch(true); break;
                 case 'sidebar': setShowSidebar(prev => !prev); break;
                 case 'right-sidebar': setShowRightSidebar(prev => !prev); break;
@@ -1385,6 +1393,17 @@ function App() {
                 case 'today': openToday(); break;
               }
             }}
+          />
+        </Suspense>
+      )}
+
+      {showHistory && currentDoc && (
+        <Suspense fallback={null}>
+          <Historique
+            doc={currentDoc.filePath}
+            texteActuel={currentDoc.content}
+            onRestaurer={remplacerTexte}
+            onFermer={() => setShowHistory(false)}
           />
         </Suspense>
       )}

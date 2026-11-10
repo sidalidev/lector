@@ -31,7 +31,7 @@ function makeFontSizeExtension(size) {
 // `options` : images locales et liens de note (voir livePreview/options.js).
 // `principal` : l'éditeur de la note ouverte ; le sommaire et la recherche le
 // pilotent (services/editeurCourant.js) et la page défile autour de lui.
-function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, extensions = null, options = null, principal = false, readOnly = false }) {
+function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, extensions = null, options = null, principal = false, readOnly = false, onView = null }) {
   const partage = !!extensions;
   const containerRef = useRef(null);
   const viewRef = useRef(null);
@@ -136,6 +136,7 @@ function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, e
     viewRef.current = view;
     const api = principal ? creerApi(view) : null;
     if (api) inscrire(api);
+    onView?.(view);
 
     if (autoFocus) {
       requestAnimationFrame(() => view.focus());
@@ -143,6 +144,7 @@ function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, e
 
     return () => {
       if (api) desinscrire(api);
+      onView?.(null);
       view.destroy();
       viewRef.current = null;
     };
