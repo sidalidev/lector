@@ -1070,3 +1070,14 @@
   border-radius: 50%;
   background: var(--couleur);
 }
+
+/* Hors ligne : la note est gardée sur l'appareil, rien d'inquiétant. */
+.doc-hors-ligne {
+  margin: 12px auto 0;
+  max-width: 720px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 13px;
+}

@@ -13,12 +13,25 @@ import { ErreurChaine, estChaineInconnue, estLectureLimitee } from './chaine/cli
 import { clientDe, lireSaisie, nouvelleChaine, preparer } from './chaine/service.js'
 import { VaultWebChaine, construireArbre } from './chaine/web-vault.js'
 import { effacerDonneesLocales } from './effacementLocal.js'
+import { fileDAttente } from './chaine/attente.js'
 
 // Même origine dans un navigateur ; l'app mobile sert ses pages en local et parle au serveur public.
 const NATIF = typeof window !== 'undefined' && !!window.Capacitor?.isNativePlatform?.()
 export const SERVER = !NATIF && typeof location !== 'undefined' && /^https?:$/.test(location.protocol)
   ? `${location.protocol}//${location.host}`
   : 'https://lector.dockerbop.fr'
+
+// Notes gardées hors ligne : envoyées au retour du réseau, au démarrage, et
+// toutes les 30 s tant qu'il en reste (navigator.onLine se trompe parfois).
+let surveillance = null
+function surveillerReseau(vault) {
+  if (typeof window === 'undefined') return
+  if (surveillance) { window.removeEventListener('online', surveillance.envoyer); clearInterval(surveillance.minuteur) }
+  const envoyer = () => { vault.envoyerEnAttente().catch(() => {}) }
+  surveillance = { envoyer, minuteur: setInterval(envoyer, 30_000) }
+  window.addEventListener('online', envoyer)
+  envoyer()
+}
 
 const BASE = 'lector-chaine'
 const MAGASIN = 'cles'
@@ -213,7 +226,11 @@ export async function effacerToutWeb() {
 export async function vaultWebChaine() {
   const cles = await clesWeb()
   if (!cles) throw new ErreurChaine(409, 'NO_CHAIN', '')
-  if (session?.chainId !== cles.id) session = { chainId: cles.id, vault: new VaultWebChaine({ client: client(cles), cles }) }
+  if (session?.chainId !== cles.id) {
+    const vault = new VaultWebChaine({ client: client(cles), cles, attente: fileDAttente(cles.id) })
+    session = { chainId: cles.id, vault }
+    surveillerReseau(vault)
+  }
   return session.vault
 }
 

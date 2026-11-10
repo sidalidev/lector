@@ -7,6 +7,7 @@ import { noter } from '../services/historique';
 import { messageChaine } from '../utils/messagesErreur';
 import { partageDuFichier } from '../services/collab/stockage.js';
 import './DocumentView.css';
+import { t } from '../services/i18n';
 
 // La note se lit et s'écrit au même endroit : l'éditeur mis en forme (façon
 // Bear). Chargé à la demande avec CodeMirror.
@@ -39,6 +40,13 @@ const DocumentView = memo(forwardRef(function DocumentView({
   const minuteurRef = useRef(null);
   const ouvertureRef = useRef({ chemin: filePath, texte: content }); // texte à l'ouverture : première version
   const [saveError, setSaveError] = useState(null);
+  // Notes gardées sur l'appareil faute de réseau (envoyées au retour).
+  const [enAttente, setEnAttente] = useState(0);
+  useEffect(() => {
+    const suivre = (e) => setEnAttente(e.detail?.n || 0);
+    window.addEventListener('lector-attente', suivre);
+    return () => window.removeEventListener('lector-attente', suivre);
+  }, []);
 
   const onContentChangeRef = useRef(onContentChange);
   onContentChangeRef.current = onContentChange;
@@ -240,6 +248,11 @@ const DocumentView = memo(forwardRef(function DocumentView({
   return (
     <div ref={setRefs} className="document-view document-view-edit">
       {saveError && <div className="doc-save-error" role="alert">{saveError}</div>}
+      {enAttente > 0 && (
+        <div className="doc-hors-ligne" role="status" data-testid="hors-ligne">
+          {t(enAttente === 1 ? 'offline.one' : 'offline.other', { n: enAttente })}
+        </div>
+      )}
       {liaisonRef.current && personnes.length > 0 && (
         <ul className="doc-presence" aria-label={`${personnes.length} here`}>
           {personnes.map((p) => (

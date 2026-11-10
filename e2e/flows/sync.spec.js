@@ -37,6 +37,30 @@ test.describe('Synchronisation dans le navigateur', () => {
     await expect(page.locator('.chaine-rappel')).toHaveCount(0)
   })
 
+  test('hors ligne : la note est gardée puis envoyée au retour du réseau, rien n\'est perdu', async ({ page, context }) => {
+    await nouvelleCle(page)
+    await expect(page.locator('.cm-lp-h1').first()).toContainText('Welcome to Lector')
+    // Les appels /v1 passent par Playwright (relierApi) : on les coupe aussi.
+    const coupure = (route) => route.abort('internetdisconnected')
+    await page.route('**/v1/**', coupure)
+    await context.setOffline(true)
+    await page.locator('.cm-content').click()
+    await page.keyboard.press('ControlOrMeta+End')
+    await page.keyboard.type('\nWritten on the train.')
+    await expect(page.getByTestId('hors-ligne')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('.doc-save-error')).toHaveCount(0)
+
+    await page.unroute('**/v1/**', coupure)
+    await context.setOffline(false)
+    await expect(page.getByTestId('hors-ligne')).toHaveCount(0, { timeout: 40_000 })
+    await page.reload()
+    await page.locator('.file-tree-item', { hasText: 'Welcome to Lector' }).click()
+    await expect.poll(async () => {
+      await page.locator('.document-view').evaluate((el) => { el.scrollTop = el.scrollHeight })
+      return page.locator('.cm-content').textContent()
+    }).toContain('Written on the train.')
+  })
+
   test('quitter puis se reconnecter avec les 12 mots, enfin tout effacer', async ({ page }) => {
     const mots = await nouvelleCle(page)
 

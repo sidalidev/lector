@@ -20,6 +20,12 @@ import {
   sha256Hex,
 } from "./crypto.js";
 import { estMarkdown } from "./synchro.js";
+import { estErreurReseau } from "./attente.js";
+
+/** Prévient l'interface du nombre de notes qui attendent le réseau. */
+function signalerAttente(n) {
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("lector-attente", { detail: { n } }));
+}
 
 export class VaultWebChaine {
   /**
@@ -27,9 +33,13 @@ export class VaultWebChaine {
    * @param {import('./client.js').ClientChaine} o.client
    * @param {{id, preuve, cleEnc, cleMac}} o.cles
    */
-  constructor({ client, cles }) {
+  constructor({ client, cles, attente = null }) {
     this.client = client;
     this.cles = cles;
+    // Écritures faites sans réseau, chiffrées, envoyées au retour (attente.js).
+    this.attente = attente;
+    this.envoi = null;
+    this.derniereListe = null;
     // docId → empreinte du bloc LU (ou écrit) par cette session : c'est la base
     // d'une écriture. lister() ne la change pas : si un autre appareil modifie le
     // document après sa lecture ici, l'écriture répond 412 au lieu d'écraser.
@@ -42,7 +52,14 @@ export class VaultWebChaine {
 
   /** Liste les documents markdown vivants : [{ chemin, docId, size, mtime }]. */
   async lister() {
-    const man = await this.client.manifeste();
+    let man;
+    try {
+      man = await this.client.manifeste();
+    } catch (err) {
+      // Hors ligne : la dernière liste connue, plus les notes créées depuis.
+      if (!estErreurReseau(err) || !this.derniereListe) throw err;
+      return this._avecAttente(this.derniereListe);
+    }
     this.serveur = {
       bytesUsed: man.bytesUsed ?? null,
       quotaBytes: man.quotaBytes ?? null,
@@ -68,7 +85,19 @@ export class VaultWebChaine {
       }),
     );
     sortie.sort((a, b) => (a.chemin < b.chemin ? -1 : a.chemin > b.chemin ? 1 : 0));
-    return sortie;
+    this.derniereListe = sortie;
+    return this._avecAttente(sortie);
+  }
+
+  /** La liste, avec les notes qui n'existent encore que dans la file d'attente. */
+  async _avecAttente(liste) {
+    if (!this.attente) return liste;
+    const enAttente = await this.attente.toutes().catch(() => []);
+    const connus = new Set(liste.map((d) => d.docId));
+    const ajouts = enAttente.filter((e) => !connus.has(e.docId))
+      .map((e) => ({ chemin: e.chemin, docId: e.docId, size: Math.max(0, e.bloc.length - SURCOUT_ENVELOPPE), mtime: e.mtime }));
+    if (!ajouts.length) return liste;
+    return [...liste, ...ajouts].sort((a, b) => (a.chemin < b.chemin ? -1 : a.chemin > b.chemin ? 1 : 0));
   }
 
   /**
@@ -79,6 +108,9 @@ export class VaultWebChaine {
     const docId = await docIdAvec(this.cles, chemin);
     const enCache = this.clairs.get(docId);
     if (enCache && this.connus.get(docId) === enCache.sha256) return enCache.clair;
+    // Version gardée hors ligne, pas encore envoyée : c'est la plus récente.
+    const enAttente = this.attente && (await this.attente.lire(docId).catch(() => null));
+    if (enAttente) return dechiffrerContenuAvec(this.cles, docId, enAttente.bloc);
     const r = await this.client.lire(docId);
     const clair = await dechiffrerContenuAvec(this.cles, docId, r.bloc);
     const sha256 = await sha256Hex(r.bloc);
@@ -119,17 +151,73 @@ export class VaultWebChaine {
     if (clair.length > max) throw new ErreurChaine(413, "DOC_TOO_LARGE", "");
     const bloc = await chiffrerContenuAvec(this.cles, docId, clair);
     const pathEnc = await chiffrerCheminAvec(this.cles, docId, chemin);
-    const r = await this.client.deposer(docId, {
-      bloc,
-      pathEnc,
-      mtime: new Date().toISOString(),
-      attendu: (await this._attendu(docId)) || null,
-    });
+    const mtime = new Date().toISOString();
     const sha256 = await sha256Hex(bloc);
-    this.lus.set(docId, sha256);
-    this.connus.set(docId, sha256);
-    this.clairs.set(docId, { sha256, clair });
-    return r;
+    // Une version plus ancienne attend déjà : on essaie d'abord de la faire partir.
+    if (this.attente && (await this.attente.lire(docId))) await this.envoyerEnAttente().catch(() => {});
+    try {
+      if (this.attente && (await this.attente.lire(docId))) throw Object.assign(new TypeError("toujours hors ligne"), {});
+      const r = await this.client.deposer(docId, { bloc, pathEnc, mtime, attendu: (await this._attendu(docId)) || null });
+      this.lus.set(docId, sha256);
+      this.connus.set(docId, sha256);
+      this.clairs.set(docId, { sha256, clair });
+      return r;
+    } catch (err) {
+      if (!this.attente || !estErreurReseau(err)) throw err;
+      // Hors ligne : gardé chiffré sur l'appareil, envoyé au retour du réseau.
+      // La base reste la version lue avant la coupure (If-Match au moment de l'envoi).
+      const avant = await this.attente.lire(docId);
+      const base = avant ? (avant.inconnu ? undefined : avant.attendu)
+        : this.lus.has(docId) ? this.lus.get(docId) : this.connus.has(docId) ? this.connus.get(docId) : undefined;
+      await this.attente.garder({ docId, chemin, bloc, pathEnc, mtime, attendu: base ?? null, inconnu: base === undefined, date: Date.now() });
+      this.clairs.set(docId, { sha256, clair });
+      this.connus.set(docId, sha256);
+      signalerAttente((await this.attente.toutes()).length);
+      return { enAttente: true };
+    }
+  }
+
+  /**
+   * Envoie les notes gardées hors ligne. Une note modifiée ailleurs pendant la
+   * coupure n'est jamais écrasée : la version d'ici devient « … (offline copy).md ».
+   * Renvoie le nombre de notes envoyées ; lève une erreur réseau si la connexion manque encore.
+   */
+  envoyerEnAttente() {
+    if (!this.attente) return Promise.resolve(0);
+    if (this.envoi) return this.envoi;
+    this.envoi = (async () => {
+      let envoyes = 0;
+      for (const e of await this.attente.toutes()) {
+        let attendu = e.inconnu ? undefined : e.attendu;
+        try {
+          if (attendu === undefined) {
+            const man = await this.client.manifeste();
+            const d = (man.docs || []).find((x) => x.docId === e.docId);
+            attendu = d && !d.deletedAt ? d.sha256 : null;
+          }
+          await this.client.deposer(e.docId, { bloc: e.bloc, pathEnc: e.pathEnc, mtime: e.mtime, attendu: attendu || null });
+          const sha = await sha256Hex(e.bloc);
+          this.lus.set(e.docId, sha);
+          this.connus.set(e.docId, sha);
+        } catch (err) {
+          if (estErreurReseau(err)) throw err;
+          if (err?.status !== 412 && err?.status !== 409) continue; // refus (place, taille) : la note reste en attente
+          const clair = await dechiffrerContenuAvec(this.cles, e.docId, e.bloc);
+          await this.attente.oublier(e.docId);
+          this.clairs.delete(e.docId);
+          await this.ecrire(e.chemin.replace(/\.md$/i, "") + " (offline copy).md", clair);
+          envoyes++;
+          continue;
+        }
+        await this.attente.oublier(e.docId);
+        envoyes++;
+      }
+      return envoyes;
+    })().finally(async () => {
+      this.envoi = null;
+      signalerAttente((await this.attente.toutes().catch(() => [])).length);
+    });
+    return this.envoi;
   }
 
   /** Supprime avec If-Match : 412 si le document a changé ailleurs depuis sa lecture. */
