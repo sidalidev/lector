@@ -6,6 +6,9 @@
 //   node tools/page-sync.mjs          réécrit la page après un changement de docs/CHAINE.md
 //
 // Le test textes-publics.test.mjs échoue tant que la page n'est pas à jour.
+//
+// React n'est ici qu'un outil de construction (devDependencies) : l'app, elle,
+// tourne sur Preact (alias de front/vite.config.js).
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'

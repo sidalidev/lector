@@ -1,17 +1,17 @@
 # Architecture
 
-One React codebase for every platform, a few thin native wrappers, and a blind relay.
+One codebase for every platform (React components running on Preact through `preact/compat`), a few thin native wrappers, and a blind relay.
 
 ## Map
 
 ```
 front/                     everything the user sees
-├── src/                   React app (the only UI code: web, desktop, mobile)
+├── src/                   the app (the only UI code: web, desktop, mobile)
 │   ├── components/        screens and panels (ChaineSync.jsx is the Sync screen)
 │   ├── services/chaine/   sync chain: crypto.js, client.js, synchro.js, web-vault.js
 │   ├── services/collab/   writing together: crypto.js (document key), salon.js (Yjs client), partage.js
 │   ├── components/collab/ shared document page (/d/), Share panel
-│   ├── services/          file access, API keys, AI and voice providers, updates
+│   ├── services/          file access, tasks and reminders (taches/), outgoing flows list, updates
 │   └── locales/           interface text (en.js)
 ├── desktop/               Electron: main.js, preload.js, sync-manager.js, vault/
 ├── mobile/                Capacitor wrappers: android/ (update, password manager plugins), ios/

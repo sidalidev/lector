@@ -23,17 +23,11 @@ contextBridge.exposeInMainWorld('electron', {
     return chemin;
   },
   listDirectoryFiles: (dirPath) => ipcRenderer.invoke('list-directory-files', dirPath),
-  buildKnowledgeGraph: (dirPath) => ipcRenderer.invoke('build-knowledge-graph', dirPath),
   searchAllFiles: (dirPath, query) => ipcRenderer.invoke('search-all-files', dirPath, query),
   openFileByPath: (filePath) => ipcRenderer.invoke('open-file-by-path', filePath),
   exportPdf: (fileName) => ipcRenderer.invoke('export-pdf', fileName),
-  exportFolderEpub: (folderPath) => ipcRenderer.invoke('export-folder-epub', folderPath),
-  exportFileEpub: (filePath) => ipcRenderer.invoke('export-file-epub', filePath),
-  claudeCheck: () => ipcRenderer.invoke('claude-check'),
-  claudePrompt: (prompt, options) => ipcRenderer.invoke('claude-prompt', prompt, options),
   readFileSilent: (filePath) => ipcRenderer.invoke('read-file-silent', filePath),
   saveFile: (filePath, content) => ipcRenderer.invoke('save-file', filePath, content),
-  setWindowOpacity: (opacity) => ipcRenderer.invoke('set-window-opacity', opacity),
   onFileOpened: (callback) => {
     ipcRenderer.on('file-opened', (event, data) => callback(data));
   },
@@ -68,7 +62,6 @@ contextBridge.exposeInMainWorld('electron', {
     return () => ipcRenderer.removeListener('menu-shortcut', handler);
   },
   installUpdate: () => ipcRenderer.invoke('install-update'),
-  ytDlpTranscript: (videoId) => ipcRenderer.invoke('yt-dlp-transcript', videoId),
 
   // --- Tâches et rappels : notes qui contiennent des cases, notifications locales ---
   taches: {
@@ -119,24 +112,5 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.on('cloud:event', handler);
       return () => ipcRenderer.removeListener('cloud:event', handler);
     },
-  },
-
-  // --- Clés API personnelles : la clé ne revient jamais ici, seulement { present, hint, secure } ---
-  keys: {
-    get: (service) => ipcRenderer.invoke('keys:get', service),
-    set: (service, value) => ipcRenderer.invoke('keys:set', service, value),
-    clear: (service) => ipcRenderer.invoke('keys:clear', service),
-    test: (service) => ipcRenderer.invoke('keys:test', service),
-  },
-
-  // --- Anthropic et ElevenLabs, appelés par le processus principal avec la clé de l'utilisateur ---
-  ai: {
-    ask: (request) => ipcRenderer.invoke('ai:ask', request),
-    generate: (prompt, options) => ipcRenderer.invoke('ai:generate', prompt, options),
-    models: () => ipcRenderer.invoke('ai:models'),
-  },
-  tts: {
-    voices: () => ipcRenderer.invoke('tts:voices'),
-    synthesize: (text, voiceId) => ipcRenderer.invoke('tts:synthesize', text, voiceId),
   },
 });

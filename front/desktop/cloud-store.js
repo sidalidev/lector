@@ -14,8 +14,9 @@ const path = require('path')
 const { randomUUID } = require('crypto')
 
 const CHAMPS = ['vaultPath', 'serverUrl', 'deviceId', 'chainSecret', 'chainId', 'chainPendingSecret', 'chainSaved']
-// Fichiers des versions avec compte : identifiants d'appareils, drapeau « compte vu en chaîne », préférences d'envoi.
-const ANCIENS_FICHIERS = ['cloud-device-ids.json', 'cloud-chaine-vue.json', 'reader-prefs.json']
+// Fichiers des versions précédentes : identifiants d'appareils, drapeau « compte vu en chaîne »,
+// préférences d'envoi (versions avec compte), clés API personnelles (fonctions retirées).
+const ANCIENS_FICHIERS = ['cloud-device-ids.json', 'cloud-chaine-vue.json', 'reader-prefs.json', 'api-keys.dat']
 const RE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 let _dossier = null

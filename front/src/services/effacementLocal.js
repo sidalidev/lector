@@ -6,14 +6,14 @@
 // vide donc tout ce qu'elle a rangé, pas seulement les clés connues.
 //
 // Ce qui est effacé :
-// - IndexedDB « lector-keys » : clés API (Anthropic, ElevenLabs) et la clé
-//   AES-GCM qui les chiffre ;
+// - IndexedDB « lector-keys » : clés API d'une ancienne version (déjà
+//   effacées au démarrage par nettoyage.js, par sécurité) ;
 // - IndexedDB « lector-chaine » : clés de la chaîne (déjà oubliées avant, par
 //   sécurité si l'effacement a été coupé) ;
 // - toute autre base IndexedDB de l'origine (indexedDB.databases() quand le
 //   moteur le permet) ;
-// - localStorage en entier : surlignages, fiches, étiquettes, positions de
-//   lecture, historique, favoris, conversations, réglages, session, appareil ;
+// - localStorage en entier : positions de lecture, historique, favoris,
+//   réglages, session, appareil ;
 // - sessionStorage en entier ;
 // - Cache Storage (caches d'un service worker, s'il y en a un) et
 //   désinscription des service workers.

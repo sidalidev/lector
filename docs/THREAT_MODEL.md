@@ -6,10 +6,10 @@ Related documents: the privacy policy (`PRIVACY.md`), the record of server data 
 
 ## 1. Summary
 
-- Lector is a Markdown reader. It works without an account and without a network. Sync between devices is optional.
+- Lector is a Markdown editor. It works without an account and without a network. Sync between devices is optional.
 - Sync uses a **sync chain**: a 128-bit secret drawn on one of your devices, written as 12 words (BIP39). All keys are derived from it on the device. The relay stores only blocks it cannot decrypt.
 - **Protected**: the content, titles, file names and folder paths of the Markdown files you sync, against the relay, its host and anyone who gets a copy of its disk or backups.
-- **Not protected**: the documents on your device (they are plain files, not encrypted at rest by Lector), the metadata the relay sees (chain identifier, sizes, times, IP address of each request), a device that is already compromised, and text you send yourself to an AI or voice provider.
+- **Not protected**: the documents on your device (they are plain files, not encrypted at rest by Lector), the metadata the relay sees (chain identifier, sizes, times, IP address of each request), and a device that is already compromised.
 - On the web, the app is downloaded from the server at every visit: you trust that server each time. The desktop and mobile apps are the trusted clients.
 
 ## 2. What Lector has to protect
@@ -18,8 +18,7 @@ Related documents: the privacy policy (`PRIVACY.md`), the record of server data 
 |---|---|
 | Your Markdown documents | Plain files in your vault folder (desktop). In the relay as encrypted blocks when sync is on. In the browser or mobile app, decrypted in memory while you read them. |
 | The chain secret `S` (12 words) | Desktop: `userData/cloud-secrets.dat`, encrypted with the system keychain through Electron `safeStorage` when available. Web and mobile: never stored; only non-exportable `CryptoKey` objects and the proof are kept in IndexedDB. Your password manager or printed recovery kit, if you saved it there. |
-| API keys (Anthropic, ElevenLabs) | Desktop: `userData/api-keys.dat` through `safeStorage`. Web and mobile: IndexedDB, encrypted with a non-exportable key stored in the same database. |
-| Highlights, flashcards, reading positions, settings | Desktop: inside the `.md` file (`<!-- lector-generated -->` block) and in the page storage. Web and mobile: browser storage of the app. |
+| Favorites, recent files, bookmarks, settings | Page storage of the app (browser storage on web and mobile). |
 
 ## 3. What is protected
 
@@ -49,7 +48,7 @@ Every request carries the chain identifier and a proof `P`, both derived from `S
 
 ### 4.1 Documents on your device
 
-**Lector does not encrypt your vault at rest.** On desktop, your documents are ordinary `.md` files in a folder you chose; your operating system protects them like any other file (account password, disk encryption such as FileVault or BitLocker if you turned it on). On web and mobile, documents are fetched from the relay and decrypted in memory; app data (highlights, settings, keys) lives in the browser storage of the app. The About screen says so. Local encryption is planned, not built.
+**Lector does not encrypt your vault at rest.** On desktop, your documents are ordinary `.md` files in a folder you chose; your operating system protects them like any other file (account password, disk encryption such as FileVault or BitLocker if you turned it on). On web and mobile, documents are fetched from the relay and decrypted in memory; app data (favorites, settings, keys) lives in the browser storage of the app. The About screen says so. Local encryption is planned, not built.
 
 Consequence: anyone who can read your disk or your unlocked session can read your documents. "Erase everything" deletes the chain and the local keys, and on desktop can move the vault folder to the system Trash, but it does not securely wipe files.
 
@@ -67,17 +66,17 @@ Sizes are not padded and identifiers do not rotate. Rotating identifiers and pad
 
 ### 4.3 The web client trusts the server at every load
 
-The web app at `lector.dockerbop.fr/app/` is HTML and JavaScript served by the same operator that runs the relay. A modified bundle could read the documents you open, use the chain keys stored in the page, or read your API keys. Nothing in the browser can detect that. There is no subresource integrity and no published bundle hash yet.
+The web app at `lector.dockerbop.fr/app/` is HTML and JavaScript served by the same operator that runs the relay. A modified bundle could read the documents you open, or use the chain keys stored in the page. Nothing in the browser can detect that. There is no subresource integrity and no published bundle hash yet.
 
 Use the desktop or mobile apps when this matters to you. Their code is fixed at install time and changes only through signed updates (§ 4.6). The web app is a convenience.
 
 ### 4.4 A compromised device
 
-Malware on a device of the chain, someone with your unlocked session, or a hostile browser extension sees what you see: plaintext documents, and on web the chain keys and API keys usable in place. A device that was compromised while in the chain should be treated as having leaked `S`. "New chain" (desktop) re-encrypts everything under a new secret and deletes the old chain from the relay; it cannot recall what the device already copied.
+Malware on a device of the chain, someone with your unlocked session, or a hostile browser extension sees what you see: plaintext documents, and on web the chain keys usable in place. A device that was compromised while in the chain should be treated as having leaked `S`. "New chain" (desktop) re-encrypts everything under a new secret and deletes the old chain from the relay; it cannot recall what the device already copied.
 
-### 4.5 Text you send to a provider
+### 4.5 No third-party processing of your text
 
-Summaries, mind maps, flashcards, chat and text to speech send the text concerned directly from your device to Anthropic or ElevenLabs, with your own API key, over HTTPS. This is not end-to-end encrypted: the provider reads it, under its own privacy policy. On desktop, if the Claude command line tool is installed, Lector can use it instead, and it follows that tool's own settings. Lector's relay is never on that path.
+Lector sends the text of a document to no provider: it has no assistant and no reading aloud. Versions before 2.2 could, with the user's own API keys; 2.2 deletes those keys at startup (`userData/api-keys.dat` on desktop, the `lector-keys` IndexedDB database on web and mobile), with the data those features kept in the page storage (`front/src/services/nettoyage.js`). This is a deletion, not a secure wipe.
 
 ### 4.6 Updates
 
@@ -93,7 +92,7 @@ The signing keys are held by the developer. Reproducible builds and signed build
 
 ### 4.7 Content loaded by a document
 
-A document can point to remote images, embedded videos (YouTube, Vimeo, Rumble) or score sounds (`paulrosen.github.io`, `surikov.github.io`). When the document is shown, or the score is played, these are fetched from the third party, which sees your IP address. The HTML of documents is sanitized and scripts never run in the app's origin.
+A document can point to remote images or embedded videos (YouTube, Vimeo, Rumble). When the document is shown, these are fetched from the third party, which sees your IP address. The HTML of documents is sanitized and scripts never run in the app's origin.
 
 ### 4.8 Server backups
 
@@ -122,7 +121,7 @@ Not protected: everyone who has the link is a full co-author (read, write, erase
 | Someone who knows a chain identifier only | Learn whether that chain exists (404 or 403); nothing else, and wrong proofs never lock out the owner | Read, write or learn the size of the chain |
 | Someone who has the proof only | Write, delete or erase the chain | Read anything |
 | Someone who has the 12 words, the QR or the recovery kit | Everything: read, write, erase, start a new chain | |
-| Thief of a locked device | What the operating system lets through (Lector adds no local encryption) | Unlock the system keychain without your session (desktop secret, API keys) |
+| Thief of a locked device | What the operating system lets through (Lector adds no local encryption) | Unlock the system keychain without your session (desktop secret) |
 | Malicious document | Load remote images and embedded players (§ 4.7) | Run a script in the app's origin; read outside the folders you opened (desktop) |
 | Compromised update channel | Web: anything (§ 4.3). Windows and Linux desktop: ship a modified build | Android, iOS, macOS: install an update without the developer's signing key |
 | Future quantum computer | See § 6 | |
@@ -137,7 +136,6 @@ Consequences:
 - **No "harvest now, decrypt later" risk on document content.** Recording the encrypted blocks today and breaking an elliptic curve or RSA key later does not help, because the blocks are not protected by one. Shor's algorithm does not apply to AES, HMAC or HKDF.
 - Grover's algorithm in theory halves the effective bit strength of a brute-force search. The content key is 256 bits, but all keys come from the 128-bit `S`, so a quantum search for `S` would in theory need on the order of 2^64 sequential quantum evaluations. This is generally regarded as out of reach, and 128-bit symmetric security is NIST's lowest post-quantum security category (category 1).
 - **TLS is not post-quantum here.** HTTPS between your device and the relay uses whatever key exchange the client and the proxy negotiate, which today may be classical. Someone who records that traffic and later breaks it would see request metadata and the proof `P` of that time (§ 4.9), still not the content, which stays AES-GCM inside.
-- **Requests to AI and voice providers** rely only on TLS. Recorded today, they could be read later by an adversary who breaks the key exchange that was used.
 - **Update signatures use Ed25519**, which a large quantum computer could forge. That would allow a forged update only at the time such a computer exists, not retroactively. A move to a post-quantum or hybrid signature will be considered when it is supported by the platforms Lector targets.
 
 ## 7. Abuse

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { FileText, Folder, Search, Music } from 'lucide-react';
+import { FileText, Folder, Search } from 'lucide-react';
 import normalizeSearch from '../utils/normalizeSearch';
 import './QuickOpen.css';
 import { t } from '../services/i18n'
@@ -212,9 +212,9 @@ function QuickOpen({ onClose, rootDirPath, onFocusFolder }) {
               onMouseEnter={() => setSelectedIndex(i)}
             >
               <span className="quick-open-icon">
-                {item.isDirectory ? <Folder size={14} /> : (item.name.endsWith('.mid') || item.name.endsWith('.midi')) ? <Music size={14} /> : <FileText size={14} />}
+                {item.isDirectory ? <Folder size={14} /> : <FileText size={14} />}
               </span>
-              <span className="quick-open-name">{highlightMatch(item.isDirectory ? item.name : item.name.replace(/\.(md|mid|midi)$/, ''), query)}</span>
+              <span className="quick-open-name">{highlightMatch(item.isDirectory ? item.name : item.name.replace(/\.(md|markdown)$/, ''), query)}</span>
               <span className="quick-open-path">{highlightMatch(item.relativePath, query)}</span>
             </button>
           ))}

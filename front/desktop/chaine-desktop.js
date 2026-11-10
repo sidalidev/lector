@@ -41,7 +41,6 @@ class ChaineDesktop {
    * @param {() => boolean} [d.stockageSur]  vrai si safeStorage chiffre vraiment
    * @param {(evt: object) => void} [d.emettre]
    * @param {(msg: string) => void} [d.log]
-   * @param {() => void} [d.effacerClesApi]  vide les clés API de cet ordinateur (keys-store)
    * @param {(dossier: string) => Promise<void>} [d.mettreALaCorbeille]  shell.trashItem, jamais de suppression définitive
    * @param {string} d.serverUrlParDefaut
    */
@@ -351,8 +350,7 @@ class ChaineDesktop {
    * Tout effacer, verrou ouvert et `confirmation` = 'DELETE', dans cet ordre :
    * 1. le casier entier disparaît du serveur ;
    * 2. cet appareil oublie S (cloud-secrets.dat) et la base de synchro du vault ;
-   * 3. les clés API de cet ordinateur sont vidées (api-keys.dat) ;
-   * 4. si `options.localFolder`, le dossier du vault part à la corbeille du
+   * 3. si `options.localFolder`, le dossier du vault part à la corbeille du
    *    système (jamais de suppression définitive) et n'est plus le vault.
    * Sans la case, le vault local reste intact.
    * Renvoie { ok: true, trashed } ; trashError si la corbeille a refusé
@@ -377,7 +375,6 @@ class ChaineDesktop {
       this._sauver(SANS_CHAINE)
       if (c.vaultPath) effacerBaseChaine(c.vaultPath)
       this._attente = null
-      try { this.d.effacerClesApi?.() } catch (err) { this._log('Chain erase: API keys not cleared: ' + (err?.message || err)) }
       if (!options?.localFolder || !c.vaultPath || !this.d.mettreALaCorbeille) return { ok: true, trashed: false }
       try {
         await this.d.mettreALaCorbeille(c.vaultPath)

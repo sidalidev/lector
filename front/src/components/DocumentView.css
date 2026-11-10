@@ -60,141 +60,13 @@
 }
 
 /* AI Header: Summary + MindMap */
-.doc-header-ai {
-  margin: 1.5em 0 2.5em;
-  display: flex;
-  flex-direction: column;
-  gap: 1em;
-}
-
-.doc-summary {
-  min-height: 0;
-}
-
-.doc-summary-content {
-  padding: 12px 16px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  font-size: 0.85em;
-  line-height: 1.6;
-  color: var(--text-secondary);
-}
-
-.doc-summary-content p {
-  margin: 0.4em 0;
-}
-
-.doc-summary-content ul {
-  margin: 0.4em 0;
-  padding-left: 1.2em;
-}
-
-.doc-summary-content li {
-  margin: 0.2em 0;
-}
-
-.doc-summary-skeleton {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.skeleton-line {
-  height: 12px;
-  background: var(--border);
-  border-radius: 10px;
-  animation: skeleton-pulse 1.2s ease-in-out infinite;
-}
-
-.skeleton-line.short {
-  width: 60%;
-}
 
 @keyframes skeleton-pulse {
   0%, 100% { opacity: 0.4; }
   50% { opacity: 0.8; }
 }
 
-.doc-mindmap {
-  border-radius: 14px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  overflow: hidden;
-}
-
 /* Inline Mind Map (legacy, kept for compat) */
-.inline-mindmap {
-  margin: 1.5em 0 2.5em;
-  border-radius: 14px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  overflow: hidden;
-}
-
-.mindmap-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.mindmap-toggle {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 13px;
-  color: var(--text-secondary);
-  transition: all 0.2s;
-}
-
-.mindmap-toggle:hover {
-  background: rgba(var(--accent-rgb), 0.1);
-  color: var(--accent-text);
-}
-
-.mindmap-fullscreen-btn {
-  padding: 8px 14px;
-  margin-right: 8px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 16px;
-  color: var(--text-secondary);
-  border-radius: 10px;
-  transition: all 0.2s;
-}
-
-.mindmap-fullscreen-btn:hover {
-  background: rgba(var(--accent-rgb), 0.15);
-  color: var(--accent-text);
-}
-
-.toggle-icon {
-  font-size: 10px;
-  transition: transform 0.2s;
-}
-
-.toggle-label {
-  font-weight: 500;
-}
-
-.mindmap-container {
-  height: 300px;
-  min-height: 300px;
-  border-top: 1px solid var(--border);
-  background: var(--bg-primary);
-}
-
-.inline-mindmap.collapsed .mindmap-container {
-  display: none;
-}
 
 .document-content h2 {
   font-size: 1.6em;
@@ -540,25 +412,57 @@
 }
 
 .document-content .code-block {
-  margin: 0 !important;
-  border-radius: 14px !important;
-  font-size: 14px !important;
-  line-height: 1.6 !important;
-  background: var(--bg-secondary) !important;
-  border: 1px solid var(--border) !important;
-}
-
-.document-content .code-block pre {
-  background: var(--bg-secondary) !important;
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--code-text);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  overflow-x: auto;
 }
 
 .document-content .code-block code {
-  font-family: var(--font-mono) !important;
-  background: transparent !important;
-  white-space: pre-wrap !important;
-  word-break: break-all !important;
-  overflow-wrap: break-word !important;
+  font-family: var(--font-mono);
+  background: transparent;
+  padding: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-wrap: break-word;
 }
+
+/* Couleurs de highlight.js ramenées aux jetons de la charte (clair et sombre) */
+.document-content .hljs-comment,
+.document-content .hljs-quote,
+.document-content .hljs-meta { color: var(--code-comment); font-style: italic; }
+.document-content .hljs-keyword,
+.document-content .hljs-selector-tag,
+.document-content .hljs-built_in,
+.document-content .hljs-type,
+.document-content .hljs-doctag { color: var(--code-keyword); }
+.document-content .hljs-title,
+.document-content .hljs-title.function_,
+.document-content .hljs-section,
+.document-content .hljs-selector-id,
+.document-content .hljs-selector-class { color: var(--code-function); }
+.document-content .hljs-string,
+.document-content .hljs-regexp,
+.document-content .hljs-addition,
+.document-content .hljs-attr,
+.document-content .hljs-symbol { color: var(--code-string); }
+.document-content .hljs-number,
+.document-content .hljs-literal,
+.document-content .hljs-variable,
+.document-content .hljs-template-variable,
+.document-content .hljs-params { color: var(--code-number); }
+.document-content .hljs-tag,
+.document-content .hljs-name,
+.document-content .hljs-attribute,
+.document-content .hljs-deletion,
+.document-content .hljs-bullet { color: var(--code-tag); }
+.document-content .hljs-emphasis { font-style: italic; }
+.document-content .hljs-strong { font-weight: 700; }
 
 /* Inline code */
 .document-content .inline-code {
@@ -732,617 +636,72 @@
 }
 
 /* ABC Music Notation: Guitar Tablature + Playback */
-.abc-block {
-  margin: 1.5em 0;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-}
 
 /* Scrollable notation area: capped height, player always visible below */
-.abc-scroll-area {
-  overflow-y: auto;
-  overflow-x: hidden;
-  max-height: 50vh;
-}
 
 /* ===== Guitar chord strip: row of clickable chord diagrams ===== */
-.abc-chord-strip {
-  display: flex;
-  gap: 6px;
-  padding: 8px 12px;
-  overflow-x: auto;
-  border-top: 1px solid var(--border);
-  background: var(--bg-primary);
-}
-
-.abc-chord-card {
-  flex-shrink: 0;
-  border-radius: 14px;
-  border: 2px solid transparent;
-  transition: all 0.15s;
-  position: relative;
-}
-
-.abc-chord-card.abc-chord-playable {
-  cursor: pointer;
-}
-
-.abc-chord-card.abc-chord-playable:hover {
-  border-color: var(--accent);
-  background: rgba(var(--accent-rgb), 0.06);
-}
-
-.abc-chord-card.abc-chord-playable:hover .abc-chord-play-icon {
-  opacity: 1 !important;
-}
-
-.abc-chord-card.abc-chord-active {
-  border-color: var(--accent);
-  background: rgba(var(--accent-rgb), 0.1);
-  box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.25);
-}
 
 /* ===== Guitar dynamic fingering zone (chord or fretboard) ===== */
-.abc-guitar-fingering-zone {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 12px;
-  border-top: 1px solid var(--border);
-  background: var(--bg-primary);
-  min-height: 80px;
-  transition: all 0.15s ease;
-}
-
-.abc-guitar-fingering-zone .abc-chord-card {
-  border-color: var(--accent);
-  background: rgba(var(--accent-rgb), 0.06);
-}
-
-.abc-guitar-fretboard {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 
 /* ===== Guitar fingering strip (scrollable band of all events) ===== */
-.abc-fingering-strip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border-top: 1px solid var(--border);
-  background: var(--bg-primary);
-  overflow-x: auto;
-  overflow-y: hidden;
-  min-height: 80px;
-  scroll-behavior: smooth;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
-}
-
-.abc-fingering-strip::-webkit-scrollbar {
-  height: 4px;
-}
-.abc-fingering-strip::-webkit-scrollbar-track {
-  background: transparent;
-}
-.abc-fingering-strip::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 2px;
-}
-
-.abc-fingering-strip-item {
-  flex-shrink: 0;
-  padding: 4px;
-  border-radius: var(--radius-sm, 6px);
-  border: 2px solid transparent;
-  opacity: 0.5;
-  cursor: pointer;
-  transition: opacity 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.abc-fingering-strip-item:hover {
-  opacity: 0.8;
-  border-color: var(--border);
-}
-
-.abc-fingering-strip-item.active {
-  opacity: 1;
-  border-color: var(--accent);
-  box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.3);
-}
 
 /* Bottom bar for fingering + audio controls: always visible below scroll */
-.abc-sticky-bar {
-  background: var(--bg-secondary);
-  border-top: 1px solid var(--border);
-}
 
 /* Controls bar */
-.abc-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border);
-  flex-wrap: wrap;
-  background: var(--bg-primary);
-}
 
 /* View toggle (segmented control) */
-.abc-view-toggle {
-  display: flex;
-  background: var(--bg-secondary);
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-}
-
-.abc-view-toggle button {
-  padding: 4px 10px;
-  font-size: 12px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--text-secondary);
-  font-family: var(--font-sans);
-  transition: all 0.15s;
-}
-
-.abc-view-toggle button:hover {
-  background: rgba(var(--accent-rgb), 0.1);
-}
-
-.abc-view-toggle button.active {
-  background: var(--accent);
-  color: var(--on-accent);
-}
 
 /* Instrument selector */
-.abc-instrument-select {
-  font-size: 12px;
-  padding: 3px 6px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--text-secondary);
-  font-family: var(--font-sans);
-  cursor: pointer;
-}
 
 /* Notation area */
-.abc-notation {
-  display: flex;
-  justify-content: center;
-  padding: 16px;
-}
-
-.abc-notation svg {
-  max-width: 100%;
-  height: auto;
-}
 
 /* Override for Verovio rendering */
-.abc-notation.verovio-notation {
-  display: block;
-  padding: 4px 8px 0;
-}
 
 /* Tab-only mode: hide standard staff, keep tablature */
-.abc-block.tab-only .abcjs-staff {
-  display: none;
-}
-.abc-block.tab-only .abcjs-tab-staff {
-  display: block !important;
-}
 
 /* Audio controls: custom theme overriding abcjs defaults */
-.abc-audio {
-  padding: 6px 10px;
-  border-top: 1px solid var(--border);
-}
-
-.abc-audio .abcjs-inline-audio {
-  display: flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  background: var(--bg-primary) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 10px !important;
-  height: auto !important;
-  min-height: 36px !important;
-  padding: 4px 8px !important;
-  flex-wrap: nowrap !important;
-}
 
 /* Hide the CSS warning */
-.abc-audio .abcjs-inline-audio .abcjs-css-warning {
-  display: none !important;
-}
 
 /* Play/pause button */
-.abc-audio .abcjs-inline-audio .abcjs-btn {
-  flex-shrink: 0 !important;
-  width: 28px !important;
-  height: 28px !important;
-  min-width: 28px !important;
-  padding: 4px !important;
-  margin: 0 !important;
-  border-radius: 10px !important;
-  border: none !important;
-  background: transparent !important;
-  cursor: pointer !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  transition: background 0.15s;
-}
-
-.abc-audio .abcjs-inline-audio .abcjs-btn svg {
-  width: 18px !important;
-  height: 18px !important;
-}
-
-.abc-audio .abcjs-inline-audio .abcjs-btn:hover {
-  background: rgba(var(--accent-rgb), 0.15) !important;
-}
-
-.abc-audio .abcjs-btn g,
-.abc-audio .abcjs-btn polygon,
-.abc-audio .abcjs-btn rect {
-  fill: var(--text-primary) !important;
-  stroke: var(--text-primary) !important;
-}
-
-.abc-audio .abcjs-inline-audio .abcjs-btn:hover g,
-.abc-audio .abcjs-inline-audio .abcjs-btn:hover polygon,
-.abc-audio .abcjs-inline-audio .abcjs-btn:hover rect {
-  fill: var(--accent) !important;
-  stroke: var(--accent) !important;
-}
 
 /* Progress bar */
-.abc-audio .abcjs-inline-audio .abcjs-midi-progress-background {
-  flex: 1 1 auto !important;
-  min-width: 60px !important;
-  position: relative !important;
-  background: var(--bg-secondary) !important;
-  border: 1px solid var(--border) !important;
-  height: 6px !important;
-  border-radius: 3px !important;
-  margin: 0 4px !important;
-  padding: 0 !important;
-  cursor: pointer !important;
-}
-
-.abc-audio .abcjs-inline-audio .abcjs-midi-progress-indicator {
-  position: absolute !important;
-  background: var(--accent) !important;
-  width: 12px !important;
-  height: 12px !important;
-  border-radius: 50% !important;
-  top: -4px !important;
-  margin-left: -6px !important;
-  box-shadow: 0 1px 3px rgba(var(--shadow-rgb),0.2) !important;
-}
 
 /* Clock */
-.abc-audio .abcjs-inline-audio .abcjs-midi-clock {
-  flex-shrink: 0 !important;
-  color: var(--text-secondary) !important;
-  font-size: 11px !important;
-  font-family: var(--font-mono, monospace) !important;
-  min-width: 32px !important;
-  text-align: center !important;
-  line-height: 1 !important;
-}
 
 /* Tempo/warp */
-.abc-audio .abcjs-inline-audio .abcjs-tempo-wrapper {
-  flex-shrink: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 2px !important;
-  color: var(--text-muted) !important;
-  font-size: 10px !important;
-  font-family: var(--font-sans) !important;
-  line-height: 1 !important;
-  white-space: nowrap !important;
-}
-
-.abc-audio .abcjs-inline-audio .abcjs-midi-tempo {
-  border: 1px solid var(--border) !important;
-  border-radius: 4px !important;
-  background: var(--bg-secondary) !important;
-  color: var(--text-primary) !important;
-  font-size: 10px !important;
-  width: 34px !important;
-  padding: 2px 3px !important;
-  text-align: center !important;
-  -moz-appearance: textfield !important;
-}
 
 /* Hide spin buttons on tempo input */
-.abc-audio .abcjs-inline-audio .abcjs-midi-tempo::-webkit-outer-spin-button,
-.abc-audio .abcjs-inline-audio .abcjs-midi-tempo::-webkit-inner-spin-button {
-  -webkit-appearance: none !important;
-  margin: 0 !important;
-}
 
 /* Hide abcjs native tempo/warp (replaced by our custom speed controls) */
-.abc-audio .abcjs-inline-audio .abcjs-tempo-wrapper {
-  display: none !important;
-}
 
 /* ===== Player wrapper ===== */
-.abc-player {
-  border-top: 1px solid var(--border);
-}
-
-.abc-player .abc-audio {
-  border-top: none;
-}
 
 /* ===== Guitar custom player (WebAudioFont) ===== */
-.abc-guitar-player {
-  padding: 6px 10px;
-}
-
-.abc-guitar-player-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 4px 8px;
-  min-height: 36px;
-}
-
-.abc-guitar-play-btn {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  min-width: 28px;
-  padding: 0;
-  border-radius: 10px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-primary);
-  transition: background 0.15s;
-}
-
-.abc-guitar-play-btn:hover:not(:disabled) {
-  background: rgba(var(--accent-rgb), 0.15);
-  color: var(--accent-text);
-}
-
-.abc-guitar-play-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.abc-guitar-progress-bg {
-  flex: 1 1 auto;
-  min-width: 60px;
-  position: relative;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  height: 6px;
-  border-radius: 3px;
-  overflow: hidden;
-  cursor: pointer;
-}
-
-.abc-guitar-progress-fill {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  background: var(--accent);
-  border-radius: 3px;
-  transition: width 0.05s linear;
-}
-
-.abc-guitar-time {
-  flex-shrink: 0;
-  color: var(--text-secondary);
-  font-size: 11px;
-  font-family: var(--font-mono, monospace);
-  min-width: 32px;
-  text-align: center;
-  line-height: 1;
-}
 
 /* ===== Custom controls row (speed + volume) ===== */
-.abc-custom-controls {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 4px 12px 6px;
-  gap: 12px;
-}
 
 /* Speed control group */
-.abc-speed-control {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.abc-speed-label {
-  font-size: 11px;
-  font-family: var(--font-mono, monospace);
-  color: var(--text-secondary);
-  min-width: 36px;
-  text-align: center;
-  user-select: none;
-}
 
 /* Shared small button style */
-.abc-ctrl-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 0;
-  transition: all 0.15s;
-}
-
-.abc-ctrl-btn:hover:not(:disabled) {
-  background: var(--bg-primary);
-  color: var(--accent-text);
-  border-color: var(--accent);
-}
-
-.abc-ctrl-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
 
 /* Volume control group */
-.abc-volume-control {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.abc-volume-slider {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 70px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--bg-secondary);
-  outline: none;
-  cursor: pointer;
-}
-
-.abc-volume-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--accent);
-  cursor: pointer;
-  box-shadow: 0 1px 2px rgba(var(--shadow-rgb),0.2);
-}
-
-.abc-volume-slider::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--accent);
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 1px 2px rgba(var(--shadow-rgb),0.2);
-}
 
 /* Playback cursor highlight (abcjs - hidden renderer) */
-.abcjs-highlight {
-  fill: var(--accent) !important;
-  stroke: var(--accent) !important;
-  opacity: 0.85;
-}
 
 /* ===== Verovio Notation Engraving ===== */
-.verovio-notation svg {
-  width: 100%;
-  height: auto;
-  display: block;
-}
 
 /* Verovio playback highlight: notes glow during playback */
-.verovio-playing {
-  fill: var(--accent) !important;
-  stroke: var(--accent) !important;
-  opacity: 0.9;
-  transition: fill 0.1s ease;
-}
 
 /* Loading state: reserve space to avoid layout shift */
-.abc-loading {
-  padding: 24px;
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 13px;
-  font-family: var(--font-sans);
-  min-height: 120px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 
 /* Render error */
-.abc-render-error {
-  padding: 12px 16px;
-  color: var(--text-warning, var(--danger));
-  font-size: 12px;
-  font-family: var(--font-sans);
-}
 
 /* Guitar tablature section (abcjs tab below Verovio notation) */
-.abc-tab-section {
-  border-top: 1px solid var(--border);
-  padding: 8px 16px;
-}
-
-.abc-tab-section .abc-tab-render {
-  display: flex;
-  justify-content: center;
-}
-
-.abc-tab-section .abc-tab-render svg {
-  max-width: 100%;
-  height: auto;
-}
 
 /* In tab-only mode, hide the standard staff from abcjs tab render */
-.abc-tab-render.tab-only-mode .abcjs-staff {
-  display: none;
-}
-.abc-tab-render.tab-only-mode .abcjs-tab-staff {
-  display: block !important;
-}
 
 /* ===== ABC Fingering Chart Panel ===== */
-.abc-fingering {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border-top: 1px solid var(--border);
-  background: var(--bg-primary);
-  min-height: 60px;
-}
-
-.abc-fingering-svg {
-  flex-shrink: 0;
-}
-
-.abc-fingering-hint {
-  font-size: 12px;
-  color: var(--text-muted);
-  font-family: var(--font-sans);
-  font-style: italic;
-}
 
 /* ===== Phase 1: Metadata ===== */
 
@@ -1375,282 +734,17 @@
   color: var(--text-muted);
 }
 
-.loading-badge {
-  animation: skeleton-pulse 1.2s ease-in-out infinite;
-}
-
-.difficulty-beginner {
-  background: rgba(var(--success-rgb), 0.1);
-  color: var(--success);
-  border-color: rgba(var(--success-rgb), 0.3);
-}
-
-.difficulty-intermediate {
-  background: rgba(var(--accent-rgb), 0.1);
-  color: var(--accent-icon);
-  border-color: rgba(var(--accent-rgb), 0.3);
-}
-
-.difficulty-advanced {
-  background: rgba(var(--danger-rgb), 0.1);
-  color: var(--danger);
-  border-color: rgba(var(--danger-rgb), 0.3);
-}
-
 /* Keywords */
-.doc-keywords {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 4px;
-}
-
-.keyword-chip {
-  padding: 3px 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(var(--accent-rgb), 0.3);
-  background: rgba(var(--accent-rgb), 0.08);
-  color: var(--accent-text);
-  font-size: 0.75em;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s;
-  font-family: var(--font-sans);
-}
-
-.keyword-chip:hover {
-  background: rgba(var(--accent-rgb), 0.2);
-  border-color: var(--accent);
-}
 
 /* Glossary */
-.glossary-section {
-  margin-top: 4px;
-  border-radius: 14px;
-  overflow: hidden;
-}
-
-.glossary-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 0.8em;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s;
-  font-family: var(--font-sans);
-}
-
-.glossary-toggle:hover {
-  color: var(--accent-text);
-}
-
-.glossary-content {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.3s ease, opacity 0.3s ease;
-  opacity: 0;
-  padding: 0 12px;
-}
-
-.glossary-content.open {
-  max-height: 600px;
-  opacity: 1;
-  padding: 4px 12px 12px;
-}
-
-.glossary-item {
-  padding: 6px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.glossary-item:last-child {
-  border-bottom: none;
-}
-
-.glossary-term {
-  font-weight: 600;
-  font-size: 0.8em;
-  color: var(--text-primary);
-  font-family: var(--font-sans);
-}
-
-.glossary-definition {
-  font-size: 0.75em;
-  color: var(--text-secondary);
-  margin: 2px 0 0;
-  line-height: 1.5;
-  font-family: var(--font-sans);
-}
 
 /* ===== AI Generated Block ===== */
-.ai-generated-block {
-  margin: 1.5em 0 2em;
-  padding: 16px;
-  background: rgba(var(--ai-rgb), 0.06);
-  border: 1px solid rgba(var(--ai-rgb), 0.2);
-  border-radius: 22px;
-  position: relative;
-}
-
-.ai-generated-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.ai-generated-header-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.ai-generated-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
-  border-radius: 14px;
-  font-size: 11px;
-  font-weight: 600;
-  font-family: var(--font-sans);
-  background: rgba(var(--ai-rgb), 0.12);
-  color: var(--color-ai);
-  border: 1px solid rgba(var(--ai-rgb), 0.25);
-  letter-spacing: 0.3px;
-}
-
-.ai-regenerate-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 1px solid rgba(var(--ai-rgb), 0.2);
-  background: rgba(var(--ai-rgb), 0.06);
-  border-radius: 14px;
-  color: var(--color-ai);
-  cursor: pointer;
-  transition: all 0.2s;
-  padding: 0;
-}
-
-.ai-regenerate-btn:hover:not(:disabled) {
-  background: rgba(var(--ai-rgb), 0.15);
-  border-color: var(--color-ai);
-}
-
-.ai-regenerate-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.ai-regenerate-btn .spinning {
-  animation: spin 1s linear infinite;
-}
 
 /* AI Action buttons (Quiz + Regenerate) */
-.doc-ai-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.quiz-generate-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border: 1px solid rgba(var(--ai-rgb), 0.3);
-  background: rgba(var(--ai-rgb), 0.06);
-  color: var(--color-ai);
-  border-radius: 14px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-family: var(--font-sans);
-}
-
-.quiz-generate-btn:hover:not(:disabled) {
-  background: rgba(var(--ai-rgb), 0.12);
-  border-color: var(--color-ai);
-}
-
-.quiz-generate-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
 
 /* Regenerate & Save button: thème IA violet */
-.regenerate-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border: 1px solid rgba(var(--ai-rgb), 0.3);
-  background: rgba(var(--ai-rgb), 0.06);
-  color: var(--color-ai);
-  border-radius: 14px;
-  font-size: 0.8em;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-family: var(--font-sans);
-}
-
-.regenerate-btn:hover:not(:disabled) {
-  background: rgba(var(--ai-rgb), 0.12);
-  border-color: var(--color-ai);
-}
-
-.regenerate-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.regenerate-btn .spinning {
-  animation: spin 1s linear infinite;
-}
 
 /* ===== Phase 3b: AI Header auto-hide ===== */
-
-.doc-header-ai.collapsed {
-  max-height: 40px;
-  overflow: hidden;
-  transition: max-height 0.3s ease, opacity 0.3s ease;
-}
-
-.doc-header-ai:not(.collapsed) {
-  transition: max-height 0.3s ease;
-}
-
-.ai-header-restore {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border: 1px solid var(--border);
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-  border-radius: 10px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-family: var(--font-sans);
-}
-
-.ai-header-restore:hover {
-  color: var(--color-ai);
-  border-color: var(--color-ai);
-}
 
 /* ===== Phase 3c: Inter-doc links ===== */
 
@@ -1665,34 +759,6 @@
 }
 
 /* ===== Flashcards CTA dans le bloc IA ===== */
-
-.doc-flashcards-cta {
-  margin-bottom: 12px;
-}
-
-.doc-flashcards-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 12px 16px;
-  background: rgba(var(--ai-rgb), 0.08);
-  border: 1.5px solid rgba(var(--ai-rgb), 0.25);
-  border-radius: 14px;
-  color: var(--color-ai-hover);
-  font-size: 14px;
-  font-weight: 600;
-  font-family: var(--font-sans);
-  cursor: pointer;
-  transition: var(--transition-spring);
-}
-
-.doc-flashcards-btn:hover {
-  background: rgba(var(--ai-rgb), 0.16);
-  border-color: rgba(var(--ai-rgb), 0.4);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
-}
 
 /* ===================== */
 /* Mobile Responsive     */
@@ -1766,26 +832,10 @@
   }
 
   /* AI Summary */
-  .doc-header-ai {
-    margin: 1em 0 1.5em;
-  }
-
-  .doc-summary-content {
-    font-size: 13px;
-    padding: 10px 12px;
-  }
 
   /* MindMap smaller on mobile */
-  .doc-mindmap {
-    min-height: 200px;
-    max-height: 280px;
-  }
 
   /* AI Generated block mobile */
-  .ai-generated-block {
-    padding: 12px;
-    margin: 1em 0 1.5em;
-  }
 
 }
 
@@ -1884,102 +934,12 @@
 
 
 /* Lazy render placeholder */
-.lazy-placeholder {
-  background: var(--bg-secondary);
-  border-radius: var(--radius-md);
-  opacity: 0.4;
-}
 
 /* Bloc ```chords: diagrammes d'accords guitare */
-.chords-block {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 1em 0;
-}
 
 /* Bloc ```tab: tablature guitare sur manche SVG */
-.tab-block {
-  margin: 1em 0;
-  background: var(--bg-secondary);
-  border-radius: var(--radius-md);
-  padding: 12px;
-  overflow-x: auto;
-}
-
-.tab-block.tab-fretboard {
-  padding: 8px 0;
-}
-
-.tab-block.tab-fretboard svg {
-  display: block;
-  min-width: min-content;
-}
-
-.tab-pre {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 14px;
-  line-height: 1.4;
-  color: var(--text-primary);
-  white-space: pre;
-}
 
 /* Bloc ```strum: pattern de strumming */
-.strum-block {
-  margin: 1em 0;
-}
-
-.strum-pattern {
-  display: flex;
-  align-items: flex-end;
-  gap: 4px;
-  padding: 12px 16px;
-  background: var(--bg-secondary);
-  border-radius: var(--radius-md);
-}
-
-.strum-beat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  min-width: 28px;
-  color: var(--text-secondary);
-}
-
-.strum-beat.accent {
-  color: var(--accent-text);
-  font-weight: 700;
-}
-
-.strum-beat.mute {
-  color: var(--text-muted);
-}
-
-.strum-beat.pause {
-  color: var(--border);
-}
-
-.strum-arrow {
-  display: block;
-}
-
-.strum-mute {
-  font-size: 20px;
-  line-height: 40px;
-}
-
-.strum-pause {
-  font-size: 24px;
-  line-height: 40px;
-}
-
-.strum-label {
-  font-size: 10px;
-  font-family: var(--font-mono);
-  opacity: 0.6;
-}
 
 
 /* --- Tâches : - [ ] et - [x], cochables dans la lecture --- */

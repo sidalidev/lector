@@ -45,7 +45,7 @@ Press <kbd>Ctrl</kbd> for H<sub>2</sub>O and <mark>marked</mark> text.
 
 - [x] done task
 
-When $a \\ne 0$, math still renders: $$x^2$$
+Dollars stay plain text: $x^2$
 
 \`\`\`javascript
 const x = 1
@@ -89,7 +89,7 @@ test.beforeEach(async ({ page }) => {
 test.describe('Rendu sûr des documents', () => {
   test('le HTML brut d\'un document ne lance aucun script et garde ce que Lector affiche', async ({ page }) => {
     const contenu = page.locator('.document-content')
-    await expect(contenu.locator('.katex').first()).toBeAttached({ timeout: 10000 })
+    await expect(contenu.locator('pre').filter({ hasText: 'const x = 1' })).toBeVisible({ timeout: 10000 })
     await page.getByText('trap link').evaluate((a) => a.click())
     await page.waitForTimeout(500)
 
@@ -119,13 +119,15 @@ test.describe('Rendu sûr des documents', () => {
     })
 
     // Ce dont Lector a besoin reste là.
-    await expect(contenu.locator('.katex').first()).toBeVisible()
+    await expect(contenu.locator('.katex')).toHaveCount(0)
+    await expect(contenu).toContainText('Dollars stay plain text: $x^2$')
     await expect(contenu.locator('details summary')).toHaveText('More')
     await expect(contenu.locator('kbd')).toHaveText('Ctrl')
     await expect(contenu.locator('sub')).toHaveText('2')
     await expect(contenu.locator('mark')).toHaveText('marked')
     await expect(contenu.locator('table td').first()).toHaveText('1')
-    await expect(contenu.locator('li input[type="checkbox"][disabled]')).toHaveCount(1)
+    // Une case de tâche se coche (Lector l'écrit dans la note) : active, sans script.
+    await expect(contenu.locator('li input[type="checkbox"].task-checkbox')).toHaveCount(1)
     await expect(contenu.locator('h2#second-section[data-header-id]')).toHaveCount(1)
     await expect(contenu.locator('[data-source-line]').first()).toBeAttached()
     await expect(contenu.locator('pre').filter({ hasText: 'const x = 1' })).toBeVisible()
@@ -184,29 +186,4 @@ test('aucune police ni aucun script ne vient d\'un tiers au lancement', async ({
   })
   expect(polices).toEqual(expect.arrayContaining(['Figtree', 'Bricolage Grotesque', 'Literata Variable']))
   expect(tiers).toEqual([])
-})
-
-// Sons de guitare : le lecteur est un fichier de l'app et les sons sont lus
-// comme des données, deux choses que la CSP laisse passer (servis ici sans réseau).
-test('la guitare se charge sous la CSP', async ({ page }) => {
-  const echantillons = new Int16Array(64).map((_, i) => Math.round(8000 * Math.sin(i / 3)))
-  const entete = Buffer.alloc(44)
-  entete.write('RIFF', 0); entete.writeUInt32LE(36 + echantillons.byteLength, 4); entete.write('WAVE', 8)
-  entete.write('fmt ', 12); entete.writeUInt32LE(16, 16); entete.writeUInt16LE(1, 20); entete.writeUInt16LE(1, 22)
-  entete.writeUInt32LE(8000, 24); entete.writeUInt32LE(16000, 28); entete.writeUInt16LE(2, 32); entete.writeUInt16LE(16, 34)
-  entete.write('data', 36); entete.writeUInt32LE(echantillons.byteLength, 40)
-  const wav = Buffer.concat([entete, Buffer.from(echantillons.buffer)]).toString('base64')
-  await page.route('https://surikov.github.io/**', (route) => {
-    const nom = route.request().url().split('/').pop().replace('.js', '')
-    route.fulfill({
-      contentType: 'application/javascript',
-      body: `console.log('load _tone_${nom}');\nvar _tone_${nom}={\n\tzones:[\n\t\t{\n\t\t\tmidi:24\n\t\t\t,originalPitch:4000\n\t\t\t,keyRangeLow:0\n\t\t\t,keyRangeHigh:127\n\t\t\t,loopStart:0\n\t\t\t,loopEnd:0\n\t\t\t,sampleRate:8000\n\t\t\t,ahdsr:true\n\t\t\t,file:'${wav}'\n\t\t\t//_tone.N_Gtr_\n\t\t}\n\t]\n};\n`,
-    })
-  })
-  const pret = await page.evaluate(async () => {
-    const guitare = await import('/src/services/guitarAudio.js')
-    await guitare.initGuitarAudio(new AudioContext())
-    return guitare.isGuitarAudioReady()
-  })
-  expect(pret).toBe(true)
 })

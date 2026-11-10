@@ -1,39 +1,21 @@
-import { useMemo, useState, useEffect, useLayoutEffect, forwardRef, memo, useRef, useCallback, lazy, Suspense } from 'react';
+import { useMemo, useState, useEffect, useLayoutEffect, forwardRef, memo, useRef, useCallback, lazy, Suspense, isValidElement, cloneElement } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import rehypeSlug from 'rehype-slug';
 import { schemaMarkdown } from '../utils/schemaMarkdown';
-import { Maximize2, ChevronDown, ChevronRight, Sparkles, RefreshCw, GraduationCap, ImageOff } from 'lucide-react';
+import { Maximize2, ImageOff } from 'lucide-react';
 import FullscreenOverlay from './FullscreenOverlay';
-import MindMap from './MindMap';
 import CodeBlock from './CodeBlock';
 import Tooltip from './Tooltip';
 
-// Thin wrappers that lazy-load the real components on first use
+// Mermaid (le module le plus lourd de l'app) n'est téléchargé qu'à l'affichage
+// d'une note qui contient un bloc ```mermaid.
+const LazyMermaidBlock = lazy(() => import('./MermaidBlock'));
 function MermaidBlock(props) {
-  return <Suspense fallback={<div className="abc-loading">{t('doc.loading')}</div>}><LazyMermaidBlock {...props} /></Suspense>;
+  return <Suspense fallback={<div className="mermaid-block mermaid-loading"><div className="mermaid-loading-text">{t('diagram.loadingDiagram')}</div></div>}><LazyMermaidBlock {...props} /></Suspense>;
 }
-function AbcBlock(props) {
-  return <Suspense fallback={<div className="abc-loading">{t('doc.loadingSheet')}</div>}><LazyAbcBlock {...props} /></Suspense>;
-}
-const LazyMermaidBlock = lazy(() => import('./DiagramBlocks').then(m => ({ default: m.MermaidBlock })));
-const LazyAbcBlock = lazy(() => import('./DiagramBlocks').then(m => ({ default: m.AbcBlock })));
-const LazyChordsBlock = lazy(() => import('./DiagramBlocks').then(m => ({ default: m.ChordsBlock })));
-const LazyTabBlock = lazy(() => import('./DiagramBlocks').then(m => ({ default: m.TabBlock })));
-const LazyStrumBlock = lazy(() => import('./DiagramBlocks').then(m => ({ default: m.StrumBlock })));
-function ChordsBlock(props) {
-  return <Suspense fallback={null}><LazyChordsBlock {...props} /></Suspense>;
-}
-function TabBlock(props) {
-  return <Suspense fallback={null}><LazyTabBlock {...props} /></Suspense>;
-}
-function StrumBlock(props) {
-  return <Suspense fallback={null}><LazyStrumBlock {...props} /></Suspense>;
-}
-import { generateAndSaveToFile } from '../services/claude';
-import { parseGeneratedSections } from '../services/lectorGenerated';
 import fileSystem from '../services/fileSystem';
 import syncService from '../services/syncService';
 import storage from '../services/storage';
@@ -41,7 +23,7 @@ import storage from '../services/storage';
 const MarkdownEditor = lazy(() => import('./MarkdownEditor'));
 import './DocumentView.css';
 import { t } from '../services/i18n'
-import { besoinDeCle, messageChaine } from '../utils/messagesErreur'
+import { messageChaine } from '../utils/messagesErreur'
 import { basculerTache, jourLocal } from '../services/taches/taches.js'
 import { haptique } from '../services/haptique'
 
@@ -55,21 +37,15 @@ async function estDansVaultSynchronise(dirPath) {
   }
 }
 
-// Stop ABC playback without importing DiagramBlocks
-function stopAllAbcPlayback() {
-  if (window.__abcActiveStop) {
-    try { window.__abcActiveStop(); } catch {}
-  }
-  window.__abcActiveId = null;
-  window.__abcActiveStop = null;
+// Bloc « lector-generated » écrit par d'anciennes versions (résumés, cartes) :
+// laissé dans le fichier, jamais affiché.
+const GENERE_DEBUT = '<!-- lector-generated -->';
+const GENERE_FIN = '<!-- /lector-generated -->';
+function sansBlocGenere(content) {
+  const debut = content.indexOf(GENERE_DEBUT);
+  const fin = content.indexOf(GENERE_FIN);
+  return (debut === -1 || fin === -1 ? content : content.substring(0, debut)).trim();
 }
-
-// Difficulty badge helper
-const difficultyConfig = {
-  beginner: { key: 'doc.beginner', className: 'difficulty-beginner' },
-  intermediate: { key: 'doc.intermediate', className: 'difficulty-intermediate' },
-  advanced: { key: 'doc.advanced', className: 'difficulty-advanced' },
-};
 
 // HTML Embed component with fullscreen support
 function HtmlEmbed({ url, alt }) {
@@ -104,46 +80,21 @@ function HtmlEmbed({ url, alt }) {
 }
 
 // HTML brut du document, puis assaini avant tout rendu : un .md venu d'ailleurs
-// ne doit jamais exécuter de script. KaTeX passe après (sa sortie est sûre).
+// ne doit jamais exécuter de script.
+const REMARK = [remarkGfm];
 const REHYPE = [rehypeSlug, rehypeRaw, [rehypeSanitize, schemaMarkdown]];
-
-// Maths LaTeX à la demande : remark-math + rehype-katex + la CSS ne se chargent
-// que si le document contient réellement des $…$ / $$…$$. La plupart des docs
-// n'en ont pas: les garder hors du bundle principal économise ~80 kB gzip.
-let _mathPlugins = null;
-function useMathPlugins(content) {
-  const hasMath = useMemo(() => /\$[^\s$]/.test(content || ''), [content]);
-  const [plugins, setPlugins] = useState(_mathPlugins);
-  useEffect(() => {
-    if (!hasMath || _mathPlugins) return;
-    let alive = true;
-    Promise.all([
-      import('remark-math'),
-      import('rehype-katex'),
-      import('katex/dist/katex.min.css'),
-    ]).then(([rm, rk]) => {
-      _mathPlugins = { remarkMath: rm.default, rehypeKatex: rk.default };
-      if (alive) setPlugins(_mathPlugins);
-    }).catch(() => {});
-    return () => { alive = false; };
-  }, [hasMath]);
-  return hasMath ? plugins : null;
-}
 
 const DocumentView = memo(forwardRef(function DocumentView({
   content,
   dirPath,
   filePath,
   onOpenLocalFile,
-  onNavigate,
   onToggleBookmark,
   isBookmarked,
   fontSize = 17,
   onDocInfo,
   editMode = false,
   onContentChange,
-  onOpenFlashcards,
-  onShowApiKeys,
   onTasksChanged,
 }, ref) {
   const internalRef = useRef(null);
@@ -257,7 +208,6 @@ const DocumentView = memo(forwardRef(function DocumentView({
   }, [filePath]);
 
   // Edit mode: local state for textarea + auto-save
-  const mathPlugins = useMathPlugins(content);
   const [editContent, setEditContent] = useState(content);
   const saveTimerRef = useRef(null);
 
@@ -323,23 +273,8 @@ const DocumentView = memo(forwardRef(function DocumentView({
   }, []);
 
   const [localImages, setLocalImages] = useState({});
-  const [mindMapExpanded, setMindMapExpanded] = useState(true);
-  const [mindMapFullscreen, setMindMapFullscreen] = useState(false);
-  const [aiSummary, setAiSummary] = useState(null);
-  const [summaryLoading, setSummaryLoading] = useState(false);
-  const [aiMindMapConcepts, setAiMindMapConcepts] = useState(null);
-  const [mindMapStatus, setMindMapStatus] = useState(null);
-  const summaryContentRef = useRef('');
-
   // Image fullscreen state
   const [fullscreenImage, setFullscreenImage] = useState(null);
-
-  // Phase 1: Metadata state
-  const [metadata, setMetadata] = useState(null);
-  const [metadataLoading, setMetadataLoading] = useState(false);
-  const [glossaryOpen, setGlossaryOpen] = useState(false);
-
-  const aiHeaderRef = useRef(null);
 
   // Phase 3c: Workspace files for inter-doc links
   const [workspaceFiles, setWorkspaceFiles] = useState(new Set());
@@ -375,147 +310,8 @@ const DocumentView = memo(forwardRef(function DocumentView({
     loadWorkspaceFiles();
   }, [dirPath]);
 
-  // État pour le bouton de régénération
-  const [isRegenerating, setIsRegenerating] = useState(false);
-
-  // Stop any playing music when navigating to a different file
-  useEffect(() => {
-    stopAllAbcPlayback();
-  }, [filePath]);
-
-  // Charger les données générées depuis le fichier .md (instantané, pas de génération auto)
-  // L'utilisateur déclenche la génération manuellement via le bouton Générer/Régénérer
-  useEffect(() => {
-    if (!filePath) return;
-
-    const contentHash = content.slice(0, 500) + content.length;
-    if (contentHash === summaryContentRef.current) return;
-    summaryContentRef.current = contentHash;
-
-    // Lire les sections générées depuis le fichier (si elles existent)
-    const { originalContent, generated } = parseGeneratedSections(content);
-
-    if (generated) {
-      if (generated.summary) setAiSummary(generated.summary); else setAiSummary(null);
-      if (generated.concepts) { setAiMindMapConcepts(generated.concepts); setMindMapStatus('ready'); }
-      else { setAiMindMapConcepts(null); setMindMapStatus(null); }
-      if (generated.keywords || generated.glossary || generated.difficulty) {
-        setMetadata({
-          keywords: generated.keywords || [],
-          glossary: generated.glossary || [],
-          difficulty: generated.difficulty || null
-        });
-      } else {
-        setMetadata(null);
-      }
-      // Hydrater localStorage depuis le .md si données absentes
-      if (generated.highlights && !storage.getRaw(`highlights-${filePath}`, null)) {
-        storage.setRaw(`highlights-${filePath}`, generated.highlights);
-      }
-      if (generated.flashcardsSR && !storage.getRaw(`flashcards-${filePath}`, null)) {
-        // Fusionner définitions flashcards + données SR du .md
-        const defs = generated.flashcards || [];
-        const sr = generated.flashcardsSR;
-        if (defs.length > 0 && sr?.cards) {
-          const merged = defs.map((card, i) => ({ ...card, ...(sr.cards[i] || {}) }));
-          storage.setRaw(`flashcards-${filePath}`, { flashcards: merged, score: sr.score || { correct: 0, incorrect: 0 }, generatedAt: sr.generatedAt });
-        }
-      }
-      if (generated.quizSR && !storage.getRaw(`quiz-${filePath}`, null)) {
-        storage.setRaw(`quiz-${filePath}`, generated.quizSR);
-      }
-      if (generated.tags) {
-        const existing = storage.get(`file-tags-${filePath}`, null);
-        if (!existing || existing.length === 0) {
-          storage.set(`file-tags-${filePath}`, generated.tags);
-        }
-      }
-    } else {
-      setAiSummary(null);
-      setAiMindMapConcepts(null);
-      setMindMapStatus(null);
-      setMetadata(null);
-    }
-
-    setSummaryLoading(false);
-    setMetadataLoading(false);
-  }, [content, filePath]);
-
-  // Lu par référence : le parent passe une flèche neuve à chaque rendu, et la
-  // remettre dans les dépendances relançait onDocInfo sans fin (boucle de rendu).
-  const onShowApiKeysRef = useRef(onShowApiKeys);
-  onShowApiKeysRef.current = onShowApiKeys;
-
-  // Fonction pour régénérer et sauvegarder dans le fichier
-  const handleRegenerateAndSave = useCallback(async () => {
-    if (isRegenerating || !filePath) return;
-
-    setIsRegenerating(true);
-
-    try {
-      const result = await generateAndSaveToFile(content, filePath, { includeFlashcards: true, includeQuiz: true });
-
-      if (result.success && result.generated) {
-        // Mettre à jour l'UI avec les nouvelles données
-        if (result.generated.summary) setAiSummary(result.generated.summary);
-        if (result.generated.concepts) {
-          setAiMindMapConcepts(result.generated.concepts);
-          setMindMapStatus('ready');
-        }
-        if (result.generated.keywords || result.generated.glossary || result.generated.difficulty) {
-          setMetadata({
-            keywords: result.generated.keywords || [],
-            glossary: result.generated.glossary || [],
-            difficulty: result.generated.difficulty || null
-          });
-        }
-      } else if (besoinDeCle(result.code)) {
-        onShowApiKeysRef.current?.();
-      } else {
-        console.error('[DocumentView] Failed to regenerate:', result.error);
-      }
-    } catch (error) {
-      console.error('[DocumentView] Error regenerating:', error);
-    } finally {
-      setIsRegenerating(false);
-    }
-  }, [content, filePath, isRegenerating]);
-
-  // Phase 3b: Auto-hide AI header on scroll
-  // Only trigger state update when the collapsed state actually changes
-  // Auto-collapse removed: it caused scroll jumps when the header height changed
-
-  // Keyword click -> scroll to first occurrence
-  const handleKeywordClick = useCallback((keyword) => {
-    const docContent = document.querySelector('.document-content');
-    if (!docContent) return;
-
-    const walker = document.createTreeWalker(docContent, NodeFilter.SHOW_TEXT);
-    const lowerKeyword = keyword.toLowerCase();
-
-    while (walker.nextNode()) {
-      const node = walker.currentNode;
-      if (node.textContent.toLowerCase().includes(lowerKeyword)) {
-        const parent = node.parentElement;
-        if (parent) {
-          parent.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          // Brief highlight
-          const orig = parent.style.background;
-          parent.style.background = 'rgba(233, 162, 59, 0.3)';
-          parent.style.borderRadius = '4px';
-          parent.style.transition = 'background 0.3s';
-          setTimeout(() => { parent.style.background = orig; }, 2000);
-          return;
-        }
-      }
-    }
-  }, []);
-
-  // Extraire le contenu original sans les sections lector-generated
-  const displayContent = useMemo(() => {
-    const { originalContent } = parseGeneratedSections(content);
-    return originalContent;
-  }, [content]);
+  // Sans le bloc généré par d'anciennes versions
+  const displayContent = useMemo(() => sansBlocGenere(content), [content]);
 
   // Extract title (first H1) and rest of content, tracking source line numbers
   const { title, restContent, lineOffsets } = useMemo(() => {
@@ -626,12 +422,12 @@ const DocumentView = memo(forwardRef(function DocumentView({
   };
 
 
-  // Notify parent of doc info (headers, metadata, generate callback) for right sidebar
+  // Titres du document pour la table des matières
   useEffect(() => {
     if (onDocInfo) {
-      onDocInfo({ headers, metadata, handleKeywordClick, onGenerate: handleRegenerateAndSave, isGenerating: isRegenerating });
+      onDocInfo({ headers });
     }
-  }, [headers, metadata, onDocInfo, handleKeywordClick, handleRegenerateAndSave, isRegenerating]);
+  }, [headers, onDocInfo]);
 
   // Add bookmark buttons to headers
   useEffect(() => {
@@ -1104,39 +900,21 @@ const DocumentView = memo(forwardRef(function DocumentView({
       );
     },
 
-    code: ({ node, inline, className, children, ...props }) => {
+    // Bloc de code : CodeBlock pose son propre <pre>, celui du Markdown est
+    // retiré (pas de <pre> dans un <pre>). Le bloc le dit au code par `bloc`.
+    pre: ({ children }) => (isValidElement(children) ? cloneElement(children, { bloc: true }) : <pre>{children}</pre>),
+
+    code: ({ node, bloc, className, children, ...props }) => {
       const match = /language-(\w+)/.exec(className || '');
       const language = match ? match[1] : null;
       const codeString = String(children).replace(/\n$/, '');
 
-      const isBlock = !inline || codeString.includes('\n') || node?.position?.start?.line !== node?.position?.end?.line;
-
-      if (isBlock && language === 'mermaid') {
+      if (bloc && language === 'mermaid') {
         return <MermaidBlock code={codeString} />;
       }
 
-      if (isBlock && language === 'abc') {
-        return <AbcBlock code={codeString} />;
-      }
-
-      if (isBlock && language === 'chords') {
-        return <ChordsBlock code={codeString} />;
-      }
-
-      if (isBlock && language === 'tab') {
-        return <TabBlock code={codeString} />;
-      }
-
-      if (isBlock && language === 'strum') {
-        return <StrumBlock code={codeString} />;
-      }
-
-      if (isBlock && language) {
-        return <CodeBlock language={language} {...props}>{codeString}</CodeBlock>;
-      }
-
-      if (isBlock && codeString.includes('\n')) {
-        return <CodeBlock {...props}>{codeString}</CodeBlock>;
+      if (bloc) {
+        return <CodeBlock language={language}>{codeString}</CodeBlock>;
       }
 
       return (
@@ -1185,152 +963,10 @@ const DocumentView = memo(forwardRef(function DocumentView({
           </div>
         )}
 
-        {/* Section IA: bloc distinct */}
-          <div className="doc-header-ai" ref={aiHeaderRef}>
-            {aiSummary ? (
-              /* Contenu IA généré: bloc visuellement distinct */
-              <div className="ai-generated-block">
-                <div className="ai-generated-header">
-                  <div className="ai-generated-header-left">
-                    <Tooltip text={t('tooltip.aiBadge')}>
-                      <span className="ai-generated-badge"><Sparkles size={12} /> AI</span>
-                    </Tooltip>
-                    {metadata?.difficulty && (
-                      <Tooltip text={t(`tooltip.difficulty.${metadata.difficulty}`)}>
-                        <span className={`metadata-badge ${difficultyConfig[metadata.difficulty]?.className || ''}`}>
-                          {difficultyConfig[metadata.difficulty] ? t(difficultyConfig[metadata.difficulty].key) : metadata.difficulty}
-                        </span>
-                      </Tooltip>
-                    )}
-                  </div>
-                  {!fileSystem.isCapacitor() && (
-                    <Tooltip text={t('tooltip.regenerate')}>
-                      <button
-                        className="ai-regenerate-btn"
-                        onClick={handleRegenerateAndSave}
-                        disabled={isRegenerating}
-                      >
-                        <RefreshCw size={12} className={isRegenerating ? 'spinning' : ''} />
-                      </button>
-                    </Tooltip>
-                  )}
-                </div>
-
-                {/* Bouton Flashcards: en haut pour visibilité */}
-                {onOpenFlashcards && (
-                  <div className="doc-flashcards-cta">
-                    <button className="doc-flashcards-btn" onClick={onOpenFlashcards}>
-                      <GraduationCap size={18} />
-                      <span>{t('doc.reviewFlashcards')}</span>
-                    </button>
-                  </div>
-                )}
-
-                {/* Résumé */}
-                <div className="doc-summary-content">
-                  <ReactMarkdown>{aiSummary}</ReactMarkdown>
-                </div>
-
-                {/* Keywords */}
-                {metadata?.keywords && metadata.keywords.length > 0 && (
-                  <div className="doc-keywords">
-                    {metadata.keywords.map((kw, i) => (
-                      <Tooltip key={i} text={t('tooltip.keyword')} position="bottom">
-                        <button
-                          className="keyword-chip"
-                          onClick={() => handleKeywordClick(kw)}
-                        >
-                          {kw}
-                        </button>
-                      </Tooltip>
-                    ))}
-                  </div>
-                )}
-
-                {/* Glossaire */}
-                {metadata?.glossary && metadata.glossary.length > 0 && (
-                  <div className="glossary-section">
-                    <Tooltip text={t('tooltip.glossary')} position="right">
-                      <button
-                        className="glossary-toggle"
-                        onClick={() => setGlossaryOpen(!glossaryOpen)}
-                      >
-                        <span>{glossaryOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
-                        <span>{t('doc.glossary', { n: metadata.glossary.length })}</span>
-                      </button>
-                    </Tooltip>
-                    <div className={`glossary-content ${glossaryOpen ? 'open' : ''}`}>
-                      {[...metadata.glossary]
-                        .sort((a, b) => a.term.localeCompare(b.term))
-                        .map((item, i) => (
-                          <div key={i} className="glossary-item">
-                            <dt className="glossary-term">{item.term}</dt>
-                            <dd className="glossary-definition">{item.definition}</dd>
-                          </div>
-                        ))
-                      }
-                    </div>
-                  </div>
-                )}
-
-                {/* Mind Map */}
-                {mindMapStatus === 'ready' && aiMindMapConcepts && (
-                  <div className={`doc-mindmap ${mindMapExpanded ? 'expanded' : 'collapsed'}`}>
-                    <div className="mindmap-header">
-                      <Tooltip text={t('tooltip.overview')} position="bottom">
-                        <button className="mindmap-toggle" onClick={() => setMindMapExpanded(!mindMapExpanded)}>
-                          <span className="toggle-icon">{mindMapExpanded ? '▼' : '▶'}</span>
-                          <span className="toggle-label">{t('doc.overview')}</span>
-                        </button>
-                      </Tooltip>
-                      {mindMapExpanded && (
-                        <button className="mindmap-fullscreen-btn" onClick={() => setMindMapFullscreen(true)} title={t('doc.expand')}>
-                          <Maximize2 size={16} />
-                        </button>
-                      )}
-                    </div>
-                    {mindMapExpanded && (
-                      <div className="mindmap-container">
-                        <MindMap onNavigate={onNavigate} headers={headers} aiConcepts={aiMindMapConcepts} aiStatus={mindMapStatus} zoomEnabled={false} />
-                      </div>
-                    )}
-                  </div>
-                )}
-
-              </div>
-            ) : (
-              /* Pas encore généré: juste le bouton */
-              !fileSystem.isCapacitor() && (
-                <div className="doc-ai-actions">
-                  <Tooltip text={t('tooltip.generateAll')} position="bottom">
-                    <button
-                      className="regenerate-btn"
-                      onClick={handleRegenerateAndSave}
-                      disabled={isRegenerating}
-                    >
-                      <Sparkles size={14} className={isRegenerating ? 'spinning' : ''} />
-                      {isRegenerating ? t('doc.generating') : t('doc.generateAll')}
-                    </button>
-                  </Tooltip>
-                </div>
-              )
-            )}
-          </div>
-
-        {/* Fullscreen Mind Map Overlay */}
-        {mindMapFullscreen && (
-          <FullscreenOverlay onClose={() => setMindMapFullscreen(false)}>
-            <MindMap onNavigate={(id) => {
-              setMindMapFullscreen(false);
-              onNavigate(id);
-            }} headers={headers} aiConcepts={aiMindMapConcepts} aiStatus={mindMapStatus} />
-          </FullscreenOverlay>
-        )}
-
-        {/* Rest of content with inline quiz insertion */}
+        {/* Corps du document */}
         <ReactMarkdown
-          remarkPlugins={mathPlugins ? [remarkGfm, mathPlugins.remarkMath] : [remarkGfm]}
-          rehypePlugins={mathPlugins ? [...REHYPE, mathPlugins.rehypeKatex] : REHYPE}
+          remarkPlugins={REMARK}
+          rehypePlugins={REHYPE}
           components={components}
         >
           {processedContent}

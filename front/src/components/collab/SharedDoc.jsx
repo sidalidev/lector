@@ -115,7 +115,7 @@ function Editeur({ session, lectureSeule }) {
   return (
     <MarkdownEditor
       key={lectureSeule ? 'lecture' : 'ecriture'}
-      content={session.texte.toString()}
+      content={() => session.texte.toString()}
       extensions={extensions}
       autoFocus={!lectureSeule}
     />

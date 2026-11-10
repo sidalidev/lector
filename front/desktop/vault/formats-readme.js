@@ -4,7 +4,7 @@
 const fs = require('fs')
 const path = require('path')
 
-const LECTOR_FORMATS_VERSION = '2.0.0'
+const LECTOR_FORMATS_VERSION = '2.2.0'
 const FILE_NAME = 'LECTOR-FORMATS.md'
 
 const TEMPLATE = `---
@@ -50,16 +50,12 @@ diagram to open it fullscreen with zoom and pan.
 
 \`\`\`python
 def hello():
-    print("Lector renders 100+ languages")
+    print("Lector colors the most common languages")
 \`\`\`
 
-Click the copy icon (top-right of any code block) to copy.
-
-## Music & audio
-
-- **ABC notation** in \`\`\`abc fenced blocks: rendered as playable sheet music
-- **Guitar Pro** files (\`.gp\`, \`.gp3\` to \`.gp5\`, \`.gpx\`): open directly, render tabs
-- **MIDI** files (\`.mid\`, \`.midi\`): playable
+Python, JavaScript, TypeScript, Bash, C, C++, C#, Go, Rust, Java, Kotlin,
+Swift, Ruby, PHP, SQL, HTML/XML, CSS, SCSS, JSON, YAML, Markdown, Diff and a
+few more are colored; any other language shows as plain code. Click the copy icon (top-right of any code block) to copy.
 
 ## HTML embeds (sandboxed)
 
@@ -75,7 +71,7 @@ Click the copy icon (top-right of any code block) to copy.
 
 ## What's NOT rendered (yet)
 
-- LaTeX / KaTeX math (no \`$x^2$\` or \`$$\\sum$$\` rendering)
+- Math: \`$...$\` and \`$$...$$\` stay plain text (no LaTeX / KaTeX rendering)
 - HTML \`<script>\` or \`<style>\` outside sandboxed iframes
 - Custom fonts in markdown
 - Interactive widgets (sliders, forms) outside iframe embeds

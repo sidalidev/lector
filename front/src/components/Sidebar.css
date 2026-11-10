@@ -236,20 +236,6 @@
   color: var(--text-primary);
 }
 
-.file-tree-item.reference {
-  opacity: 0.45;
-  cursor: default;
-  font-style: italic;
-}
-
-.file-tree-item.reference:hover {
-  background: none;
-}
-
-.file-tree-item.reference .reference-icon {
-  font-size: 12px;
-}
-
 .file-tree-item.active {
   background: var(--highlight);
   color: var(--accent-text);
@@ -345,93 +331,6 @@
 }
 
 /* Review Tab */
-.review-count {
-  background: var(--danger);
-  color: var(--on-danger);
-  font-size: 9px;
-  padding: 1px 5px;
-  border-radius: var(--radius-full);
-  font-weight: 600;
-  margin-left: 2px;
-  animation: badgePop 0.3s ease-out;
-}
-
-.review-list {
-  padding: 4px 6px;
-}
-
-.review-header {
-  padding: 4px 8px;
-  margin-bottom: 2px;
-}
-
-.review-total {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--accent-text);
-}
-
-.review-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  padding: 4px 8px;
-  border: none;
-  background: transparent;
-  border-radius: 4px;
-  font-size: 12.5px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  text-align: left;
-  transition: var(--transition-fast);
-  margin-bottom: 0;
-}
-
-.review-item:hover {
-  background: rgba(var(--accent-rgb), 0.1);
-  color: var(--text-primary);
-}
-
-.review-icon {
-  flex-shrink: 0;
-  color: var(--text-muted);
-}
-
-.review-item:hover .review-icon {
-  color: var(--accent-text);
-}
-
-.review-doc-name {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.review-badge {
-  background: var(--danger);
-  color: var(--on-danger);
-  font-size: 9px;
-  padding: 1px 6px;
-  border-radius: var(--radius-full);
-  font-weight: 600;
-}
-
-.empty-review {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 16px;
-  text-align: center;
-  color: var(--text-muted);
-}
-
-.empty-review p {
-  margin: 2px 0;
-  font-size: 12px;
-}
 
 /* Starred Tab */
 .starred-count {
@@ -586,43 +485,8 @@
 }
 
 /* Mastery Score Badge */
-.mastery-badge {
-  margin-left: auto;
-  font-size: 9px;
-  font-weight: 600;
-  padding: 1px 5px;
-  border-radius: var(--radius-full);
-  flex-shrink: 0;
-  line-height: 1.4;
-}
-
-.mastery-low {
-  background: rgba(var(--danger-rgb), 0.2);
-  color: var(--danger);
-}
-
-.mastery-mid {
-  background: rgba(var(--accent-rgb), 0.2);
-  color: var(--accent-icon);
-}
-
-.mastery-high {
-  background: rgba(var(--success-rgb), 0.2);
-  color: var(--success);
-}
 
 /* Suggestions Tab */
-.suggestions-list {
-  padding: 4px 6px;
-}
-
-.suggestion-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  padding: 4px 8px;
-}
 
 /* Quick Search Bar (mobile popover) */
 .sidebar-quick-search {
@@ -732,7 +596,6 @@
   }
 
   /* Review/Recent/Starred items */
-  .review-item,
   .recent-item,
   .starred-item {
     padding: 10px 12px;

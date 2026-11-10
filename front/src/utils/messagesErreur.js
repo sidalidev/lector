@@ -19,11 +19,3 @@ export function messageChaine(r) {
   if (http) return t('cloud.chain.err.HTTP', { status: http[1] })
   return t('cloud.chain.err.UNKNOWN_code', { code })
 }
-
-/** Erreur d'un service externe (Anthropic, ElevenLabs) : NO_API_KEY, API_KEY_INVALID... */
-export function messageCle(code) {
-  return traduit(`keys.err.${code}`) || t('keys.err.API_ERROR')
-}
-
-/** Vrai si l'erreur se règle dans l'écran des clés API. */
-export const besoinDeCle = (code) => code === 'NO_API_KEY' || code === 'API_KEY_INVALID'

@@ -1,5 +1,30 @@
 # Changelog
 
+## 2.2.0 (unreleased)
+
+Lector stays a light Markdown editor: everything not about writing or viewing Markdown is gone, so the app starts fast and stays fast while you type. Details and reasons in [docs/REMOVED.md](docs/REMOVED.md).
+
+### Removed
+- Sheet music and music: ABC notation, chord, tab and strum blocks, MIDI and Guitar Pro playback, MusicXML.
+- Study tools: flashcards, spaced repetition review, quizzes, mastery scores, streaks and activity tracking.
+- The assistant and everything that called an AI or voice provider: chat, generated summaries, keywords, glossary, difficulty and mind maps, the API keys screen, the local command-line assistant on a computer, and reading aloud.
+- YouTube transcript import on a computer. A link to a YouTube, Vimeo or Rumble video still shows the video.
+- Reading ruler, auto-scroll, highlights panel, tags, mind map and note graph, the second reading progress bar, subtitle (`.srt`) files.
+- On a computer: EPUB export and the window opacity slider. PDF export stays.
+- Math rendering (KaTeX): `$...$` and `$$...$$` now stay plain text.
+
+### Improved
+- The web app shows your notes much sooner: its startup JavaScript went from about 1.3 MB to about 80 KB (gzip), where the page used to stay blank for about 4 seconds. A shared document (`/d/`) went from about 320 KB to about 185 KB. A test now fails if the startup of the web app grows past 150 KB.
+- The app runs on Preact, a much smaller engine with the same components.
+- Mermaid diagrams and code highlighting load only when the note you open contains them. Code highlighting now uses highlight.js, one language at a time.
+- Lighter fonts: Figtree and Bricolage Grotesque as compressed Latin subsets; other fonts load only when a note needs them.
+- A lighter editor.
+- The formats guide written in your vault on a computer (`LECTOR-FORMATS.md`) now says math is no longer rendered.
+
+### Privacy
+- Fewer outgoing connections: Lector no longer contacts Anthropic, ElevenLabs, `paulrosen.github.io` or `surikov.github.io`, and no longer runs yt-dlp. What is left: sync and updates (`lector.dockerbop.fr`, `github.com`), videos you link to (YouTube, Vimeo, Rumble) and "Search the web" (Google). The About screen lists them.
+- At startup, Lector erases what earlier versions kept on the device for the removed features: saved API keys (on a computer, `api-keys.dat`), flashcards, quizzes, highlights, tags, cached answers, chat history and reading activity. Your notes are not touched.
+
 ## 2.1.1 (2026-11-09)
 
 ### Fixed

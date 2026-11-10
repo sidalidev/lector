@@ -1,8 +1,8 @@
 // Tests du côté Electron (processus principal) contre le serveur simulé, sur de
 // vrais dossiers temporaires : création et reprise, état, verrou de l'export,
 // rejoindre, synchro chiffrée par SyncManager (markdown seulement, quota, flux),
-// renouvellement, abandon, tout effacer, quitter, stockage des réglages et des
-// clés API ; disque réel : casse des noms, liens symboliques, chemins refusés,
+// renouvellement, abandon, tout effacer, quitter, stockage des réglages ;
+// disque réel : casse des noms, liens symboliques, chemins refusés,
 // fichier modifié pendant un cycle ; arrêt de SyncManager et relances espacées.
 // Lancer : npm run test:chaine
 
@@ -20,7 +20,6 @@ const { chargerChaine } = require('./chaine-modules')
 const { Vault } = require('./vault/vault')
 const { maintainFormatsReadme } = require('./vault/formats-readme')
 const cloudStore = require('./cloud-store')
-const keysStore = require('./keys-store')
 
 const URL_SERVEUR = 'http://serveur.test'
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3])
@@ -606,30 +605,24 @@ test('cloud-store : un ancien fichier perd ses champs morts, deviceId aléatoire
   assert.equal(cloudStore.isEncrypted(), true)
 })
 
-test('keys-store : clés chiffrées, seuls la présence et les 4 derniers caractères sortent', (t) => {
+test('cloud-store : les fichiers des versions précédentes sont supprimés, clés API comprises', (t) => {
   const d = dossier()
   t.after(() => fs.rmSync(d, { recursive: true, force: true }))
-  keysStore.init({ userDataPath: d, safeStorage: safeStorageSimule(true), logger: () => {} })
-  assert.deepEqual(keysStore.statut('anthropic'), { present: false, hint: null, secure: true })
-  keysStore.enregistrer('anthropic', '  sk-ant-test-1234  ')
-  keysStore.enregistrer('elevenlabs', 'el-cle-5678')
-  assert.deepEqual(keysStore.statut('anthropic'), { present: true, hint: '1234', secure: true })
-  assert.equal(keysStore.lire('anthropic'), 'sk-ant-test-1234')
-  assert.equal(fs.readFileSync(path.join(d, 'api-keys.dat')).includes(Buffer.from('sk-ant')), false)
-  keysStore.effacer('anthropic')
-  assert.equal(keysStore.lire('anthropic'), null)
-  assert.equal(keysStore.lire('elevenlabs'), 'el-cle-5678')
-  assert.throws(() => keysStore.lire('autre'), /Unknown service/)
+  const anciens = ['cloud-device-ids.json', 'cloud-chaine-vue.json', 'reader-prefs.json', 'api-keys.dat']
+  for (const nom of anciens) fs.writeFileSync(path.join(d, nom), 'x')
+  cloudStore.init({ userDataPath: d, safeStorage: safeStorageSimule(true), logger: () => {} })
+  cloudStore.nettoyerAnciensFichiers()
+  for (const nom of anciens) assert.equal(fs.existsSync(path.join(d, nom)), false, nom)
 })
 
-test('Tout effacer : clés API vidées, dossier local à la corbeille seulement si la case est cochée', async (t) => {
+test('Tout effacer : dossier local à la corbeille seulement si la case est cochée', async (t) => {
   const serveur = await serveurSimule()
   const dA = dossier({ 'a.md': 'A' })
   const dB = dossier({ 'b.md': 'B' })
   const dC = dossier({ 'c.md': 'C' })
   t.after(() => { for (const d of [dA, dB, dC]) fs.rmSync(d, { recursive: true, force: true }) })
 
-  // Ordre observé : effacement du casier, puis clés API, puis corbeille.
+  // Ordre observé : effacement du casier, puis corbeille.
   const journal = []
   const equiper = (p, corbeille) => {
     const fetchServeur = p.fetch
@@ -637,7 +630,6 @@ test('Tout effacer : clés API vidées, dossier local à la corbeille seulement 
       if ((init.method || 'GET') === 'DELETE') journal.push('casier')
       return fetchServeur(url, init)
     }
-    p.chaine.d.effacerClesApi = () => journal.push('cles')
     p.chaine.d.mettreALaCorbeille = corbeille
   }
   const creer = async (p) => {
@@ -652,18 +644,18 @@ test('Tout effacer : clés API vidées, dossier local à la corbeille seulement 
   equiper(A, async () => { throw new Error('ne doit pas être appelée') })
   journal.length = 0
   assert.deepEqual(await A.chaine.effacerTout('DELETE'), { ok: true, trashed: false })
-  assert.deepEqual(journal, ['casier', 'cles'])
+  assert.deepEqual(journal, ['casier'])
   assert.equal(A.creds.vaultPath, dA)
   assert.equal(lire(dA, 'a.md'), 'A')
 
-  // Case cochée : le dossier part à la corbeille après le casier et les clés.
+  // Case cochée : le dossier part à la corbeille après le casier.
   const B = poste(serveur, dB)
   await creer(B)
   const corbeille = []
   equiper(B, async (d) => { journal.push('corbeille'); corbeille.push(d) })
   journal.length = 0
   assert.deepEqual(await B.chaine.effacerTout('DELETE', { localFolder: true }), { ok: true, trashed: true })
-  assert.deepEqual(journal, ['casier', 'cles', 'corbeille'])
+  assert.deepEqual(journal, ['casier', 'corbeille'])
   assert.deepEqual(corbeille, [dB])
   assert.equal(B.creds.vaultPath, undefined)
   assert.equal(B.creds.chainSecret, undefined)

@@ -1,6 +1,6 @@
 # Privacy
 
-Lector is a free Markdown reader made by Sid (https://sidali.dev). This page says, in plain words, what leaves your device and what happens to it. The detailed record, with legal bases, is in [`docs/legal/REGISTRE.md`](docs/legal/REGISTRE.md). The website version is at https://lector.dockerbop.fr/privacy.
+Lector is a free Markdown editor made by Sid (https://sidali.dev). This page says, in plain words, what leaves your device and what happens to it. The detailed record, with legal bases, is in [`docs/legal/REGISTRE.md`](docs/legal/REGISTRE.md). The website version is at https://lector.dockerbop.fr/privacy.
 
 ## The short version
 
@@ -60,15 +60,9 @@ Only when you use them, directly from your device, never through our server:
 
 | Feature | Goes to | What they get |
 |---|---|---|
-| AI features (summaries, flashcards, chat...), with your own API key | Anthropic (`api.anthropic.com`) | The text concerned. Not end-to-end encrypted: Anthropic reads it, under [its privacy policy](https://www.anthropic.com/legal/privacy). |
-| Text to speech, with your own API key | ElevenLabs (`api.elevenlabs.io`) | The text read aloud, under [its privacy policy](https://elevenlabs.io/privacy-policy). |
 | A video embedded in a document | YouTube, Vimeo or Rumble | Your IP address and the video. |
 | An image in a document that points to another website | That website | Your IP address and the image. |
-| Playing a music score | `paulrosen.github.io`, `surikov.github.io` (GitHub Pages) | Your IP address and the sound files. |
-| Importing a YouTube transcript (desktop) | YouTube | Your IP address and the video. |
 | "Search the web" (desktop menu) | Google, in your browser | The selected text. |
-
-Your API keys stay on your device. On desktop they are encrypted with the system's secure storage when available (otherwise kept in a file only your user account can read, and the app says so). On web and mobile they are encrypted with a non-exportable key in the browser storage; any script running on the page could use them, so add them only on a device you trust.
 
 ## Updates
 
@@ -81,7 +75,9 @@ No analytics, no cookies, nothing loaded from other websites. The reverse proxy 
 
 ## On your device
 
-Lector stores your preferences, reading progress, highlights, sync state and API keys on your device. On desktop, the sync secret and API keys are encrypted with the system's secure storage when available. On web and mobile, the 12 words are never kept: only non-exportable encryption keys.
+Lector stores your preferences, recent files, favorites, bookmarks and sync state on your device. On desktop, the sync secret is encrypted with the system's secure storage when available. On web and mobile, the 12 words are never kept: only non-exportable encryption keys.
+
+Lector 2.2 no longer has an assistant, reading aloud or study tools. At startup it deletes what earlier versions left on the device for them: API keys, flashcards, quizzes, highlights, tags, cached answers, chat history and reading activity.
 
 ## Deleting your data
 

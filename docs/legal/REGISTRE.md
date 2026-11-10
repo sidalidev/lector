@@ -48,13 +48,9 @@ These are not processors of Lector: the app connects to them from the user's dev
 
 | Feature | Destination | What they receive | Country |
 |---|---|---|---|
-| AI features (summaries, mind maps, flashcards, chat), with the user's own API key | `api.anthropic.com` (Anthropic) | The text concerned, the API key, the IP address | United States |
-| Text to speech, with the user's own API key | `api.elevenlabs.io` (ElevenLabs) | The text read aloud, the API key, the IP address | United States |
 | Android updates | `github.com` and GitHub download hosts (GitHub, Microsoft) | IP address, user agent `Lector-Android` | United States |
 | Embedded videos in a document | YouTube, Vimeo, Rumble | IP address, the video requested | Per provider |
 | Remote images in a document | The website named in the image address | IP address, the image requested | Per website |
-| Playing a music score | `paulrosen.github.io`, `surikov.github.io` (GitHub Pages) | IP address, the sound files requested | United States |
-| Import of a YouTube transcript (desktop) | YouTube, through the `yt-dlp` tool installed by the user | IP address, the video requested | United States |
 | "Search the web" (desktop context menu) | Google, opened in the user's browser | The selected text | United States |
 | Files opened from iCloud Drive (Apple devices) | Apple | Managed by Apple, not by Lector | Per Apple |
 

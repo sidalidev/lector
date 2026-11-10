@@ -36,7 +36,7 @@ In scope:
 - the sync relay (`back/`) or a network attacker reading, forging, moving or replaying documents, paths or deletion markers without the client detecting it (beyond the limits listed below);
 - anyone joining a sync chain without its 12 words or pairing code;
 - anyone reading or changing a shared document without its invitation link, a document key reaching the relay or a log, or stopping a share without the owner's device (`docs/collab-design.md`);
-- the 12 words, the chain secret or a user's API key leaving the device, or reaching the relay, a log, a URL or the clipboard;
+- the 12 words or the chain secret leaving the device, or reaching the relay, a log, a URL or the clipboard;
 - the relay logging a full chain id, a chain proof, a request body or an IP address in its own output;
 - a Markdown document running a script inside Lector, or reaching files outside the folders the user opened (desktop);
 - the update channels installing code that is not signed by the release keys below;
@@ -47,7 +47,7 @@ Out of scope, because it is the design and is documented:
 - what the relay can see: chain id, document count and sizes, dates, write rhythm, and IP addresses in passing (see [PRIVACY.md](PRIVACY.md) and [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), section 4.2);
 - the relay hiding a document, refusing a write or serving an older version of a block: there is no authenticated manifest against rollback yet;
 - **the local vault is not encrypted at rest**: documents are plain Markdown files on the device, readable by anyone or any program with access to that disk or that browser profile;
-- on the web and in the mobile web views, a script running in the page could use the chain keys in place (they are not exportable) and read API keys; Lector's Content Security Policy and document sanitizing exist to prevent that script from running ([docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), section 4.7), and a way around them is in scope;
+- on the web and in the mobile web views, a script running in the page could use the chain keys in place (they are not exportable); Lector's Content Security Policy and document sanitizing exist to prevent that script from running ([docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), section 4.7), and a way around them is in scope;
 - the web app at lector.dockerbop.fr/app/ is served by Lector's server on each visit, so it trusts that server for its code; the desktop and mobile apps do not;
 - someone who already holds the 12 words, or a compromised device;
 - someone who holds the invitation link of a shared document: they are a co-author by design (read, write, erase);

@@ -302,17 +302,8 @@ class FileSystemService {
         const fileName = filePath.split('/').pop();
         const lowerName = fileName.toLowerCase();
 
-        let type = 'text';
-        if (lowerName.endsWith('.md')) type = 'markdown';
-        if (lowerName.endsWith('.srt')) type = 'srt';
-        let content;
-        content = await iCloud.readFile(filePath);
-
-        // Convertir SRT en markdown lisible
-        if (type === 'srt' && content) {
-          content = this._srtToMarkdown(content, fileName);
-          type = 'markdown';
-        }
+        const type = /\.(md|markdown)$/.test(lowerName) ? 'markdown' : 'text';
+        const content = await iCloud.readFile(filePath);
 
         const data = {
           content,
@@ -870,46 +861,6 @@ class FileSystemService {
     }
 
     return parts.join('\n\n---\n\n');
-  }
-
-  async exportFileEpub(filePath, subFolder) {
-    if (this.isElectron()) {
-      return window.electron.exportFileEpub?.(filePath, subFolder);
-    }
-    console.warn('exportFileEpub not available on this platform');
-  }
-
-  // ========== SRT → Markdown ==========
-
-  _srtToMarkdown(srtContent, fileName) {
-    // Extraire le texte pur du SRT (sans timestamps ni numéros de séquence)
-    const lines = srtContent.split('\n');
-    const textLines = [];
-    let currentParagraph = [];
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      // Ignorer les numéros de séquence et les timestamps
-      if (/^\d+$/.test(trimmed)) continue;
-      if (/^\d{2}:\d{2}:\d{2}/.test(trimmed)) continue;
-      if (!trimmed) {
-        // Ligne vide = fin de sous-titre, on continue le paragraphe
-        continue;
-      }
-      currentParagraph.push(trimmed);
-    }
-
-    // Joindre tout le texte et découper en paragraphes (~200 mots)
-    const fullText = currentParagraph.join(' ').replace(/\s+/g, ' ');
-    const words = fullText.split(' ');
-    const paragraphs = [];
-    for (let i = 0; i < words.length; i += 200) {
-      paragraphs.push(words.slice(i, i + 200).join(' '));
-    }
-
-    const title = fileName.replace(/\.srt$/i, '').replace(/ - +- +\d{4}-\d{2}-\d{2}.*$/, '');
-
-    return `# 🎬 ${title}\n\n> *Source : fichier SRT (transcription vidéo), lecture seule*\n\n---\n\n${paragraphs.join('\n\n')}`;
   }
 
   // ========== Utility ==========

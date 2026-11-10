@@ -129,7 +129,7 @@ class ICloudService {
             children
           });
         }
-      } else if (file.name.endsWith('.md') || file.name.endsWith('.mid') || file.name.endsWith('.midi')) {
+      } else if (file.name.endsWith('.md')) {
         tree.push(file);
       }
     }

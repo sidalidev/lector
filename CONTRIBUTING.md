@@ -24,6 +24,8 @@ npm run test:chaine    # chain unit tests: crypto, client, sync, desktop (node -
 npm run test:api       # /v1/chain API against a throwaway test relay (Playwright)
 ```
 
+`npm run test:poids` (after `npm run build`) fails if the startup JS of the web app grows past its budget; run it when you add a dependency.
+
 `npm run test:flows` runs the UI flows in the browser; it uses the Chrome installed on your machine. Playwright starts the test relay (port 3457, throwaway SQLite database in `back/.test-data/`) and Vite on its own.
 
 ## Mobile builds
@@ -36,7 +38,7 @@ npm run test:api       # /v1/chain API against a throwaway test relay (Playwrigh
 - **One change per pull request**, with a test that fails before and passes after when it fixes a bug.
 - **The relay must never see plaintext.** Anything that sends content, a path, a title or the chain secret to the server is refused. See [ARCHITECTURE.md](ARCHITECTURE.md) for the invariants.
 - **No tracking, no analytics, no new third-party service.** No new dependency without a short reason in the pull request.
-- **Never log secrets**: no chain secret, proof, words, API key, path or document content in logs.
+- **Never log secrets**: no chain secret, proof, words, path or document content in logs.
 - **Interface text in English**, in `front/src/locales/en.js`. Short, plain sentences.
 - **Commit messages in English**, imperative mood, one line that says what changes for the user (for example "Lower the per-document sync limit to 512 KB").
 - **Check [NON_GOALS.md](NON_GOALS.md)** before proposing a feature.

@@ -2,13 +2,9 @@ const { app, BrowserWindow, ipcMain, dialog, Menu, shell, protocol, net, safeSto
 const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
-const { execFile } = require('child_process');
-const { exportFolderToEpub, exportFileToEpub } = require('./epubExport');
 const cloudStore = require('./cloud-store');
-const keysStore = require('./keys-store');
 const { SyncManager } = require('./sync-manager');
 const { ChaineDesktop } = require('./chaine-desktop');
-const { chargerFournisseurs } = require('./chaine-modules');
 const { Acces, verifierDans } = require('./acces');
 
 // Debug log to file (delayed until app is ready)
@@ -221,7 +217,7 @@ function createWindow() {
   // Forward renderer logs to main process
   mainWindow.webContents.on('console-message', (event) => {
     const msg = event.message || (typeof event === 'string' ? event : '');
-    if (msg.includes('[Sync]') || msg.includes('[Verovio]') || msg.includes('Verovio') || msg.includes('error') || msg.includes('Error')) {
+    if (msg.includes('[Sync]') || msg.includes('error') || msg.includes('Error')) {
       debugLog('RENDERER: ' + msg);
     }
   });
@@ -319,36 +315,8 @@ function loadFile(filePath) {
   }
 }
 
-function isSrtFile(fp) {
-  return fp.endsWith('.srt');
-}
-
-function srtToMarkdown(srtContent, fileName) {
-  const lines = srtContent.split('\n');
-  const textParts = [];
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (/^\d+$/.test(trimmed)) continue;
-    if (/^\d{2}:\d{2}:\d{2}/.test(trimmed)) continue;
-    if (!trimmed) continue;
-    textParts.push(trimmed);
-  }
-  const fullText = textParts.join(' ').replace(/\s+/g, ' ');
-  const words = fullText.split(' ');
-  const paragraphs = [];
-  for (let i = 0; i < words.length; i += 200) {
-    paragraphs.push(words.slice(i, i + 200).join(' '));
-  }
-  const title = fileName.replace(/\.srt$/i, '').replace(/ - +- +\d{4}-\d{2}-\d{2}.*$/, '');
-  return `# 🎬 ${title}\n\n> *Source: SRT file (video transcript), read only*\n\n---\n\n${paragraphs.join('\n\n')}`;
-}
-
 function isSupportedFile(fp) {
-  return fp.endsWith('.md') || fp.endsWith('.srt');
-}
-
-function isReferenceFile(fp) {
-  return fp.endsWith('.srt');
+  return MARKDOWN.includes(path.extname(fp).toLowerCase());
 }
 
 // Update dock menu with recent files
@@ -598,8 +566,7 @@ function watchDirectory(dirPath) {
     dirWatcher = fs.watch(dirPath, { recursive: true }, (eventType, filename) => {
       if (!filename) return;
       // Only care about supported files or directories
-      const ext = path.extname(filename).toLowerCase();
-      const isSupported = filename.endsWith('.md') || filename.endsWith('.mid') || filename.endsWith('.midi') || ['.gp', '.gp3', '.gp4', '.gp5', '.gpx'].includes(ext);
+      const isSupported = MARKDOWN.includes(path.extname(filename).toLowerCase());
       if (!isSupported && eventType !== 'rename') return;
       // Ignore hidden/ignored dirs
       const parts = filename.split(path.sep);
@@ -661,10 +628,9 @@ app.whenReady().then(() => {
   } catch (e) { logBytes = 0; }
   debugLog('App ready, userData path: ' + app.getPath('userData'));
 
-  // Réglages de la synchro et clés API, chiffrés par safeStorage. Les fichiers
-  // des versions avec compte sont supprimés.
+  // Réglages de la synchro, chiffrés par safeStorage. Les fichiers des versions
+  // précédentes (compte, clés API) sont supprimés.
   cloudStore.init({ userDataPath: app.getPath('userData'), safeStorage, logger: debugLog });
-  keysStore.init({ userDataPath: app.getPath('userData'), safeStorage, logger: debugLog });
   cloudStore.nettoyerAnciensFichiers();
   cloudCreds = cloudStore.load();
 
@@ -990,7 +956,6 @@ ipcMain.handle('list-directory-files', async (event, dirPath) => {
             path: fullPath,
             relativePath: relPath,
             isDirectory: false,
-            isReference: isReferenceFile(entry.name),
           });
         }
       }
@@ -1046,75 +1011,6 @@ ipcMain.handle('list-directory-files', async (event, dirPath) => {
   } catch (error) {
     console.error('Error listing directory:', error);
     return [];
-  }
-});
-
-// Cache for knowledge graph
-let graphCache = { dirPath: null, data: null, timestamp: 0 };
-const GRAPH_CACHE_TTL = 300000; // 5 minutes
-
-function buildGraphForDir(dirPath) {
-  const nodes = [];
-  const links = [];
-  const fileMap = {};
-
-  function collectFiles(dir) {
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.isDirectory() && shouldSkipDir(entry.name)) continue;
-      if (!entry.isDirectory() && entry.name.startsWith('.')) continue;
-      const fullPath = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        collectFiles(fullPath);
-      } else if (entry.name.endsWith('.md')) {
-        const name = entry.name.replace('.md', '');
-        const folder = path.relative(dirPath, path.dirname(fullPath)).split(path.sep)[0] || '';
-        fileMap[name.toLowerCase()] = fullPath;
-        nodes.push({ id: fullPath, name, folder });
-      }
-    }
-  }
-
-  collectFiles(dirPath);
-
-  const nodeIds = new Set(nodes.map(n => n.id));
-  for (const node of nodes) {
-    try {
-      const content = fs.readFileSync(node.id, 'utf-8');
-      const wikiLinks = [...content.matchAll(/\[\[([^\]]+)\]\]/g)].map(m => m[1].split('|')[0].trim());
-      const mdLinks = [...content.matchAll(/\[([^\]]*)\]\(([^)]+\.md)\)/g)].map(m => m[2]);
-
-      for (const link of wikiLinks) {
-        const target = fileMap[link.toLowerCase()];
-        if (target && target !== node.id) {
-          links.push({ source: node.id, target });
-        }
-      }
-      for (const link of mdLinks) {
-        const resolved = path.resolve(path.dirname(node.id), decodeURIComponent(link));
-        if (nodeIds.has(resolved) && resolved !== node.id) {
-          links.push({ source: node.id, target: resolved });
-        }
-      }
-    } catch (e) { /* skip */ }
-  }
-
-  const result = { nodes, links };
-  graphCache = { dirPath, data: result, timestamp: Date.now() };
-  return result;
-}
-
-// Build knowledge graph IPC
-ipcMain.handle('build-knowledge-graph', async (event, dirPath) => {
-  if (!acces.verifier(dirPath)) return { nodes: [], links: [] };
-  if (graphCache.dirPath === dirPath && Date.now() - graphCache.timestamp < GRAPH_CACHE_TTL && graphCache.data) {
-    return graphCache.data;
-  }
-  try {
-    return buildGraphForDir(dirPath);
-  } catch (error) {
-    console.error('Error building knowledge graph:', error);
-    return { nodes: [], links: [] };
   }
 });
 
@@ -1204,10 +1100,7 @@ ipcMain.handle('export-pdf', async (event, fileName) => {
         const clone = docContent.cloneNode(true);
         // Remove interactive/UI elements that shouldn't be in PDF
         clone.querySelectorAll(
-          '.doc-ai-actions, .quiz-generate-btn, .regenerate-btn, ' +
-          '.reading-time-badge, .loading-badge, .metadata-badge, ' +
-          '.doc-metadata, .keyword-chip, .doc-keywords, ' +
-          '.mindmap-toggle, .doc-mindmap, .inline-quiz-section'
+          '.reading-time-badge, .loading-badge, .metadata-badge, .doc-metadata'
         ).forEach(el => el.remove());
         // Collect all stylesheets
         const styleSheets = [];
@@ -1304,69 +1197,6 @@ hr { border: none; border-top: 1px solid #e8e4df; margin: 1.5em 0; }
     console.error('Error exporting PDF:', error);
     return false;
   }
-});
-
-// CLI Claude installé localement : la voie par défaut quand il existe.
-const CLAUDE_DIRS = [path.join(require('os').homedir(), '.local/bin'), '/usr/local/bin', '/opt/homebrew/bin'];
-
-function findClaudeBin() {
-  const dirs = [...CLAUDE_DIRS, ...String(process.env.PATH || '').split(path.delimiter).filter(Boolean)];
-  for (const dir of dirs) {
-    const p = path.join(dir, process.platform === 'win32' ? 'claude.exe' : 'claude');
-    try {
-      if (fs.existsSync(p)) return p;
-    } catch (e) {}
-  }
-  return null;
-}
-
-ipcMain.handle('claude-check', async () => {
-  return { available: !!findClaudeBin() };
-});
-
-// Claude CLI: run prompt via stdin
-ipcMain.handle('claude-prompt', async (event, prompt, options = {}) => {
-  const { spawn } = require('child_process');
-
-  return new Promise((resolve) => {
-    const claudeBin = findClaudeBin() || 'claude';
-    const cleanEnv = { ...process.env, PATH: [process.env.PATH, ...CLAUDE_DIRS].filter(Boolean).join(path.delimiter) };
-    delete cleanEnv.CLAUDECODE;
-
-    // Modèle et effort configurables, sans outils (réponse texte pure)
-    const model = options?.model || 'claude-opus-5-5'
-    const effort = options?.effort || 'high'
-    const args = ['-p', '--model', model, '--effort', effort, '--tools', '', '-']
-
-    const child = spawn(claudeBin, args, {
-      env: cleanEnv,
-      timeout: 300000,
-    });
-
-    let stdout = '';
-    let stderr = '';
-
-    child.stdout.on('data', (data) => { stdout += data.toString(); });
-    child.stderr.on('data', (data) => { stderr += data.toString(); });
-
-    child.on('close', (code) => {
-      if (code === 0) {
-        console.log('[Claude] Success, output length:', stdout.length);
-        resolve({ success: true, result: stdout.trim() });
-      } else {
-        console.error('[Claude] Failed, code:', code, 'stderr:', stderr.slice(0, 200));
-        resolve({ success: false, error: stderr || `Claude exited with code ${code}` });
-      }
-    });
-
-    child.on('error', (err) => {
-      resolve({ success: false, error: err.message });
-    });
-
-    // Send prompt via stdin
-    child.stdin.write(prompt);
-    child.stdin.end();
-  });
 });
 
 // ========== Sync (.lector/) IPC Handlers ==========
@@ -1615,138 +1445,12 @@ ipcMain.handle('rappels:en-attente', () => {
 
 app.whenReady().then(() => powerMonitor.on('resume', () => armerRappels()));
 
-// Window opacity
-ipcMain.handle('set-window-opacity', (event, opacity) => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.setOpacity(Math.max(0.3, Math.min(1, opacity)));
-  }
-});
-
-// YouTube transcript via yt-dlp
-ipcMain.handle('yt-dlp-transcript', async (event, videoId) => {
-  // L'identifiant entre dans un chemin et une URL : rien d'autre qu'un identifiant YouTube.
-  if (typeof videoId !== 'string' || !/^[\w-]{6,20}$/.test(videoId)) return { ok: false, error: 'Invalid video id' }
-  const os = require('os')
-  const tmpDir = os.tmpdir()
-  const outPath = path.join(tmpDir, `lector-yt-${videoId}`)
-  const ytUrl = `https://www.youtube.com/watch?v=${videoId}`
-
-  try {
-    // Titre + sous-titres en un seul appel yt-dlp
-    // On demande fr uniquement (auto-generated ou manual)
-    const title = await new Promise((resolve) => {
-      execFile('yt-dlp', ['--get-title', '--no-warnings', ytUrl], { timeout: 15000 }, (err, stdout) => {
-        resolve(err ? videoId : stdout.trim())
-      })
-    })
-
-    // Nettoyer les anciens fichiers
-    const dir = path.dirname(outPath)
-    const prefix = path.basename(outPath)
-    try {
-      fs.readdirSync(dir).filter(f => f.startsWith(prefix) && f.endsWith('.srv1')).forEach(f => fs.unlinkSync(path.join(dir, f)))
-    } catch {}
-
-    // Extraire les sous-titres FR (auto + manual)
-    await new Promise((resolve) => {
-      execFile('yt-dlp', [
-        '--write-auto-sub', '--write-sub',
-        '--sub-lang', 'fr',
-        '--sub-format', 'srv1',
-        '--skip-download',
-        '--no-warnings',
-        '-o', outPath,
-        ytUrl,
-      ], { timeout: 30000 }, () => resolve())
-    })
-
-    // Chercher le fichier généré
-    const files = fs.readdirSync(dir).filter(f => f.startsWith(prefix) && f.endsWith('.srv1'))
-
-    // Si pas de FR, essayer EN
-    if (files.length === 0) {
-      await new Promise((resolve) => {
-        execFile('yt-dlp', [
-          '--write-auto-sub', '--write-sub',
-          '--sub-lang', 'en',
-          '--sub-format', 'srv1',
-          '--skip-download',
-          '--no-warnings',
-          '-o', outPath,
-          ytUrl,
-        ], { timeout: 30000 }, () => resolve())
-      })
-      files.push(...fs.readdirSync(dir).filter(f => f.startsWith(prefix) && f.endsWith('.srv1')))
-    }
-
-    let xml = ''
-    let lang = 'fr'
-    if (files.length > 0) {
-      const subFile = path.join(dir, files[0])
-      xml = fs.readFileSync(subFile, 'utf-8')
-      const langMatch = files[0].match(/\.(\w{2,3})\.srv1$/)
-      if (langMatch) lang = langMatch[1]
-      try { fs.unlinkSync(subFile) } catch {}
-    }
-
-    if (!xml) return { ok: false, error: 'No subtitles found for this video' }
-
-    return { ok: true, xml, title, lang }
-  } catch (err) {
-    return { ok: false, error: err.message }
-  }
-})
-
-// Export EPUB d'un fichier, enregistré où l'utilisateur le choisit
-ipcMain.handle('export-file-epub', async (event, filePath) => {
-  try {
-    if (!acces.verifier(filePath, MARKDOWN)) return { success: false, error: 'Path not allowed' };
-    const fileName = path.basename(filePath, '.md');
-    const result = await dialog.showSaveDialog(mainWindow, {
-      defaultPath: `${fileName}.epub`,
-      filters: [{ name: 'EPUB', extensions: ['epub'] }],
-    });
-    if (result.canceled) return { success: false, canceled: true };
-
-    const exportResult = await exportFileToEpub(filePath, result.filePath);
-    shell.showItemInFolder(result.filePath);
-    return exportResult;
-  } catch (error) {
-    console.error('EPUB export error:', error);
-    return { success: false, error: error.message };
-  }
-});
-
-// Export EPUB d'un dossier
-ipcMain.handle('export-folder-epub', async (event, folderPath) => {
-  try {
-    if (!acces.verifier(folderPath)) return { success: false, error: 'Path not allowed' };
-    const folderName = path.basename(folderPath);
-    const result = await dialog.showSaveDialog(mainWindow, {
-      defaultPath: `${folderName}.epub`,
-      filters: [{ name: 'EPUB', extensions: ['epub'] }],
-    });
-
-    if (result.canceled) return { success: false, canceled: true };
-
-    const exportResult = await exportFolderToEpub(folderPath, result.filePath);
-
-    // Optionally reveal in Finder
-    shell.showItemInFolder(result.filePath);
-
-    return exportResult;
-  } catch (error) {
-    console.error('EPUB export error:', error);
-    return { success: false, error: error.message };
-  }
-});
-
-// ====== Lector Vault : synchro par la chaîne, clés API ======
+// ====== Lector Vault : synchro par la chaîne ======
 //
 // Sans compte : la chaîne est la seule identité. Toute la cryptographie tourne
 // ici, dans le processus principal ; le renderer reçoit les 12 mots et le code
 // seulement pour les afficher (création, ou « Ajouter un appareil » verrou
-// ouvert), jamais S. Les clés API restent aussi ici : le main fait les appels.
+// ouvert), jamais S.
 
 const DEFAULT_SERVER_URL = 'https://lector.dockerbop.fr';
 
@@ -1905,7 +1609,6 @@ const chaineDesktop = new ChaineDesktop({
   emettre: sendCloudEvent,
   log: debugLog,
   serverUrlParDefaut: DEFAULT_SERVER_URL,
-  effacerClesApi: () => { for (const service of keysStore.SERVICES) keysStore.effacer(service); },
   mettreALaCorbeille: corbeilleVault,
 });
 
@@ -1953,94 +1656,6 @@ ipcMain.handle('cloud:chain-rotate', () => chaineDesktop.renouveler());
 ipcMain.handle('cloud:chain-abandon', () => chaineDesktop.abandonner());
 ipcMain.handle('cloud:chain-erase', (event, confirmation, options) => chaineDesktop.effacerTout(confirmation, { localFolder: options?.localFolder === true }));
 ipcMain.handle('cloud:chain-leave', () => chaineDesktop.quitter());
-
-// ----- Clés API personnelles (Anthropic, ElevenLabs) -----
-// La clé ne revient jamais au renderer : keys:get ne donne que sa présence et
-// ses 4 derniers caractères, et les appels partent d'ici par net.fetch.
-const echecFournisseur = (err) => ({ code: err?.code || 'API_ERROR', error: err?.message || String(err) });
-
-ipcMain.handle('keys:get', (event, service) => {
-  try { return keysStore.statut(service); } catch { return { present: false, hint: null, secure: cloudStore.isEncrypted() }; }
-});
-
-ipcMain.handle('keys:set', (event, service, value) => {
-  try {
-    keysStore.enregistrer(service, value);
-    return { ok: true };
-  } catch (err) {
-    return { ok: false, error: err.message };
-  }
-});
-
-ipcMain.handle('keys:clear', (event, service) => {
-  try {
-    keysStore.effacer(service);
-    return { ok: true };
-  } catch (err) {
-    return { ok: false, error: err.message };
-  }
-});
-
-ipcMain.handle('keys:test', async (event, service) => {
-  try {
-    const { anthropic, elevenlabs } = await chargerFournisseurs();
-    const cle = keysStore.lire(service);
-    if (service === 'anthropic') await anthropic.listerModeles({ fetch: systemFetch, cle, navigateur: false });
-    else await elevenlabs.verifierCle({ fetch: systemFetch, cle });
-    return { ok: true };
-  } catch (err) {
-    return { ok: false, ...echecFournisseur(err) };
-  }
-});
-
-async function demanderAnthropic({ system, messages, model, effort }) {
-  try {
-    const { anthropic } = await chargerFournisseurs();
-    const result = await anthropic.demanderMessages({
-      fetch: systemFetch,
-      cle: keysStore.lire('anthropic'),
-      modele: model,
-      effort,
-      system,
-      messages: Array.isArray(messages) ? messages : [],
-      navigateur: false,
-    });
-    return { success: true, result };
-  } catch (err) {
-    return { success: false, ...echecFournisseur(err) };
-  }
-}
-
-ipcMain.handle('ai:ask', (event, req = {}) => demanderAnthropic(req));
-ipcMain.handle('ai:generate', (event, prompt, options = {}) =>
-  demanderAnthropic({ messages: [{ role: 'user', content: String(prompt || '') }], model: options.model, effort: options.effort }));
-ipcMain.handle('ai:models', async () => {
-  try {
-    const { anthropic } = await chargerFournisseurs();
-    return { ok: true, models: await anthropic.listerModeles({ fetch: systemFetch, cle: keysStore.lire('anthropic'), navigateur: false }) };
-  } catch (err) {
-    return { ok: false, ...echecFournisseur(err) };
-  }
-});
-
-ipcMain.handle('tts:voices', async () => {
-  try {
-    const { elevenlabs } = await chargerFournisseurs();
-    return { ok: true, voices: await elevenlabs.listerVoix({ fetch: systemFetch, cle: keysStore.lire('elevenlabs') }) };
-  } catch (err) {
-    return { ok: false, ...echecFournisseur(err) };
-  }
-});
-
-ipcMain.handle('tts:synthesize', async (event, text, voiceId) => {
-  try {
-    const { elevenlabs } = await chargerFournisseurs();
-    const audio = await elevenlabs.synthetiser({ fetch: systemFetch, cle: keysStore.lire('elevenlabs'), texte: String(text || ''), voix: voiceId });
-    return { ok: true, audio };
-  } catch (err) {
-    return { ok: false, ...echecFournisseur(err) };
-  }
-});
 
 // Synchro au démarrage si cet appareil a une chaîne et un vault.
 app.whenReady().then(() => {

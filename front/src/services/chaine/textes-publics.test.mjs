@@ -66,8 +66,8 @@ test("D18 et D26 : les pages du site ne chargent rien d'un autre site", () => {
     assert.doesNotMatch(page, /fonts\.googleapis|fonts\.gstatic|analytics\.dockerbop|umami|data-website-id/i, nom);
   }
   assert.doesNotMatch(privacy, /nothing is shared with third parties/i);
-  assert.match(privacy, /paulrosen\.github\.io/);
-  assert.match(privacy, /surikov\.github\.io/);
+  assert.doesNotMatch(privacy, /paulrosen\.github\.io/);
+  assert.doesNotMatch(privacy, /surikov\.github\.io/);
 });
 
 test("D30 : l'archive de la bascule naît en 600 dans le conteneur, sans chmod de l'hôte sur un fichier de root", () => {

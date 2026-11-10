@@ -1,15 +1,12 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react';
-import { List, BookOpen, Tag, RotateCcw, Lightbulb, FileText, Search, ChevronUp, ChevronDown, CaseSensitive, WholeWord, Sparkles, GraduationCap } from 'lucide-react';
+import { List, Search, ChevronUp, ChevronDown, CaseSensitive, WholeWord } from 'lucide-react';
 import { t } from '../services/i18n';
-import { getAllDueDocuments, getTotalDueCount } from '../services/spacedRepetition';
 import escapeRegex from '../utils/escapeRegex';
 import './FloatingTOC.css';
 
-function RightSidebar({ headers, metadata, onKeywordClick, currentFilePath, onOpenFile, knowledgeLinks = [], showInlineSearch = false, onGenerate, isGenerating = false, onReviewAll }) {
-  const [activeTab, setActiveTab] = useState('toc');
+// Table des matières du document (et, dans le panneau mobile, la recherche dans la note).
+function RightSidebar({ headers, showInlineSearch = false }) {
   const [activeId, setActiveId] = useState(null);
-  const [dueDocuments, setDueDocuments] = useState([]);
-  const [totalDue, setTotalDue] = useState(0);
 
   // Inline search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -162,25 +159,6 @@ function RightSidebar({ headers, metadata, onKeywordClick, currentFilePath, onOp
   const goNextSearch = () => { if (searchCount > 0) setSearchIndex(prev => (prev + 1) % searchCount); };
   const goPrevSearch = () => { if (searchCount > 0) setSearchIndex(prev => prev === 0 ? searchCount - 1 : prev - 1); };
 
-  // Load due documents for review
-  const loadDueDocuments = useCallback(() => {
-    setDueDocuments(getAllDueDocuments());
-    setTotalDue(getTotalDueCount());
-  }, []);
-
-  useEffect(() => {
-    loadDueDocuments();
-    const interval = setInterval(loadDueDocuments, 30000);
-    const handleStorage = (e) => {
-      if (e.key?.startsWith('flashcards-')) loadDueDocuments();
-    };
-    window.addEventListener('storage', handleStorage);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('storage', handleStorage);
-    };
-  }, [loadDueDocuments]);
-
   // IntersectionObserver for active header tracking
   useEffect(() => {
     if (headers.length === 0) return;
@@ -205,10 +183,10 @@ function RightSidebar({ headers, metadata, onKeywordClick, currentFilePath, onOp
 
   // Auto-scroll la TOC vers le heading actif
   useEffect(() => {
-    if (!activeId || activeTab !== 'toc') return;
+    if (!activeId) return;
     const tocItem = document.querySelector(`.right-toc-item[data-toc-id="${activeId}"]`);
     tocItem?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }, [activeId, activeTab]);
+  }, [activeId]);
 
   const handleClick = (id) => {
     const el = document.getElementById(id);
@@ -218,9 +196,6 @@ function RightSidebar({ headers, metadata, onKeywordClick, currentFilePath, onOp
       setTimeout(() => el.classList.remove('highlight'), 2000);
     }
   };
-
-  const hasKeywords = metadata?.keywords?.length > 0;
-  const hasGlossary = metadata?.glossary?.length > 0;
 
   return (
     <aside className="right-sidebar">
@@ -271,206 +246,44 @@ function RightSidebar({ headers, metadata, onKeywordClick, currentFilePath, onOp
         </div>
       )}
 
-      <div className="right-sidebar-tabs">
-        <button
-          className={`right-sidebar-tab ${activeTab === 'toc' ? 'active' : ''}`}
-          onClick={() => setActiveTab('toc')}
-          title={t('toc.summary')}
-        >
-          <List size={16} />
-        </button>
-        <div className="right-tabs-ai-group">
-          <span className="right-tabs-ai-badge"><Sparkles size={8} /> AI</span>
-          <button
-            className={`right-sidebar-tab ${activeTab === 'keywords' ? 'active' : ''} ${!hasKeywords ? 'dimmed' : ''}`}
-            onClick={() => setActiveTab('keywords')}
-            title={t('toc.keywords')}
-          >
-            <Tag size={16} />
-          </button>
-          <button
-            className={`right-sidebar-tab ${activeTab === 'glossary' ? 'active' : ''} ${!hasGlossary ? 'dimmed' : ''}`}
-            onClick={() => setActiveTab('glossary')}
-            title={t('toc.glossary')}
-          >
-            <BookOpen size={16} />
-          </button>
-          <button
-            className={`right-sidebar-tab ${activeTab === 'review' ? 'active' : ''}`}
-            onClick={() => setActiveTab('review')}
-            title={t('toc.reviews')}
-          >
-            <RotateCcw size={16} />
-            {totalDue > 0 && <span className="right-tab-badge">{totalDue > 99 ? '99+' : totalDue}</span>}
-          </button>
-          {knowledgeLinks.length > 0 && (
-            <button
-              className={`right-sidebar-tab ${activeTab === 'suggestions' ? 'active' : ''}`}
-              onClick={() => setActiveTab('suggestions')}
-              title={t('toc.suggestions')}
-            >
-              <Lightbulb size={16} />
-            </button>
-          )}
-        </div>
-      </div>
+      <div className="right-section-label right-toc-label">{t('toc.summary')}</div>
 
       <div className="right-sidebar-content">
-        {activeTab === 'toc' && (
-          <>
-            {headers.length === 0 ? (
-              <div className="right-sidebar-empty">
-                <List size={28} style={{ opacity: 0.4, marginBottom: 6 }} />
-                <p>{t('toc.noHeadings')}</p>
-              </div>
-            ) : (
-              <div className="right-toc-list">
-                {headers.map((h, i) => {
-                  // Trouver le parent pour désambiguïser les titres dupliqués
-                  let parentLabel = null;
-                  const isDuplicate = headers.filter(x => x.text === h.text).length > 1;
-                  if (isDuplicate && h.level > 2) {
-                    for (let j = i - 1; j >= 0; j--) {
-                      if (headers[j].level < h.level) {
-                        parentLabel = headers[j].text;
-                        break;
-                      }
-                    }
+        {headers.length === 0 ? (
+          <div className="right-sidebar-empty">
+            <List size={28} style={{ opacity: 0.4, marginBottom: 6 }} />
+            <p>{t('toc.noHeadings')}</p>
+          </div>
+        ) : (
+          <div className="right-toc-list">
+            {headers.map((h, i) => {
+              // Trouver le parent pour désambiguïser les titres dupliqués
+              let parentLabel = null;
+              const isDuplicate = headers.filter(x => x.text === h.text).length > 1;
+              if (isDuplicate && h.level > 2) {
+                for (let j = i - 1; j >= 0; j--) {
+                  if (headers[j].level < h.level) {
+                    parentLabel = headers[j].text;
+                    break;
                   }
-                  return (
-                    <button
-                      key={h.id}
-                      data-toc-id={h.id}
-                      className={`right-toc-item level-${h.level} ${activeId === h.id ? 'active' : ''}`}
-                      onClick={() => handleClick(h.id)}
-                      title={parentLabel ? `${parentLabel} › ${h.text}` : h.text}
-                    >
-                      {parentLabel && <span className="right-toc-parent">{parentLabel} › </span>}
-                      {h.text}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </>
-        )}
-
-        {activeTab === 'keywords' && (
-          hasKeywords ? (
-            <>
-              <div className="right-section-label">{t('toc.keywords')}</div>
-              <div className="right-keywords">
-                {metadata.keywords.map((kw, i) => (
-                  <button
-                    key={i}
-                    className="right-keyword-chip"
-                    onClick={() => onKeywordClick?.(kw)}
-                    title={t('toc.searchKeyword', { kw })}
-                  >
-                    {kw}
-                  </button>
-                ))}
-              </div>
-            </>
-          ) : (
-            <div className="right-sidebar-empty right-sidebar-empty-ai">
-              <Sparkles size={28} style={{ opacity: 0.3, marginBottom: 6 }} />
-              <p>{t('toc.noKeywords')}</p>
-              {onGenerate && (
-                <button className="right-sidebar-generate-btn" onClick={onGenerate} disabled={isGenerating}>
-                  <Sparkles size={14} />
-                  {isGenerating ? t('toc.generating') : t('toc.generate')}
-                </button>
-              )}
-            </div>
-          )
-        )}
-
-        {activeTab === 'glossary' && (
-          hasGlossary ? (
-            <>
-              <div className="right-section-label">{t('toc.glossary')}</div>
-              <div className="right-glossary">
-                {[...metadata.glossary]
-                  .sort((a, b) => a.term.localeCompare(b.term))
-                  .map((item, i) => (
-                    <div key={i} className="right-glossary-item">
-                      <div className="right-glossary-term">{item.term}</div>
-                      <div className="right-glossary-def">{item.definition}</div>
-                    </div>
-                  ))
                 }
-              </div>
-            </>
-          ) : (
-            <div className="right-sidebar-empty right-sidebar-empty-ai">
-              <BookOpen size={28} style={{ opacity: 0.3, marginBottom: 6 }} />
-              <p>{t('toc.noGlossary')}</p>
-              {onGenerate && (
-                <button className="right-sidebar-generate-btn" onClick={onGenerate} disabled={isGenerating}>
-                  <Sparkles size={14} />
-                  {isGenerating ? t('toc.generating') : t('toc.generate')}
-                </button>
-              )}
-            </div>
-          )
-        )}
-
-        {activeTab === 'review' && (
-          <>
-            {dueDocuments.length === 0 ? (
-              <div className="right-sidebar-empty">
-                <RotateCcw size={28} style={{ opacity: 0.4, marginBottom: 6 }} />
-                <p>{t('toc.noReviews')}</p>
-                <p className="right-sidebar-hint">{t('toc.reviewsHint')}</p>
-              </div>
-            ) : (
-              <>
-                <div className="right-section-label">{t('toc.cardsToReview', { n: totalDue })}</div>
-                {onReviewAll && totalDue > 0 && (
-                  <button className="right-sidebar-generate-btn" onClick={onReviewAll} style={{ margin: '0 8px 12px', width: 'calc(100% - 16px)' }}>
-                    <GraduationCap size={14} />
-                    {t('toc.reviewAll')}
-                  </button>
-                )}
-                <div className="right-review-list">
-                  {dueDocuments.map((doc) => (
-                    <button
-                      key={doc.filePath}
-                      className={`right-review-item ${currentFilePath === doc.filePath ? 'active' : ''}`}
-                      onClick={() => onOpenFile?.(doc.filePath)}
-                    >
-                      <FileText size={14} />
-                      <span className="right-review-name">{doc.fileName}</span>
-                      <span className="right-review-badge">{doc.dueCount}</span>
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </>
-        )}
-
-        {activeTab === 'suggestions' && knowledgeLinks.length > 0 && (
-          <>
-            <div className="right-section-label">{t('toc.relatedDocs')}</div>
-            <div className="right-suggestions-list">
-              {knowledgeLinks.slice(0, 8).map((link) => (
+              }
+              return (
                 <button
-                  key={link.filePath}
-                  className={`right-suggestion-item ${currentFilePath === link.filePath ? 'active' : ''}`}
-                  onClick={() => onOpenFile?.(link.filePath)}
+                  key={h.id}
+                  data-toc-id={h.id}
+                  className={`right-toc-item level-${h.level} ${activeId === h.id ? 'active' : ''}`}
+                  onClick={() => handleClick(h.id)}
+                  title={parentLabel ? `${parentLabel} › ${h.text}` : h.text}
                 >
-                  <FileText size={14} />
-                  <span className="right-suggestion-name">{link.fileName}</span>
-                  <span className="right-suggestion-badge">{link.linkCount}</span>
+                  {parentLabel && <span className="right-toc-parent">{parentLabel} › </span>}
+                  {h.text}
                 </button>
-              ))}
-            </div>
-          </>
+              );
+            })}
+          </div>
         )}
       </div>
-
     </aside>
   );
 }

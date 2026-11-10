@@ -229,10 +229,6 @@ class SyncService {
   // --- Document push/pull ---
 
   _buildDocumentData(filePath) {
-    const hash = hashFilePath(filePath);
-    const highlights = this._jsonParse(localStorage.getItem(`highlights-${filePath}`)) || [];
-    const flashcardsRaw = this._jsonParse(localStorage.getItem(`flashcards-${filePath}`));
-    const tags = this._jsonParse(localStorage.getItem(`lector-file-tags-${filePath}`)) || [];
     const scroll = this._jsonParse(localStorage.getItem(`lector-scroll-${filePath}`));
 
     return {
@@ -240,9 +236,6 @@ class SyncService {
       filePath,
       lastModified: new Date().toISOString(),
       deviceId: this.deviceId,
-      highlights,
-      flashcards: flashcardsRaw,
-      tags,
       scroll,
     };
   }
@@ -251,15 +244,6 @@ class SyncService {
     if (!data?.filePath) return;
     const filePath = data.filePath;
 
-    if (data.highlights?.length > 0) {
-      localStorage.setItem(`highlights-${filePath}`, JSON.stringify(data.highlights));
-    }
-    if (data.flashcards) {
-      localStorage.setItem(`flashcards-${filePath}`, JSON.stringify(data.flashcards));
-    }
-    if (data.tags?.length > 0) {
-      localStorage.setItem(`lector-file-tags-${filePath}`, JSON.stringify(data.tags));
-    }
     if (data.scroll) {
       localStorage.setItem(`lector-scroll-${filePath}`, JSON.stringify(data.scroll));
     }
@@ -345,13 +329,11 @@ class SyncService {
   // --- Global push/pull ---
 
   _buildGlobalData() {
-    const allTags = this._jsonParse(localStorage.getItem('lector-all-tags')) || [];
     const starredItems = this._jsonParse(localStorage.getItem('lector-starred-items')) || [];
     const history = this._jsonParse(localStorage.getItem('lector-history')) || [];
 
     // Collect preferences
-    const prefKeys = ['fontSize', 'showSidebar', 'showRuler', 'autoScrollSpeed',
-      'sidebarWidth', 'rightSidebarWidth', 'showRightSidebar'];
+    const prefKeys = ['fontSize', 'showSidebar', 'sidebarWidth', 'rightSidebarWidth', 'showRightSidebar'];
     const preferences = { lastModified: new Date().toISOString() };
     for (const key of prefKeys) {
       const val = localStorage.getItem(`lector-${key}`);
@@ -364,7 +346,6 @@ class SyncService {
       version: 1,
       lastModified: new Date().toISOString(),
       deviceId: this.deviceId,
-      allTags,
       starredItems,
       preferences,
       history,
@@ -374,9 +355,6 @@ class SyncService {
   _applyGlobalData(data) {
     if (!data) return;
 
-    if (data.allTags?.length > 0) {
-      localStorage.setItem('lector-all-tags', JSON.stringify(data.allTags));
-    }
     if (data.starredItems) {
       localStorage.setItem('lector-starred-items', JSON.stringify(data.starredItems));
     }
@@ -384,8 +362,7 @@ class SyncService {
       localStorage.setItem('lector-history', JSON.stringify(data.history));
     }
     if (data.preferences) {
-      const prefKeys = ['fontSize', 'showSidebar', 'showRuler', 'autoScrollSpeed',
-        'sidebarWidth', 'rightSidebarWidth', 'showRightSidebar'];
+      const prefKeys = ['fontSize', 'showSidebar', 'sidebarWidth', 'rightSidebarWidth', 'showRightSidebar'];
       for (const key of prefKeys) {
         if (data.preferences[key] !== undefined) {
           localStorage.setItem(`lector-${key}`, JSON.stringify(data.preferences[key]));
@@ -445,13 +422,7 @@ class SyncService {
 
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key.startsWith('highlights-')) {
-          docPaths.add(key.replace('highlights-', ''));
-        } else if (key.startsWith('flashcards-')) {
-          docPaths.add(key.replace('flashcards-', ''));
-        } else if (key.startsWith('lector-file-tags-')) {
-          docPaths.add(key.replace('lector-file-tags-', ''));
-        } else if (key.startsWith('lector-scroll-')) {
+        if (key.startsWith('lector-scroll-')) {
           docPaths.add(key.replace('lector-scroll-', ''));
         }
       }

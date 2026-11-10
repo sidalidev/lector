@@ -1,6 +1,12 @@
 # Lector
 
-Lector is a Markdown reader for reading, reviewing and learning: summaries, flashcards, mind maps, music sheets and diagrams, right inside your own `.md` files.
+Lector is a light Markdown editor and viewer for your own `.md` files: write, read, and write together in real time.
+
+- Markdown with GitHub extensions, Mermaid diagrams and code highlighting
+- A CodeMirror editor, and real-time co-writing by invitation link, end-to-end encrypted
+- File tree, favorites, recent files, quick open, full-text search, command palette, table of contents, bookmarks on headings, focus mode, themes
+- Tasks and reminders written in your notes
+- PDF export of a note or a folder (print)
 
 ## Principles
 
@@ -69,9 +75,9 @@ Documents are **not encrypted at rest on your device yet**. On a computer, your 
 
 Lector is built so that you can keep your documents without it.
 
-- **Your vault is a folder of plain Markdown files.** On a computer, the folder you sync is readable by any text editor, Obsidian or `cat`. Generated summaries, flashcards and mind maps are written inside the `.md` files themselves.
+- **Your vault is a folder of plain Markdown files.** On a computer, the folder you sync is readable by any text editor, Obsidian or `cat`.
 - **The relay can be self-hosted.** Its code is in `back/` and the production setup (Docker Compose behind a Traefik reverse proxy, nginx for the site and the web app) is in `deploy/`. The web app talks to the relay of the origin it is served from, so a self-hosted web app uses your relay. The desktop and mobile apps point to `lector.dockerbop.fr` for now; a relay address setting is planned.
-- **Export.** On a computer, the vault folder is your export, and you can also export a document as PDF or EPUB. On the web and on mobile there is no local vault and no "export everything" yet: the relay may hold the only copy of your documents there, so keep a computer in your chain if you need an offline copy.
+- **Export.** On a computer, the vault folder is your export, and you can also export a document or a folder as PDF. On the web and on mobile there is no local vault and no "export everything" yet: the relay may hold the only copy of your documents there, so keep a computer in your chain if you need an offline copy.
 
 ## Development
 
@@ -95,6 +101,7 @@ Relay on your machine: copy `back/.env.example` to `back/.env`, then `cd back &&
 npm run test:chaine    # chain unit tests (crypto, client, sync, desktop)
 npm run test:api       # /v1/chain API against a throwaway test relay (Playwright)
 npm run test:flows     # UI flows in the browser (Playwright, uses the installed Chrome)
+npm run test:poids     # fails if the startup JS of /app/ exceeds its budget (150 KB gzip)
 npm run test           # every Playwright project
 ```
 
@@ -113,11 +120,10 @@ Android release signing: the keystore never lives in the repository. Copy `front
 
 ## Stack
 
-- **Front**: React + Vite, one codebase for the web (PWA), desktop and mobile
+- **Front**: Preact (with `preact/compat`) + Vite, one codebase for the web (PWA), desktop and mobile; CodeMirror 6 editor, Yjs for co-writing
 - **Desktop**: Electron. macOS is published (DMG, automatic updates)
 - **Mobile**: Capacitor 8 (iOS, Android)
 - **Relay**: Node + Express + Prisma + SQLite, a blind `/v1/chain` API (encrypted blocks only)
-- **Optional AI and voice**: questions use Anthropic (Claude) and reading aloud uses ElevenLabs, with your own API key, kept on the device and called directly from it, never through the relay. On desktop, a locally installed `claude` command-line tool is used first.
 
 Where things live: [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -126,7 +132,7 @@ Where things live: [ARCHITECTURE.md](ARCHITECTURE.md).
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [SUPPORT.md](SUPPORT.md)
 - [CHANGELOG.md](CHANGELOG.md)
-- [docs/REMOVED.md](docs/REMOVED.md): what 2.0 removed, and why
+- [docs/REMOVED.md](docs/REMOVED.md): what was removed, and why
 
 ## License
 

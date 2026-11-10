@@ -1,9 +1,12 @@
 import { useRef, useEffect, memo } from 'react';
 import { EditorView, lineNumbers, highlightActiveLine, keymap } from '@codemirror/view';
-import { EditorState, Compartment } from '@codemirror/state';
+import { EditorState, Compartment, Prec } from '@codemirror/state';
 import { history, historyKeymap } from '@codemirror/commands';
-import { foldGutter, bracketMatching, indentOnInput, syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
-import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
+import { foldGutter, bracketMatching, indentOnInput, syntaxHighlighting, defaultHighlightStyle, LanguageSupport } from '@codemirror/language';
+// Pas markdown() : sa valeur par défaut embarque le langage HTML, donc aussi
+// JavaScript et CSS (un tiers de l'éditeur). La grammaire Markdown (GFM), la
+// suite des listes à Entrée et le collage d'URL en lien suffisent.
+import { markdownLanguage, markdownKeymap, pasteURLAsLink } from '@codemirror/lang-markdown';
 import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
 import { defaultKeymap, indentWithTab } from '@codemirror/commands';
 import './MarkdownEditor.css';
@@ -20,11 +23,18 @@ function makeFontSizeExtension(size) {
 // `extensions` : extensions CodeMirror en plus, fournies par l'appelant. Le
 // document partagé (collab/) y passe la liaison Yjs : l'historique et le
 // contenu viennent alors du Y.Text, pas de `content` ni de history().
+// `content` peut alors être une fonction, lue à la création de l'éditeur : le
+// texte reçu entre le rendu et le montage (effet différé) n'est pas perdu.
 function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, extensions = null }) {
   const partage = !!extensions;
   const containerRef = useRef(null);
   const viewRef = useRef(null);
   const onChangeRef = useRef(onChange);
+  // Textes envoyés au parent et pas encore revenus en `content`. Les effets
+  // passent après coup : quand un ancien texte revient, l'utilisateur a pu
+  // taper depuis. Le réappliquer effacerait sa frappe et relancerait un
+  // aller-retour sans fin entre deux versions.
+  const emis = useRef([]);
 
   // Keep onChange ref fresh
   useEffect(() => {
@@ -36,7 +46,7 @@ function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, e
     if (!containerRef.current) return;
 
     const state = EditorState.create({
-      doc: content || '',
+      doc: (typeof content === 'function' ? content() : content) || '',
       extensions: [
         ...(extensions || []),
         lineNumbers(),
@@ -47,7 +57,9 @@ function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, e
         closeBrackets(),
         indentOnInput(),
         syntaxHighlighting(defaultHighlightStyle),
-        markdown({ base: markdownLanguage }),
+        new LanguageSupport(markdownLanguage),
+        Prec.high(keymap.of(markdownKeymap)),
+        pasteURLAsLink,
         EditorView.lineWrapping,
         fontSizeCompartment.of(makeFontSizeExtension(fontSize)),
         keymap.of([
@@ -58,7 +70,9 @@ function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, e
         ]),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
-            onChangeRef.current?.(update.state.doc.toString());
+            const texte = update.state.doc.toString();
+            if (!partage) emis.current.push(texte);
+            onChangeRef.current?.(texte);
           }
         }),
         EditorView.theme({
@@ -127,6 +141,10 @@ function MarkdownEditor({ content, onChange, fontSize = 16, autoFocus = false, e
   useEffect(() => {
     const view = viewRef.current;
     if (!view || partage) return;
+    // Un texte venu de l'éditeur lui-même : rien à appliquer, on oublie les plus anciens.
+    const i = emis.current.lastIndexOf(content);
+    if (i !== -1) { emis.current = emis.current.slice(i + 1); return; }
+    emis.current = [];
     const currentDoc = view.state.doc.toString();
     if (content !== currentDoc) {
       view.dispatch({

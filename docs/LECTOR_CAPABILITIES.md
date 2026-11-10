@@ -2,7 +2,7 @@
 
 > Ce que Lector sait afficher et faire, version par version. À mettre à jour à chaque ajout ou retrait de fonction.
 
-Lector est gratuit, sans compte et sans fonction payante. Les documents restent des fichiers `.md` sur l'appareil ; la synchronisation entre appareils est chiffrée de bout en bout.
+Lector est un éditeur et lecteur Markdown léger, gratuit, sans compte et sans fonction payante. Les documents restent des fichiers `.md` sur l'appareil ; la synchronisation entre appareils et l'écriture à plusieurs sont chiffrées de bout en bout. Depuis la 2.2, tout ce qui ne sert pas à écrire ou afficher du Markdown est retiré (`docs/REMOVED.md`).
 
 ---
 
@@ -10,30 +10,32 @@ Lector est gratuit, sans compte et sans fonction payante. Les documents restent 
 
 | Composant | Version |
 |-----------|---------|
-| React | 19.2.3 |
+| Preact (via `preact/compat`, composants écrits avec l'API React) | 10.29.8 |
 | Vite | 7.3.1 |
-| Electron | 39.2.7 (ordinateur) |
-| Capacitor | 8.0.2 (iOS et Android) |
+| Electron | 45 (ordinateur) |
+| Capacitor | 8.5.3 (iOS et Android) |
 | CodeMirror | 6 (éditeur Markdown) |
+| Yjs | 13 (écriture à plusieurs) |
 | TailwindCSS | 4.1.18 |
 
-**Plateformes :** macOS, Windows et Linux (Electron ; seul macOS est publié par `deploy/deploy.sh`), iOS et Android (Capacitor ; mise à jour OTA du bundle web sur iOS seulement), web (navigateur).
+**Plateformes :** macOS, Windows et Linux (Electron ; seul macOS est publié par `deploy/deploy.sh`), iOS et Android (Capacitor ; mise à jour OTA du bundle web sur iOS, APK signé sur Android), web (navigateur).
+
+**Poids :** le JavaScript du premier affichage de `/app/` pèse environ 80 Ko gzip (budget de 150 Ko vérifié par `npm run test:poids`) ; la page partagée `/d/` environ 185 Ko. Mermaid et la coloration du code ne se chargent que lorsque la note affichée en contient. Polices : Figtree et Bricolage Grotesque en WOFF2, sous-ensemble latin ; les autres ne se chargent que si une note en a besoin.
 
 ---
 
 ## Markdown : syntaxe prise en charge
 
-**Parser :** remark-gfm v4.0.1 (GitHub Flavored Markdown)
-**Renderer :** react-markdown v10.1.0
-**HTML brut :** rehype-raw v7.0.0
-**Maths :** remark-math et rehype-katex (KaTeX), chargés seulement quand le document contient `$`
+**Parser :** remark-gfm v4 (GitHub Flavored Markdown)
+**Renderer :** react-markdown v10
+**HTML brut :** rehype-raw v7, assaini par rehype-sanitize (`docs/SECURITE.md`)
 
 ### Pris en charge
 
-- Titres H1 à H6
+- Titres H1 à H6 (ancres stables, signets)
 - **Gras**, *italique*, ~~barré~~
 - Listes ordonnées et non ordonnées
-- Listes de tâches `- [ ]` / `- [x]`
+- Listes de tâches `- [ ]` / `- [x]`, cochables dans la note (tâches et rappels, voir plus bas)
 - Tableaux (syntaxe GFM)
 - Citations `>`
 - Code en ligne et blocs de code
@@ -41,31 +43,26 @@ Lector est gratuit, sans compte et sans fonction payante. Les documents restent 
 - Images `![alt](src)`
 - Liens automatiques (www.example.com)
 - Notes de bas de page GFM `[^1]`
-- Formules LaTeX `$...$` et `$$...$$` (KaTeX)
 - Lignes horizontales `---`
 - Retours à la ligne
 
 ### Non pris en charge
 
-- Wikilinks `[[fichier]]` : lus pour le graphe de connaissances uniquement, pas rendus comme liens cliquables
+- Wikilinks `[[fichier]]`
 - Inclusions Obsidian `![[fichier.md]]`
 - Encadrés Obsidian `> [!note]`
 - En-tête YAML (front matter)
+- Formules LaTeX : `$...$` et `$$...$$` restent du texte (rendu des maths retiré en 2.2)
 
 ---
 
-## Diagrammes et visualisations
-
-Tous rendus en SVG, avec gestion des erreurs et états de chargement.
+## Diagrammes
 
 | Moteur | Bloc de code | Librairie | Notes |
 |--------|-------------------|-----------|-------|
-| Mermaid | ` ```mermaid ` | mermaid@11.12.2 | flowchart, sequence, class, state, ER, pie, gantt, etc. Police DM Sans |
-| Graphviz DOT | ` ```dot ` ou ` ```graphviz ` | @hpcc-js/wasm-graphviz@1.21.0 | Graphes dirigés et non dirigés, toute la syntaxe DOT |
-| WaveDrom | ` ```wavedrom ` | wavedrom@3.5.0 | Chronogrammes numériques (JSON) |
-| Pikchr | ` ```pikchr ` | pikchr-wasm@2.0.1 | Diagrammes techniques (SVG léger) |
-| ABC Music | ` ```abc ` | abcjs@6.6.0 | Notation musicale, tablature, lecture audio (Tone.js) |
-| WireViz | ` ```wireviz ` | Converti en Graphviz | Schémas de câblage électronique |
+| Mermaid | ` ```mermaid ` | mermaid@11 | flowchart, sequence, class, state, ER, pie, gantt, etc. Mode `strict`, chargé à la demande, plein écran au clic |
+
+Aucun autre moteur de diagramme.
 
 ---
 
@@ -75,11 +72,10 @@ Tous rendus en SVG, avec gestion des erreurs et états de chargement.
 
 | Format | Syntaxe | Notes |
 |--------|---------|-------|
-| MP4 | `![alt](chemin/video.mp4)` | Chargement différé, fichier local |
-| WebM | `![alt](chemin/video.webm)` | Chargement différé, fichier local |
-| MOV | `![alt](chemin/video.mov)` | Chargement différé, fichier local |
-| YouTube | `[texte](https://youtube.com/watch?v=...)` | Détecté automatiquement, lecteur intégré avec vignette |
-| Vimeo | `[texte](https://vimeo.com/...)` | Détecté automatiquement, lecteur intégré |
+| MP4, WebM, MOV | `![alt](chemin/video.mp4)` | Chargement différé, fichier local |
+| YouTube | `[texte](https://youtube.com/watch?v=...)` | Lien détecté, lecteur intégré |
+| Vimeo | `[texte](https://vimeo.com/...)` | Lien détecté, lecteur intégré |
+| Rumble | `[texte](https://rumble.com/...)` | Lien détecté, lecteur intégré |
 
 ### Images
 
@@ -88,53 +84,66 @@ Tous rendus en SVG, avec gestion des erreurs et états de chargement.
 - Distantes : `![alt](https://example.com/image.png)`
 - Sur un appareil qui reçoit le document par la synchronisation, une image relative absente s'affiche comme un encart « Image non synchronisée » : seul le markdown voyage entre les appareils.
 
-### Audio et musique
+### Pages HTML locales (ordinateur)
 
-- Notation ABC : lecture intégrée (Tone.js), choix de l'instrument (nylon, acier, piano)
-- MIDI (.mid, .midi) : lecture avec MidiViewer et Tone.js
-- Guitar Pro (.gp, .gp3, .gp4, .gp5, .gpx) : rendu AlphaTab et SoundFont
+Un fichier `.html` cité dans une note s'affiche dans un cadre isolé (protocole `lector-local:`), depuis les seuls dossiers ouverts par l'utilisateur.
 
 ---
 
 ## Coloration syntaxique du code
 
-**Moteur :** Prism.js (via react-syntax-highlighter@16.1.0)
-**Thème :** One Light (oneLight)
-**Langages :** plus de 100 (JavaScript, TypeScript, Python, Java, C++, C#, Go, Rust, Ruby, PHP, SQL, HTML, CSS, JSON, YAML, Bash, Shell, XML, etc.)
+**Moteur :** highlight.js 11 : le cœur et la grammaire de chaque langage se téléchargent au premier bloc qui en a besoin ; le texte brut s'affiche tout de suite.
+**Langages :** Bash, C, C++, C#, CSS, Diff, Dockerfile, Go, INI/TOML, Java, JavaScript, JSON, Kotlin, Lua, Makefile, Markdown, PHP, Python, Ruby, Rust, SCSS, SQL, Swift, TypeScript, XML/HTML, YAML (et leurs alias courants). Un autre langage, ou un bloc sans langage, s'affiche en texte brut.
 
-- Numéros de ligne
 - Bouton copier (API presse-papiers)
-- Détection du langage s'il n'est pas indiqué
-- Les blocs `mermaid`, `abc`, `dot`, `graphviz`, `wavedrom`, `pikchr`, `wireviz` sont rendus comme diagrammes
+- Les blocs `mermaid` sont rendus comme diagrammes
 
 ---
 
 ## HTML brut
 
-Via rehype-raw, le HTML en ligne est rendu :
-- balises courantes : `<div>`, `<span>`, `<strong>`, `<em>`, `<br>`, `<hr>`, `<sup>`, `<sub>`, etc. ;
-- attributs `data-` (utilisés pour les signets de titres).
+Via rehype-raw puis rehype-sanitize, le HTML en ligne est rendu selon la liste blanche de GitHub, plus quelques balises de mise en forme et les attributs que Lector écrit lui-même (titres annotés, repères de ligne).
 
-Ne sont pas exécutés : les scripts (bloqués par React) et les gestionnaires d'événements. Les styles CSS en ligne ne s'appliquent qu'en partie.
+Ne sont jamais rendus : les scripts, iframes, feuilles de style, objets, formulaires et gestionnaires d'événements. Détail : `docs/SECURITE.md`.
 
 ---
 
 ## Mode édition (CodeMirror 6)
 
-**Moteur :** CodeMirror 6 (codemirror + @codemirror/lang-markdown)
+**Moteur :** CodeMirror 6 (`@codemirror/view`, `@codemirror/lang-markdown`)
 **Activation :** `Cmd+E`
-**Enregistrement automatique :** après 1 s sans frappe, et à la sortie du mode édition
 
 - Coloration Markdown (titres, gras, italique, liens, code en ligne)
 - Numéros de ligne (masqués sur mobile)
 - Repli de sections
 - Parenthèses appariées et fermées automatiquement
-- Annuler et rétablir (`Cmd+Z` / `Cmd+Shift+Z`)
+- Annuler et rétablir (`Cmd+Z` / `Cmd+Shift+Z`) ; dans un document partagé, l'annulation passe par Yjs et ne touche que ses propres modifications
 - Indentation Tab / Shift-Tab
-- Taille de police dynamique (`Cmd++` / `Cmd+-`)
 - Retour à la ligne automatique
-- `searchKeymap` exclu pour ne pas entrer en conflit avec `Cmd+F` (recherche globale)
-- Suivi des changements externes du fichier en mode édition
+- Coller une URL sur une sélection crée un lien
+- Pas de `searchKeymap`, pour ne pas entrer en conflit avec `Cmd+F` (recherche dans le document)
+
+---
+
+## Navigation et organisation
+
+- Arbre de fichiers dans la barre latérale, favoris, fichiers récents
+- Ouverture rapide (`Cmd+P`), recherche dans le document (`Cmd+F`), recherche dans tous les fichiers (`Cmd+Shift+F`)
+- Palette de commandes (`Cmd+Shift+P`)
+- Sommaire flottant (barre latérale droite, `Cmd+Shift+B`) et signets sur les titres
+- Mode focus, thèmes clair et sombre, taille de police
+- Écran « About » avec la liste « What leaves your device » (`front/src/services/fluxSortants.js`)
+- Sur ordinateur, clic droit « Search the web » sur une sélection (Google, dans le navigateur)
+
+---
+
+## Tâches et rappels
+
+- Cocher une case `- [ ]` dans une note : Lector écrit `- [x]` et la date `✅ AAAA-MM-JJ` dans le fichier (syntaxe du module Obsidian Tasks)
+- `⏰ AAAA-MM-JJ HH:mm` pour un rappel à l'heure, `📅 AAAA-MM-JJ` pour une échéance (rappel à 9 h)
+- **Today**, en haut de la barre latérale : tâches en retard, du jour et des 7 prochains jours, toutes notes confondues
+- **New task** (`Cmd+N` sur ordinateur, ou la palette) : une ligne dans `Inbox.md`, avec date et heure facultatives
+- Notifications locales programmées par chaque appareil, aucun serveur ne connaît les rappels
 
 ---
 
@@ -145,18 +154,19 @@ Ne sont pas exécutés : les scripts (bloqués par React) et les gestionnaires d
 | Raccourci | Action |
 |-----------|--------|
 | `Cmd+B` | Barre latérale gauche |
-| `Cmd+Shift+B` | Barre latérale droite (sommaire, mots-clés) |
+| `Cmd+Shift+B` | Barre latérale droite (sommaire) |
 | `Cmd+E` | Mode édition |
 | `Cmd+F` | Recherche dans le document |
 | `Cmd+P` | Ouverture rapide d'un fichier |
 | `Cmd+Shift+P` | Palette de commandes |
 | `Cmd+Shift+F` | Recherche dans tous les fichiers |
 | `Cmd+Shift+E` | Focus sur la barre latérale |
+| `Cmd+N` | Nouvelle tâche |
 | `Cmd+[` | Retour dans l'historique |
 | `Cmd+]` | Avancer dans l'historique |
 | `Cmd++` / `Cmd+-` | Taille de police (±2 px, de 12 à 28 px) |
 | `Cmd+0` | Taille de police par défaut (17 px) |
-| `Escape` | Fermer la recherche, le mode focus ou le défilement automatique |
+| `Escape` | Fermer la recherche ou le mode focus |
 
 ### Navigation Vim (dans le document)
 
@@ -174,9 +184,7 @@ Ne sont pas exécutés : les scripts (bloqués par React) et les gestionnaires d
 ## Fichiers du vault
 
 ### Types de fichiers ouverts
-- `.md` / `.markdown` : documents Markdown (principal)
-- `.mid` / `.midi` : fichiers MIDI
-- `.gp` / `.gp3` / `.gp4` / `.gp5` / `.gpx` : Guitar Pro
+- `.md` / `.markdown` : documents Markdown, seul type ouvert comme document
 
 ### Découverte
 - Parcours récursif de tous les sous-dossiers
@@ -193,7 +201,6 @@ Les dossiers cachés (commençant par `.`) sont ignorés.
 ### Liens entre documents
 - Liens locaux `[texte](fichier.md)` : ouvrent le fichier dans Lector
 - Détection des fichiers du vault pour les liens croisés
-- Graphe de connaissances construit à partir des liens Markdown et des wikilinks (visualisation uniquement)
 
 ---
 
@@ -224,29 +231,13 @@ Détail : `docs/collab-design.md`.
 - **Stop sharing** : le salon est effacé, le lien ne marche plus pour personne, une nouvelle clé au prochain partage
 - Pas encore : document partagé relié au fichier `.md` du vault sur ordinateur et Android
 
-## IA et voix (clés personnelles)
-
-Aucune fonction ne passe par un serveur de Lector. L'utilisateur saisit ses propres clés dans l'écran « Clés API » ; elles restent sur l'appareil.
-
-- **IA (Claude)** : sur ordinateur, le Claude CLI installé localement est utilisé en priorité ; sinon, partout, la clé API Anthropic personnelle. Modèles proposés d'après le compte Anthropic (liste de repli intégrée).
-  - Résumé par document (3 à 5 points)
-  - Carte mentale
-  - Métadonnées du document (mots-clés, glossaire, niveau de difficulté)
-  - Quiz et fiches de révision
-  - Explication de diagrammes
-  - Discussion sur le document en cours
-- **Lecture à voix haute** : voix ElevenLabs avec la clé personnelle de l'utilisateur.
-
-Sur ordinateur, les clés sont chiffrées par le trousseau du système (`safeStorage`) quand il existe (sinon fichier lisible par l'utilisateur seul, et l'écran le dit) et les appels partent du processus principal ; sur le web et le mobile, elles sont chiffrées dans le navigateur et les appels partent directement vers Anthropic ou ElevenLabs.
-
 Sécurité du rendu et de l'accès au disque (CSP, assainissement des documents, bac à sable d'Electron, dossiers ouverts par l'utilisateur) : `docs/SECURITE.md`.
 
 ---
 
 ## Export
 
-- **PDF** : document en cours, ou dossier entier fusionné en un PDF
-- **EPUB** : export local du document (sans envoi)
+- **PDF** (impression) : document en cours, ou dossier entier fusionné en un PDF ; pas sur mobile
 
 ---
 
@@ -255,23 +246,29 @@ Sécurité du rendu et de l'accès au disque (CSP, assainissement des documents,
 | Composant | Fichier | Rôle |
 |-----------|---------|------|
 | App | `App.jsx` | Logique principale, raccourcis, état |
-| DocumentView | `DocumentView.jsx` | Rendu Markdown et fonctions IA |
-| DiagramBlocks | `DiagramBlocks.jsx` | Rendu des diagrammes (Mermaid, Graphviz, etc.) |
-| Sidebar | `Sidebar.jsx` | Navigateur de fichiers |
-| FloatingTOC | `FloatingTOC.jsx` | Sommaire, mots-clés, glossaire |
+| DocumentView | `DocumentView.jsx` | Rendu Markdown, médias, tâches cochables |
+| MermaidBlock | `MermaidBlock.jsx` | Diagrammes Mermaid, chargés à la demande |
+| CodeBlock | `CodeBlock.jsx` | Blocs de code, highlight.js à la demande |
+| Sidebar | `Sidebar.jsx` | Navigateur de fichiers, favoris, récents |
+| FloatingTOC | `FloatingTOC.jsx` | Sommaire |
 | MarkdownEditor | `MarkdownEditor.jsx` | Mode édition (CodeMirror 6) |
+| TodayView, NewTask | `TodayView.jsx`, `NewTask.jsx` | Tâches et rappels |
 | ChaineSync | `ChaineSync.jsx` | Écran Synchronisation (créer, rejoindre, état, nouvelle chaîne, tout effacer) |
-| ApiKeysPanel | `ApiKeysPanel.jsx` | Écran Clés API (Anthropic, ElevenLabs) |
+| AboutPanel | `AboutPanel.jsx` | Version, principes, « What leaves your device » |
 | FileSystem | `fileSystem.js` | Accès aux fichiers sur toutes les plateformes |
+| Nettoyage | `nettoyage.js` | Efface au démarrage les données locales des fonctions retirées |
 
 ---
 
 ## Ce que Lector ne fait pas
 
-- Wikilinks rendus comme liens (graphe uniquement)
+- Wikilinks
 - Inclusions et encadrés Obsidian
 - En-tête YAML
-- Visualisation de PDF ou d'EPUB (export seulement)
+- Visualisation de PDF
+- Fiches de révision, quiz, assistant IA, lecture à voix haute, partitions et musique, import de transcriptions, carte mentale, graphe de notes, surlignages, étiquettes (`NON_GOALS.md`)
+- Diagrammes autres que Mermaid
+- Rendu des maths (KaTeX)
 - Synchronisation des images et autres fichiers non markdown
 - Pages publiques : un document partagé ne se lit jamais sans la clé du lien
 - Invitations en lecture seule, retrait d'une seule personne (arrêter le partage coupe tout le monde)

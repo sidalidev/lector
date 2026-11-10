@@ -1,6 +1,6 @@
 # Sécurité de l'app : rendu des documents et accès au disque
 
-Un document markdown peut venir de n'importe où (téléchargé, partagé, déposé dans le casier par un autre appareil). Il ne doit jamais exécuter de script dans l'origine de Lector : sur le web, ce script pourrait se servir des clés de la chaîne et des clés API rangées dans IndexedDB (`docs/CHAINE.md` § 10) ; sur ordinateur, il parlerait au processus principal. Quatre défenses s'empilent, plus une limite de taille.
+Un document markdown peut venir de n'importe où (téléchargé, partagé, déposé dans le casier par un autre appareil). Il ne doit jamais exécuter de script dans l'origine de Lector : sur le web, ce script pourrait se servir des clés de la chaîne rangées dans IndexedDB (`docs/CHAINE.md` § 10) ; sur ordinateur, il parlerait au processus principal. Quatre défenses s'empilent, plus une limite de taille.
 
 ## 1. Politique de sécurité du contenu (CSP)
 
@@ -9,20 +9,20 @@ Définie dans `front/vite.config.js` et posée en tête de `index.html` (balise 
 | Directive | Valeur | Pourquoi |
 |---|---|---|
 | `default-src` | `'self'` | rien d'autre par défaut |
-| `script-src` | `'self' 'wasm-unsafe-eval'` | seulement les fichiers de l'app, jamais de script en ligne ni `eval` ; `'wasm-unsafe-eval'` est requis par verovio (partitions), qui compile du WebAssembly, et n'autorise ni `eval` ni `new Function` |
-| `style-src` | `'self' 'unsafe-inline'` | styles posés par React, Mermaid, KaTeX et abcjs |
+| `script-src` | `'self'` | seulement les fichiers de l'app : jamais de script en ligne, ni `eval`, ni WebAssembly |
+| `style-src` | `'self' 'unsafe-inline'` | styles posés par Preact et Mermaid |
 | `img-src`, `media-src` | `'self' data: blob: https: http: lector-local:` | images et vidéos des documents |
 | `font-src` | `'self' data:` | polices embarquées |
-| `connect-src` | `'self'`, le serveur de synchro, `api.anthropic.com`, `api.elevenlabs.io`, `paulrosen.github.io`, `surikov.github.io` | synchro, clés API de l'utilisateur, sons des partitions (des données, jamais du code) |
+| `connect-src` | `'self'`, `https://lector.dockerbop.fr`, `wss://lector.dockerbop.fr`, `wss://lector.sidali.dev` | synchro et relais de co-écriture seulement (l'app mobile n'est pas sur son origine) ; aucun autre service n'est appelé |
 | `frame-src` | YouTube, Vimeo, Rumble, `lector-local:` | vidéos intégrées, pages HTML locales sur ordinateur |
 | `object-src` | `'none'` | |
 | `base-uri`, `form-action` | `'self'` | |
 
-En développement seulement, le préambule de React Refresh passe par un nonce tiré au démarrage de Vite, et `connect-src` accepte `ws://localhost:*`. Une balise `meta` ne peut pas porter `frame-ancestors` : l'interdiction d'afficher `/app/` dans un cadre est un en-tête du serveur web (`deploy/nginx.conf`).
+En développement seulement, les scripts en ligne de Vite passent par un nonce tiré au démarrage de Vite, et `connect-src` accepte `ws://localhost:*`. Une balise `meta` ne peut pas porter `frame-ancestors` : l'interdiction d'afficher `/app/` dans un cadre est un en-tête du serveur web (`deploy/nginx.conf`).
 
 ## 2. Assainissement du HTML des documents
 
-`front/src/utils/schemaMarkdown.js` : la liste blanche de GitHub (`rehype-sanitize`), plus ce que Lector écrit lui-même avant le rendu (titres annotés, repères de ligne), les maths et quelques balises de mise en forme. Jamais de script, d'iframe, de feuille de style, d'objet, de formulaire, de `<base>`, de `<link>` ni de gestionnaire d'événement ; les liens et les sources n'acceptent que `http`, `https`, `mailto` et les chemins relatifs. Le style en ligne est gardé sauf ce qui pourrait recouvrir l'interface ou charger une ressource. Mermaid tourne en mode `strict`. L'export d'un dossier en fenêtre d'impression échappe le texte des documents avant de le mettre en forme (`front/src/utils/impression.js`).
+`front/src/utils/schemaMarkdown.js` : la liste blanche de GitHub (`rehype-sanitize`), plus ce que Lector écrit lui-même avant le rendu (titres annotés, repères de ligne) et quelques balises de mise en forme. Jamais de script, d'iframe, de feuille de style, d'objet, de formulaire, de `<base>`, de `<link>` ni de gestionnaire d'événement ; les liens et les sources n'acceptent que `http`, `https`, `mailto` et les chemins relatifs. Le style en ligne est gardé sauf ce qui pourrait recouvrir l'interface ou charger une ressource. Mermaid tourne en mode `strict`. L'export d'un dossier en fenêtre d'impression échappe le texte des documents avant de le mettre en forme (`front/src/utils/impression.js`).
 
 ## 3. Ordinateur : accès du renderer au disque
 

@@ -1,12 +1,10 @@
 import { useMemo, useState, useEffect, useCallback, useRef, memo } from 'react';
-import { Folder, FolderOpen, FileText, Bookmark, Star, Music, Guitar, Copy, Clock, BookOpen, Search, Home, Plus, CalendarCheck, ListPlus } from 'lucide-react';
-import { getMasteryScore } from '../services/spacedRepetition';
+import { Folder, FolderOpen, FileText, Bookmark, Star, Copy, Clock, Search, Home, Plus, CalendarCheck, ListPlus } from 'lucide-react';
 import fileSystem from '../services/fileSystem';
 import syncService from '../services/syncService';
 import storage from '../services/storage';
 import normalizeSearch from '../utils/normalizeSearch';
 import { t } from '../services/i18n'
-import Tooltip from './Tooltip'
 import formatRelativeTime from '../utils/formatRelativeTime'
 import './Sidebar.css';
 
@@ -78,7 +76,7 @@ function sortWithStars(items, starredSet) {
 }
 
 
-const FileTreeItem = memo(function FileTreeItem({ item, depth, isExpanded, isActive, isStarred, isHighlighted, masteryScore, onToggleFolder, onOpenFile, onContextMenu, expandedFolders, currentFilePath, starredSet, highlightedPath, masteryScores }) {
+const FileTreeItem = memo(function FileTreeItem({ item, depth, isExpanded, isActive, isStarred, isHighlighted, onToggleFolder, onOpenFile, onContextMenu, expandedFolders, currentFilePath, starredSet, highlightedPath }) {
   if (item.isDirectory) {
     return (
       <div className="file-tree-folder">
@@ -106,7 +104,6 @@ const FileTreeItem = memo(function FileTreeItem({ item, depth, isExpanded, isAct
                 isActive={currentFilePath === child.path}
                 isStarred={starredSet.has(child.path)}
                 isHighlighted={highlightedPath === child.path}
-                masteryScore={masteryScores[child.path]}
                 onToggleFolder={onToggleFolder}
                 onOpenFile={onOpenFile}
                 onContextMenu={onContextMenu}
@@ -114,27 +111,11 @@ const FileTreeItem = memo(function FileTreeItem({ item, depth, isExpanded, isAct
                 currentFilePath={currentFilePath}
                 starredSet={starredSet}
                 highlightedPath={highlightedPath}
-                masteryScores={masteryScores}
               />
             ))}
           </div>
         )}
       </div>
-    );
-  }
-
-  // Fichiers de référence (.srt): affichés mais non-cliquables
-  if (item.isReference || item.name.endsWith('.srt')) {
-    return (
-      <Tooltip text={t('sidebar.srtTooltip')} position="right">
-        <div
-          className="file-tree-item file reference"
-          style={{ paddingLeft: `${6 + depth * 14}px` }}
-        >
-          <span className="file-icon reference-icon">🎬</span>
-          <span className="file-name">{item.name.replace(/\.srt$/i, '')}</span>
-        </div>
-      </Tooltip>
     );
   }
 
@@ -147,14 +128,9 @@ const FileTreeItem = memo(function FileTreeItem({ item, depth, isExpanded, isAct
       onContextMenu={(e) => onContextMenu(e, item.path)}
     >
       <span className="file-icon">
-        {/\.(gp|gp3|gp4|gp5|gpx)$/i.test(item.name) ? <Guitar size={15} /> : (item.name.endsWith('.mid') || item.name.endsWith('.midi')) ? <Music size={15} /> : <FileText size={15} />}
+        <FileText size={15} />
       </span>
-      <span className="file-name">{item.name.replace(/\.(md|mid|midi|gp\d?|gpx)$/i, '')}</span>
-      {masteryScore !== undefined && (
-        <span className={`mastery-badge ${masteryScore <= 33 ? 'mastery-low' : masteryScore <= 66 ? 'mastery-mid' : 'mastery-high'}`}>
-          {masteryScore}%
-        </span>
-      )}
+      <span className="file-name">{item.name.replace(/\.(md|markdown)$/i, '')}</span>
       {isStarred && <Star size={10} className="star-indicator" fill="currentColor" />}
     </button>
   );
@@ -168,7 +144,6 @@ function Sidebar({ content, onNavigate, bookmarks = [], onBookmarkClick, dirPath
   const [contextMenu, setContextMenu] = useState(null);
   const [highlightedPath, setHighlightedPath] = useState(null);
   const [recentSort, setRecentSort] = useState('recent'); // 'recent' | 'frequent'
-  const [masteryScores, setMasteryScores] = useState({});
   const [quickSearchQuery, setQuickSearchQuery] = useState('');
   const quickSearchRef = useRef(null);
 
@@ -267,45 +242,6 @@ function Sidebar({ content, onNavigate, bookmarks = [], onBookmarkClick, dirPath
     onFocusFolderHandled?.();
   }, [focusFolderPath, treeDirPath, onFocusFolderHandled]);
 
-  // Compute mastery scores for all files with flashcards (debounced)
-  const computeMasteryScores = useCallback(() => {
-    const scores = {};
-    const keys = Object.keys(localStorage).filter(k => k.startsWith('flashcards-'));
-    for (const key of keys) {
-      const filePath = key.replace('flashcards-', '');
-      const score = getMasteryScore(filePath);
-      if (score !== null) scores[filePath] = score;
-    }
-    setMasteryScores(prev => {
-      // Only update if scores actually changed
-      const prevKeys = Object.keys(prev).sort().join(',');
-      const newKeys = Object.keys(scores).sort().join(',');
-      if (prevKeys === newKeys && Object.keys(scores).every(k => prev[k] === scores[k])) {
-        return prev;
-      }
-      return scores;
-    });
-  }, []);
-
-  // Load mastery scores (less frequently)
-  useEffect(() => {
-    computeMasteryScores();
-    const interval = setInterval(computeMasteryScores, 60000); // 60s instead of 30s
-    const handleStorage = (e) => {
-      if (e.key?.startsWith('flashcards-')) {
-        // Debounce storage updates
-        clearTimeout(handleStorage._timeout);
-        handleStorage._timeout = setTimeout(computeMasteryScores, 500);
-      }
-    };
-    window.addEventListener('storage', handleStorage);
-    return () => {
-      clearInterval(interval);
-      clearTimeout(handleStorage._timeout);
-      window.removeEventListener('storage', handleStorage);
-    };
-  }, [computeMasteryScores]);
-
   const toggleFolder = useCallback((path) => {
     setExpandedFolders(prev => ({
       ...prev,
@@ -402,7 +338,6 @@ function Sidebar({ content, onNavigate, bookmarks = [], onBookmarkClick, dirPath
         isActive={currentFilePath === item.path}
         isStarred={starredSet.has(item.path)}
         isHighlighted={highlightedPath === item.path}
-        masteryScore={masteryScores[item.path]}
         onToggleFolder={toggleFolder}
         onOpenFile={openFile}
         onContextMenu={handleContextMenu}
@@ -410,11 +345,10 @@ function Sidebar({ content, onNavigate, bookmarks = [], onBookmarkClick, dirPath
         currentFilePath={currentFilePath}
         starredSet={starredSet}
         highlightedPath={highlightedPath}
-        masteryScores={masteryScores}
       />
     ));
     return render(sortedFiles);
-  }, [sortedFiles, expandedFolders, currentFilePath, starredSet, highlightedPath, masteryScores, toggleFolder, openFile, handleContextMenu]);
+  }, [sortedFiles, expandedFolders, currentFilePath, starredSet, highlightedPath, toggleFolder, openFile, handleContextMenu]);
 
   return (
     <aside className="sidebar" aria-label={t('sidebar.panel')} style={hidden ? { display: 'none' } : undefined}>
@@ -470,7 +404,7 @@ function Sidebar({ content, onNavigate, bookmarks = [], onBookmarkClick, dirPath
               onClick={() => { openFile(f.path); setQuickSearchQuery(''); }}
             >
               <FileText size={14} />
-              <span className="search-result-name">{f.name.replace(/\.(md|mid|midi|gp\d?|gpx)$/i, '')}</span>
+              <span className="search-result-name">{f.name.replace(/\.(md|markdown)$/i, '')}</span>
             </button>
           ))}
         </div>
@@ -580,9 +514,9 @@ function Sidebar({ content, onNavigate, bookmarks = [], onBookmarkClick, dirPath
                   onContextMenu={(e) => handleContextMenu(e, f.path)}
                 >
                   <span className="starred-icon">
-                    {isDir ? <Folder size={14} /> : /\.(gp|gp3|gp4|gp5|gpx)$/i.test(f.name) ? <Guitar size={14} /> : (f.name.endsWith('.mid') || f.name.endsWith('.midi')) ? <Music size={14} /> : <FileText size={14} />}
+                    {isDir ? <Folder size={14} /> : <FileText size={14} />}
                   </span>
-                  <span className="starred-doc-name">{isDir ? f.name : f.name.replace(/\.(md|mid|midi|gp\d?|gpx)$/i, '')}</span>
+                  <span className="starred-doc-name">{isDir ? f.name : f.name.replace(/\.(md|markdown)$/i, '')}</span>
                   <button
                     className="starred-remove"
                     title={t('sidebar.removeFromFavorites')}
@@ -679,20 +613,6 @@ function Sidebar({ content, onNavigate, bookmarks = [], onBookmarkClick, dirPath
             <Copy size={14} />
             {t('sidebar.copyPath')}
           </button>
-          {!contextMenu.isDirectory && contextMenu.path?.endsWith('.md') && fileSystem.isElectron() && (
-            <button
-              className="context-menu-item"
-              onClick={async () => {
-                const filePath = contextMenu.path;
-                setContextMenu(null);
-                const result = await fileSystem.exportFileEpub(filePath);
-                if (result?.error) alert(t('sidebar.errorLabel', { error: result.error }));
-              }}
-            >
-              <BookOpen size={14} />
-              {t('sidebar.exportEpub')}
-            </button>
-          )}
         </div>
       )}
     </aside>

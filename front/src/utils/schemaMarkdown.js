@@ -32,8 +32,7 @@ export const schemaMarkdown = {
     h4: titre,
     h5: titre,
     h6: titre,
-    // Maths : remark-math pose ces classes, rehype-katex (après l'assainissement) les lit.
-    code: [['className', /^language-./, 'math-inline', 'math-display']],
+    code: [['className', /^language-./]],
     video: ['src', 'poster', 'controls', 'loop', 'muted', 'playsInline', 'preload'],
     audio: ['src', 'controls', 'loop', 'muted', 'preload'],
     source: [...a.source, 'src', 'type'],

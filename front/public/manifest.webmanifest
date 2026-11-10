@@ -1,7 +1,7 @@
 {
   "name": "Lector",
   "short_name": "Lector",
-  "description": "Beautiful Markdown reader with mind maps, flashcards and sheet music",
+  "description": "Markdown editor: plain notes, beautifully rendered, edited in real time, synced end to end encrypted",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#FBF7EF",

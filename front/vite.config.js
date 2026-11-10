@@ -1,5 +1,4 @@
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
 import { randomBytes } from 'crypto';
 import { readFileSync } from 'fs';
 
@@ -7,18 +6,15 @@ const pkg = JSON.parse(readFileSync('../package.json', 'utf-8'));
 
 // Politique de sécurité du contenu, posée en tête de index.html : la même pour
 // le web, Capacitor et Electron. Aucun script hors des fichiers de l'app,
-// jamais 'unsafe-eval' ni de script en ligne.
-// - 'wasm-unsafe-eval' : verovio (partitions) compile du WebAssembly ; cela
-//   n'autorise ni eval ni new Function.
-// - style-src 'unsafe-inline' : styles posés par React, Mermaid, KaTeX et abcjs.
-// - connect-src : serveur de synchro (l'app mobile n'est pas sur son origine),
-//   Anthropic et ElevenLabs appelés depuis le navigateur avec la clé de
-//   l'utilisateur, sons de abcjs et de la guitare (données, jamais du code).
-// - frame-src : vidéos YouTube, Vimeo, Rumble ; pages HTML locales intégrées
-//   sur ordinateur (lector-local:).
+// jamais 'unsafe-eval', ni WebAssembly, ni script en ligne.
+// - style-src 'unsafe-inline' : styles posés par Preact et Mermaid.
+// - connect-src : serveur de synchro et relais de co-écriture seulement (l'app
+//   mobile n'est pas sur son origine). Aucun autre service n'est appelé.
+// - frame-src : vidéos YouTube, Vimeo, Rumble citées dans une note ; pages
+//   HTML locales intégrées sur ordinateur (lector-local:).
 const POLITIQUE = {
   'default-src': ["'self'"],
-  'script-src': ["'self'", "'wasm-unsafe-eval'"],
+  'script-src': ["'self'"],
   'style-src': ["'self'", "'unsafe-inline'"],
   'img-src': ["'self'", 'data:', 'blob:', 'https:', 'http:', 'lector-local:'],
   'media-src': ["'self'", 'data:', 'blob:', 'https:', 'http:', 'lector-local:'],
@@ -30,10 +26,6 @@ const POLITIQUE = {
     // même origine dans les navigateurs récents ; écrit en clair pour les autres.
     'wss://lector.dockerbop.fr',
     'wss://lector.sidali.dev',
-    'https://api.anthropic.com',
-    'https://api.elevenlabs.io',
-    'https://paulrosen.github.io',
-    'https://surikov.github.io',
   ],
   'frame-src': ['https://www.youtube.com', 'https://player.vimeo.com', 'https://rumble.com', 'lector-local:'],
   'object-src': ["'none'"],
@@ -41,8 +33,8 @@ const POLITIQUE = {
   'form-action': ["'self'"],
 };
 
-// En développement seulement : le préambule de React Refresh est un script en
-// ligne (autorisé par un nonce tiré au démarrage) et Vite recharge par websocket.
+// En développement seulement : Vite recharge par websocket ; un nonce tiré au
+// démarrage couvre tout script en ligne qu'il ajouterait.
 function politique(nonce) {
   const p = { ...POLITIQUE };
   if (nonce) {
@@ -67,7 +59,20 @@ function csp(nonce) {
 export default defineConfig(({ command }) => {
   const nonce = command === 'serve' ? randomBytes(16).toString('base64') : undefined;
   return {
-    plugins: [react(), csp(nonce)],
+    plugins: [csp(nonce)],
+    // Preact à la place de React (même API par preact/compat, ~40 Ko gzip de
+    // moins au démarrage). Le JSX est compilé par esbuild, sans Babel.
+    esbuild: { jsx: 'automatic', jsxImportSource: 'preact' },
+    resolve: {
+      alias: [
+        { find: /^react$/, replacement: 'preact/compat' },
+        { find: /^react-dom$/, replacement: 'preact/compat' },
+        { find: /^react-dom\/client$/, replacement: 'preact/compat/client' },
+        { find: /^react\/jsx-runtime$/, replacement: 'preact/jsx-runtime' },
+        { find: /^react\/jsx-dev-runtime$/, replacement: 'preact/jsx-dev-runtime' },
+      ],
+    },
+    optimizeDeps: { include: ['preact', 'preact/compat', 'preact/hooks', 'preact/jsx-runtime'] },
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version),
     },
@@ -82,11 +87,8 @@ export default defineConfig(({ command }) => {
           // l'entrée importait alors toujours, même sur la page /d/ d'un invité.
           manualChunks(id) {
             if (id.includes('vite/preload-helper') || id.includes('commonjsHelpers')) return 'vendor';
-            if (/node_modules\/(react|react-dom|scheduler|lucide-react)\//.test(id)) return 'vendor';
+            if (/node_modules\/(preact|lucide-react)\//.test(id)) return 'vendor';
             if (/node_modules\/mermaid\//.test(id)) return 'mermaid';
-            if (/node_modules\/d3(-[a-z]+)?\//.test(id)) return 'd3';
-            if (/node_modules\/abcjs\//.test(id)) return 'abcjs';
-            if (id.endsWith('/src/components/DiagramBlocks.jsx')) return 'diagram-blocks';
             // Textes de l'interface : partagés par l'app, les schémas et la page /d/.
             if (id.includes('/src/services/i18n') || id.includes('/src/locales/')) return 'i18n';
             return undefined;

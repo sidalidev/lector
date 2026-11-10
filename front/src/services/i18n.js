@@ -1,9 +1,9 @@
 import en from '../locales/en'
-import fr from '../locales/fr'
 
-const LOCALES = { en, fr }
 // L'interface est en anglais seulement. Les textes français restent dans
-// locales/fr.js pour plus tard, mais ne sont plus proposés.
+// locales/fr.js pour plus tard (et pour les tests de textes), mais ne sont ni
+// proposés ni chargés par l'app.
+const LOCALES = { en }
 let currentLocale = 'en'
 
 function t(key, params) {

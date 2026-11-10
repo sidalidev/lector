@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  Scroll, BookOpen, Highlighter, Ruler,
-  Search, Sidebar, PanelRight, Maximize2, Zap, KeyRound, Youtube, FilePlus, Volume2, FolderDown, GraduationCap, Cloud, Info, CalendarCheck, ListPlus, Share2
+  Search, Sidebar, PanelRight, Maximize2, Zap, FilePlus, FolderDown, Cloud, Info, CalendarCheck, ListPlus, Share2
 } from 'lucide-react';
 import normalizeSearch from '../utils/normalizeSearch';
 import { t } from '../services/i18n'
@@ -20,11 +19,7 @@ function CommandPalette({ onClose, onCommand }) {
     const all = [
       { id: 'today', label: t('cmd.today'), description: t('cmd.todayDesc'), icon: CalendarCheck, keywords: 'today tasks todo due overdue reminders week agenda' },
       { id: 'new-task', label: t('cmd.newTask'), description: t('cmd.newTaskDesc'), icon: ListPlus, keywords: 'new task todo reminder inbox add rappel tache', shortcut: fileSystem.isElectron() ? '⌘N' : null },
-      { id: 'autoscroll', label: t('cmd.autoscroll'), description: t('cmd.autoscrollDesc'), icon: Scroll, keywords: 'scroll defiler auto' },
       { id: 'focus', label: t('cmd.focus'), description: t('cmd.focusDesc'), icon: Maximize2, keywords: 'focus zen distraction' },
-      { id: 'ruler', label: t('cmd.ruler'), description: t('cmd.rulerDesc'), icon: Ruler, keywords: 'ruler regle lecture ligne' },
-      { id: 'highlights', label: t('cmd.highlights'), description: t('cmd.highlightsDesc'), icon: Highlighter, keywords: 'highlight surligner annotations' },
-      { id: 'flashcards', label: t('cmd.flashcards'), description: t('cmd.flashcardsDesc'), icon: BookOpen, keywords: 'flashcard revision cartes' },
       // Partage en temps réel : navigateur seulement pour l'instant (docs/collab-design.md § 9).
       ...(!isCapacitor && !fileSystem.isElectron() ? [
         { id: 'share', label: t('cmd.share'), description: t('cmd.shareDesc'), icon: Share2, keywords: 'share collaborate together co-write link partager' },
@@ -33,15 +28,11 @@ function CommandPalette({ onClose, onCommand }) {
       { id: 'sidebar', label: t('cmd.sidebar'), description: t('cmd.sidebarDesc'), icon: Sidebar, keywords: 'sidebar barre laterale panel' },
       { id: 'right-sidebar', label: t('cmd.rightSidebar'), description: t('cmd.rightSidebarDesc'), icon: PanelRight, keywords: 'right sidebar toc table matieres panneau droit' },
       { id: 'new-file', label: t('cmd.newFile'), description: t('cmd.newFileDesc'), icon: FilePlus, keywords: 'new file nouveau fichier creer create note' },
-      { id: 'tts', label: t('cmd.tts'), description: t('cmd.ttsDesc'), icon: Volume2, keywords: 'audio lecture voix tts speech elevenlabs read aloud' },
-      // YouTube et Export PDF uniquement sur desktop (pas fonctionnel sur mobile)
+      // Export PDF : pas sur mobile (impression indisponible)
       ...(!isCapacitor ? [
         { id: 'export-pdf', label: t('cmd.exportPdf'), description: t('cmd.exportPdfDesc'), icon: Zap, keywords: 'export pdf imprimer' },
         { id: 'export-folder-pdf', label: t('cmd.exportFolderPdf'), description: t('cmd.exportFolderPdfDesc'), icon: FolderDown, keywords: 'export folder dossier pdf all tout formation' },
-        { id: 'youtube', label: t('cmd.youtube'), description: t('cmd.youtubeDesc'), icon: Youtube, keywords: 'youtube video transcript srt sous-titres subtitles' },
       ] : []),
-      { id: 'learn', label: t('cmd.learn'), description: t('cmd.learnDesc'), icon: GraduationCap, keywords: 'learn apprendre comprendre understand topic sujet fiche revision study' },
-      { id: 'api-keys', label: t('cmd.apiKeys'), description: t('cmd.apiKeysDesc'), icon: KeyRound, keywords: 'api key cle anthropic elevenlabs claude voix voice assistant' },
       { id: 'about', label: t('cmd.about'), description: t('cmd.aboutDesc'), icon: Info, keywords: 'about version privacy credits fonts a propos' },
       ...(!isCapacitor ? [
         { id: 'cloud', label: t('cmd.cloud'), description: t('cmd.cloudDesc'), icon: Cloud, keywords: 'vault cloud sync synchro chaine chain appareil device nuage' },

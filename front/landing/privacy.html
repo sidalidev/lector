@@ -69,12 +69,12 @@
 <body>
   <div class="container">
     <h1>Privacy Policy</h1>
-    <p class="updated">Last updated: November 1, 2026</p>
+    <p class="updated">Last updated: November 10, 2026</p>
 
-    <p>Lector ("the App") is a free Markdown reader developed by Sid (<a href="https://sidali.dev">sidali.dev</a>). There is no account: no email, no password, no profile. This policy explains what leaves your device, what our server can and cannot see, and how to delete it.</p>
+    <p>Lector ("the App") is a free Markdown editor developed by Sid (<a href="https://sidali.dev">sidali.dev</a>). There is no account: no email, no password, no profile. This policy explains what leaves your device, what our server can and cannot see, and how to delete it.</p>
 
     <h2>1. Your documents</h2>
-    <p>Lector reads and renders your files on your device. Nothing is sent anywhere unless you turn on sync (section 2) or use a feature that calls a provider with your own API key (section 3).</p>
+    <p>Lector reads and renders your files on your device. Nothing is sent anywhere unless you turn on sync (section 2) or a document loads content from another website (section 5).</p>
 
     <h2>2. Sync</h2>
     <p>Sync is optional. When you create a sync chain, your device generates twelve words. From them it derives, on the device, a chain identifier, a proof of ownership and the encryption keys. We never receive the twelve words or the keys, and we cannot recover them for you.</p>
@@ -98,9 +98,8 @@
     <p><strong>What the server sees:</strong> a document identifier derived from the key (it cannot be turned back into the key), hashes of the proof and of the owner's stop secret, encrypted messages with their arrival time and approximate size (rounded up to 64 bytes), how many people are connected, when the document was shared and last used (to the hour), and the IP address of each connection, in memory only. The reverse proxy access log records the connection to the fixed address <code>/v1/collab</code>, never the document identifier.</p>
     <p>A shared document with no activity for 90 days is deleted. "Stop sharing" deletes it at once; its identifier is kept for a year so the old link cannot be reused. Encrypted copies may remain in the server backups until they expire. The people you shared with keep the copy they have in their browser; Lector cannot take it back. Anyone with the link can read and edit the document.</p>
 
-    <h2>3. AI and voice features</h2>
-    <p>Summaries, mind maps, flashcards, chat and text to speech are optional and use your own API keys (Anthropic for text, ElevenLabs for voice). Your keys stay on your device: on desktop, encrypted with the operating system's secure storage when it is available (otherwise in a file only your user account can read, and the App says so); on the web and on mobile, encrypted with a non-exportable key in the browser storage. Requests go directly from your device to the provider and never pass through our servers. The provider's privacy policy applies to the text you send: <a href="https://www.anthropic.com/legal/privacy" target="_blank">Anthropic</a>, <a href="https://elevenlabs.io/privacy-policy" target="_blank">ElevenLabs</a>.</p>
-    <p>On the web, a key stored in the browser can be read by any script running on the page: only add it on a device you trust. On desktop, if Anthropic's Claude command line tool is installed, Lector can use it instead; it then follows that tool's own settings and terms.</p>
+    <h2>3. No AI or voice features</h2>
+    <p>Lector has no assistant, no reading aloud and no feature that sends your text to an AI or voice provider. Earlier versions offered them with your own API keys; since version 2.2, the App deletes those keys from your device at startup, together with the other data those features kept there.</p>
 
     <h2>4. iCloud</h2>
     <p>On Apple devices, if you open files stored in iCloud Drive, they are managed by Apple and subject to <a href="https://www.apple.com/legal/privacy/" target="_blank">Apple's Privacy Policy</a>. We have no access to your iCloud data.</p>
@@ -109,16 +108,15 @@
     <p>Some content is loaded from a third party only when a document needs it, and that third party then sees your IP address:</p>
     <ul>
       <li>an embedded video: the player comes from YouTube, Vimeo or Rumble;</li>
-      <li>an image whose address points to another website: it comes from that website;</li>
-      <li>playing a music score: the instrument sounds come from <code>paulrosen.github.io</code> (ABC scores) and <code>surikov.github.io</code> (guitar scores), both hosted by GitHub Pages.</li>
+      <li>an image whose address points to another website: it comes from that website.</li>
     </ul>
-    <p>Desktop and iOS apps check <code>lector.dockerbop.fr</code> for updates, and the Android app checks <code>github.com</code>; these requests carry no identifier. On desktop, the "Search the web" menu opens Google in your browser with the selected text, and importing a YouTube transcript contacts YouTube.</p>
+    <p>Desktop and iOS apps check <code>lector.dockerbop.fr</code> for updates, and the Android app checks <code>github.com</code>; these requests carry no identifier. On desktop, the "Search the web" menu opens Google in your browser with the selected text.</p>
 
     <h2>6. This website</h2>
     <p>This website uses no analytics, no cookies and no tracking, and loads nothing from other websites: its fonts are served from this site. The language you choose is remembered in your browser's local storage. Like any web server, ours keeps access logs (IP address, page requested, time) for security and troubleshooting: the reverse proxy log of section 2, kept 7 days today. The web server itself keeps no access log; its error log can record the IP address of a failed request and is kept until the server rotates it.</p>
 
     <h2>7. Data stored on your device</h2>
-    <p>The App stores your preferences, reading progress, sync state and API keys on your device. On desktop, the sync secret and the API keys are encrypted with the operating system's secure storage when it is available. On the web and on mobile, the twelve words are never kept: only non-exportable encryption keys are stored in the browser. Your documents themselves are not encrypted by Lector on your device: your system protects them like any other file.</p>
+    <p>The App stores your preferences, recent files, favorites, bookmarks and sync state on your device. On desktop, the sync secret is encrypted with the operating system's secure storage when it is available. On the web and on mobile, the twelve words are never kept: only non-exportable encryption keys are stored in the browser. Your documents themselves are not encrypted by Lector on your device: your system protects them like any other file.</p>
 
     <h2>8. Children's privacy</h2>
     <p>Lector is not directed at children under 13. We do not knowingly collect personal information from children.</p>

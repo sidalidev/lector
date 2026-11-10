@@ -16,14 +16,17 @@ test.describe('Mode démo', () => {
 
   test('la démo liste ses documents dans la sidebar', async ({ page }) => {
     await expect(page.locator('h1').first()).toBeVisible()
-    await expect(page.locator('.file-tree-item')).toHaveCount(2)
+    await expect(page.locator('.file-tree-item')).toHaveCount(3)
   })
 
-  test('naviguer vers le second doc rend mermaid et katex', async ({ page }) => {
+  test('naviguer vers le doc des diagrammes rend mermaid et colore le code', async ({ page }) => {
     await expect(page.locator('h1').first()).toBeVisible()
     await page.locator('.file-tree-item', { hasText: /Diagrams/ }).click()
     await expect(page.locator('h1').first()).toContainText(/Diagrams/)
-    await expect(page.locator('.katex').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('.mermaid-svg svg').first()).toBeVisible({ timeout: 15000 })
+    await expect(page.locator('.code-block .hljs-keyword').first()).toBeVisible({ timeout: 10000 })
+    // Les formules ne sont pas rendues : $…$ reste du texte.
+    await expect(page.locator('.katex')).toHaveCount(0)
   })
 
   test("rien n'est persisté : le premier lancement revient sans ?demo", async ({ page }) => {
@@ -33,6 +36,6 @@ test.describe('Mode démo', () => {
     )
     expect(leaked).toEqual([])
     await page.goto('/')
-    await expect(page.getByRole('heading', { name: 'Where should your notes live?' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Your notes, yours' })).toBeVisible()
   })
 })

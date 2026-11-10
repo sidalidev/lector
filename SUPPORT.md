@@ -20,4 +20,4 @@ Lector is made by one person. You get a first answer within 72 business hours (M
 - What you did, what you expected, what happened instead
 - Whether it happens every time
 
-Never paste your 12 words, your API keys or the content of private documents. A screenshot of the Sync screen is fine: it does not show the words unless you opened "Add a device".
+Never paste your 12 words or the content of private documents. A screenshot of the Sync screen is fine: it does not show the words unless you opened "Add a device".

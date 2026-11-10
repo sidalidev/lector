@@ -1,32 +1,18 @@
 import { useState, useEffect, useCallback, useRef, useMemo, useSyncExternalStore, lazy, Suspense } from 'react';
 import {
-  Folder, Sliders, List, X, Focus, Ruler, Play, Pause,
-  Highlighter, GraduationCap, Download, Minus, Plus,
-  Blend, RefreshCw, Pencil, MessageCircle, Volume2, Sparkles,
-  Tag, FolderDown, Info, Share2
+  Folder, Sliders, List, X, Focus, Download, Minus, Plus,
+  RefreshCw, Pencil, FolderDown, Info, Share2
 } from 'lucide-react';
-import { getTotalDueCount, getAllDueCards } from './services/spacedRepetition';
 import Sidebar from './components/Sidebar';
-import DocumentView from './components/DocumentView';
-import SearchBar from './components/SearchBar';
-import ReadingRuler from './components/ReadingRuler';
-import ProgressBar from './components/ProgressBar';
-
-import AutoScroll from './components/AutoScroll';
-import TagManager, { useFileTags } from './components/TagManager';
-import QuickOpen from './components/QuickOpen';
-import CommandPalette from './components/CommandPalette';
 import RightSidebar from './components/FloatingTOC';
 import ErrorBoundary from './components/ErrorBoundary';
 import Tooltip from './components/Tooltip';
 import { OnboardingWhere, OnboardingSync } from './components/Onboarding';
 import CloudStatusIndicator from './components/CloudStatusIndicator';
-import { getMasteryScore } from './services/spacedRepetition';
 import fileSystem from './services/fileSystem';
 import syncService from './services/syncService';
 import storage from './services/storage';
 import otaService from './services/otaService';
-import { getStreak } from './services/activityTracker';
 import useTranslation from './hooks/useTranslation'
 import { cheminDans } from './utils/chemins'
 import * as rappels from './services/rappels'
@@ -38,18 +24,20 @@ import './App.css';
 
 const APP_VERSION = __APP_VERSION__ || '0.0.0'
 
-// Lazy-loaded : chargés uniquement quand utilisés
-const Highlights = lazy(() => import('./components/Highlights'));
-const HighlightsPanel = lazy(() => import('./components/Highlights').then(m => ({ default: m.HighlightsPanel })));
-// Highlights est lazy mais toujours monté : chargé dès l'ouverture d'un doc
-const Flashcards = lazy(() => import('./components/Flashcards'));
+// Affichage Markdown (react-markdown, remark, rehype) : hors du premier
+// chargement, l'écran d'accueil n'en a pas besoin. Avec une source déjà
+// choisie, on le demande tout de suite, en parallèle du démarrage.
+const chargerDocumentView = () => import('./components/DocumentView');
+const DocumentView = lazy(chargerDocumentView);
+try { if (localStorage.getItem('lector-source-type')) chargerDocumentView(); } catch { /* stockage indisponible */ }
+
+// Chargés uniquement quand utilisés
+const SearchBar = lazy(() => import('./components/SearchBar'));
+const QuickOpen = lazy(() => import('./components/QuickOpen'));
+const CommandPalette = lazy(() => import('./components/CommandPalette'));
 const GlobalSearch = lazy(() => import('./components/GlobalSearch'));
-const ChatPanel = lazy(() => import('./components/ChatPanel'));
 const ChaineSync = lazy(() => import('./components/ChaineSync'));
-const ApiKeysPanel = lazy(() => import('./components/ApiKeysPanel'));
 const AboutPanel = lazy(() => import('./components/AboutPanel'));
-const YouTubeImport = lazy(() => import('./components/YouTubeImport'));
-const TextToSpeech = lazy(() => import('./components/TextToSpeech'));
 const TodayView = lazy(() => import('./components/TodayView'));
 const NewTask = lazy(() => import('./components/NewTask'));
 // Co-écriture : chargée à l'ouverture du panneau seulement (Yjs hors du paquet principal).
@@ -132,17 +120,7 @@ function App() {
   // New states with persistence
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [showRuler, setShowRuler] = useState(() => storage.get('showRuler', false));
   const [fontSize, setFontSize] = useState(() => storage.get('fontSize', 17));
-  const [autoScrollEnabled, setAutoScrollEnabled] = useState(false);
-  const [autoScrollSpeed, setAutoScrollSpeed] = useState(() => storage.get('autoScrollSpeed', 50));
-  const [showTagManager, setShowTagManager] = useState(false);
-  const [showHighlightsPanel, setShowHighlightsPanel] = useState(false);
-  const [highlights, setHighlights] = useState([]);
-  const [editingHighlight, setEditingHighlight] = useState(null);
-  const [showFlashcards, setShowFlashcards] = useState(false);
-  const [crossDocDueCards, setCrossDocDueCards] = useState(null);
-  const [streak, setStreak] = useState(() => getStreak());
   const [showQuickOpen, setShowQuickOpen] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
@@ -150,7 +128,7 @@ function App() {
   const [sidebarWidth, setSidebarWidth] = useState(() => storage.get('sidebarWidth', 220));
   const [rightSidebarWidth, setRightSidebarWidth] = useState(() => storage.get('rightSidebarWidth', 200));
   const [showRightSidebar, setShowRightSidebar] = useState(() => storage.get('showRightSidebar', true));
-  const [docInfo, setDocInfo] = useState({ headers: [], metadata: null, handleKeywordClick: null });
+  const [docInfo, setDocInfo] = useState({ headers: [] });
   const sidebarResizing = useRef(false);
   const rightSidebarResizing = useRef(false);
 
@@ -158,11 +136,6 @@ function App() {
   const [isMobile, setIsMobile] = useState(false);
   const [mobilePopover, setMobilePopover] = useState(null); // null | 'files' | 'tools' | 'info'
   const [popoverClosing, setPopoverClosing] = useState(false);
-  const [mobileDueCount, setMobileDueCount] = useState(0);
-  const [windowOpacity, setWindowOpacity] = useState(() => {
-    const saved = localStorage.getItem('lector-window-opacity');
-    return saved ? parseFloat(saved) : 1;
-  });
   const [syncRevision, setSyncRevision] = useState(0);
   const [showSourcePicker, setShowSourcePicker] = useState(() => !localStorage.getItem(SOURCE_TYPE_KEY));
   const [onboarding, setOnboarding] = useState(() => lireOnboarding());
@@ -170,20 +143,16 @@ function App() {
   const [updateDismissed, setUpdateDismissed] = useState(false);
   const [editMode, setEditMode] = useState(() => storage.get('editMode', false));
   const [showShare, setShowShare] = useState(false);
-  const [showChatPanel, setShowChatPanel] = useState(() => storage.get('showChatPanel', false));
   const [focusMode, setFocusMode] = useState(false);
-  const [showApiKeys, setShowApiKeys] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showCloudPanel, setShowCloudPanel] = useState(false);
   // Pourquoi l'écran Synchronisation s'ouvre tout seul (CHAIN_UNKNOWN, NO_CHAIN)
   const [cloudPanelReason, setCloudPanelReason] = useState(null);
   // Casier plein, signalé une fois par le processus principal
   const [quotaAlert, setQuotaAlert] = useState(null);
-  const [showYouTubeImport, setShowYouTubeImport] = useState(false);
   const [showNewFileDialog, setShowNewFileDialog] = useState(false);
   const [newFileName, setNewFileName] = useState('');
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
-  const [showTTS, setShowTTS] = useState(false);
   // Tâches : vue Today, ajout rapide, message bref
   const [showToday, setShowToday] = useState(false);
   const [showNewTask, setShowNewTask] = useState(false);
@@ -199,28 +168,6 @@ function App() {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  // Restore window opacity on mount
-  useEffect(() => {
-    if (windowOpacity < 1) {
-      window.electron?.setWindowOpacity(windowOpacity);
-    }
-  }, []);
-
-  const handleOpacityChange = (value) => {
-    const v = parseFloat(value);
-    setWindowOpacity(v);
-    localStorage.setItem('lector-window-opacity', v);
-    window.electron?.setWindowOpacity(v);
-  };
-
-  // Track due count for tools panel
-  useEffect(() => {
-    const update = () => setMobileDueCount(getTotalDueCount());
-    update();
-    const interval = setInterval(update, 30000);
-    return () => clearInterval(interval);
   }, []);
 
   // On mobile with no doc, auto-open the files popover
@@ -264,41 +211,26 @@ function App() {
   // Pas de reset useEffect pour docInfo: DocumentView publie ses headers
   // via onDocInfo à chaque changement de content (useMemo synchrone + useEffect)
 
-  // Get tags for current file
-  const fileTags = useFileTags(currentDoc?.filePath);
-
-  // Mastery score for current doc
-  const [masteryScore, setMasteryScore] = useState(null);
-  useEffect(() => {
-    if (!currentDoc?.filePath) { setMasteryScore(null); return; }
-    setMasteryScore(getMasteryScore(currentDoc.filePath));
-    const handleStorage = (e) => {
-      if (e.key?.startsWith('flashcards-')) {
-        setMasteryScore(getMasteryScore(currentDoc.filePath));
-      }
-    };
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }, [currentDoc?.filePath, showFlashcards]);
-
   // Save all preferences in a single debounced effect
   useEffect(() => {
     const t = setTimeout(() => {
-      const prefs = { fontSize, showRuler, autoScrollSpeed, showSidebar, sidebarWidth, rightSidebarWidth, showRightSidebar, editMode, showChatPanel };
+      const prefs = { fontSize, showSidebar, sidebarWidth, rightSidebarWidth, showRightSidebar, editMode };
       for (const [k, v] of Object.entries(prefs)) {
         storage.set(k, v);
       }
       syncService.markGlobalDirty();
     }, 300);
     return () => clearTimeout(t);
-  }, [fontSize, showRuler, autoScrollSpeed, showSidebar, sidebarWidth, rightSidebarWidth, showRightSidebar, editMode, showChatPanel]);
+  }, [fontSize, showSidebar, sidebarWidth, rightSidebarWidth, showRightSidebar, editMode]);
 
-  const documentViewRef = useRef(null);
+  // Élément de la vue document : un état, pas une ref, car DocumentView arrive
+  // après coup (chargé à la demande) et l'écouteur de défilement doit suivre.
+  const [documentViewEl, setDocumentViewEl] = useState(null);
   const progressRef = useRef(null);
 
   // Barre de progression de lecture: scroll listener sur le document-view
   useEffect(() => {
-    const el = documentViewRef.current;
+    const el = documentViewEl;
     if (!el || !currentDoc) return;
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = el;
@@ -308,7 +240,7 @@ function App() {
     el.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
     return () => el.removeEventListener('scroll', handleScroll);
-  }, [currentDoc?.filePath]);
+  }, [documentViewEl, currentDoc?.filePath]);
 
   // Add to history when opening new doc
   const addToHistory = useCallback((doc) => {
@@ -781,9 +713,7 @@ function App() {
         const file = files[0];
         const filePath = fileSystem.getPathForFile(file);
 
-        const gpExts = ['.gp', '.gp3', '.gp4', '.gp5', '.gpx'];
-        const mxlExts = ['.musicxml', '.mxl'];
-        const isSupported = filePath && (filePath.endsWith('.md') || filePath.endsWith('.mid') || filePath.endsWith('.midi') || mxlExts.some(ext => filePath.toLowerCase().endsWith(ext)) || gpExts.some(ext => filePath.toLowerCase().endsWith(ext)));
+        const isSupported = filePath && /\.(md|markdown)$/i.test(filePath);
         if (isSupported) {
           await fileSystem.openDroppedFile(filePath);
           // Auto-dismiss source picker on drag-drop
@@ -862,10 +792,9 @@ function App() {
         e.preventDefault();
         setShowSearch(true);
       }
-      // Escape to close search/focus mode/autoscroll
+      // Escape : ferme la recherche et le mode focus
       if (e.key === 'Escape') {
         setShowSearch(false);
-        setAutoScrollEnabled(false);
         setFocusMode(false);
       }
 
@@ -954,7 +883,7 @@ function App() {
     }
   };
 
-  // Navigate from chat line reference → document element
+  // Faire défiler jusqu'à une ligne du fichier (tâches)
   const handleNavigateToLine = useCallback((lineStart, lineEnd) => {
     // Find the first element with a matching data-source-line
     const docView = window.document.querySelector('.document-content');
@@ -1213,14 +1142,6 @@ function App() {
     }
   }, [newFileName, rootDirPath])
 
-  // Lancer une session de révision cross-docs (toutes cartes dues)
-  const handleReviewAll = useCallback(() => {
-    const cards = getAllDueCards();
-    if (cards.length === 0) return;
-    setCrossDocDueCards(cards);
-    setShowFlashcards(true);
-  }, []);
-
   // Export dossier du document courant → ouvrir dans une fenêtre print pour PDF
   const handleExportFolderPdf = useCallback(async () => {
     const dirPath = currentDoc?.dirPath || rootDirPath;
@@ -1290,7 +1211,6 @@ function App() {
         <div className="titlebar-center">
           <div className="titlebar-title" title={`Lector v${APP_VERSION}`}>
             {showToday ? t('tasks.today') : (currentDoc?.fileName || 'Lector')}
-            {streak > 0 && <span className="streak-badge" title={t('app.streakTooltip', { n: streak })}>🔥 {streak}</span>}
             <span className="titlebar-version">v{APP_VERSION}</span>
           </div>
           <CloudStatusIndicator onClick={() => setShowCloudPanel(true)} />
@@ -1342,25 +1262,29 @@ function App() {
 
       {/* Search Bar */}
       {showSearch && currentDoc && (
-        <SearchBar
-          content={currentDoc.content}
-          onClose={() => setShowSearch(false)}
-          onGlobalSearch={(q) => {
-            setShowSearch(false);
-            setShowGlobalSearch(true);
-          }}
-        />
+        <Suspense fallback={null}>
+          <SearchBar
+            content={currentDoc.content}
+            onClose={() => setShowSearch(false)}
+            onGlobalSearch={(q) => {
+              setShowSearch(false);
+              setShowGlobalSearch(true);
+            }}
+          />
+        </Suspense>
       )}
 
       {/* Global Search */}
       {showGlobalSearch && (
-        <GlobalSearch
-          rootDirPath={rootDirPath || currentDoc?.dirPath}
-          onClose={() => setShowGlobalSearch(false)}
-          onOpenFile={async (filePath) => {
-            await fileSystem.openFileByPath(filePath);
-          }}
-        />
+        <Suspense fallback={null}>
+          <GlobalSearch
+            rootDirPath={rootDirPath || currentDoc?.dirPath}
+            onClose={() => setShowGlobalSearch(false)}
+            onOpenFile={async (filePath) => {
+              await fileSystem.openFileByPath(filePath);
+            }}
+          />
+        </Suspense>
       )}
 
       <div className="main-content">
@@ -1424,8 +1348,6 @@ function App() {
 
         {/* Document with integrated mind map */}
         <div className="content-area">
-          {/* Reading Ruler: scoped to content area only */}
-          {showRuler && currentDoc && !showToday && <ReadingRuler />}
           {showToday ? (
             <ErrorBoundary>
               <Suspense fallback={null}>
@@ -1439,23 +1361,22 @@ function App() {
             </ErrorBoundary>
           ) : currentDoc ? (
               <ErrorBoundary>
+                <Suspense fallback={<div className="document-view" />}>
                   <DocumentView
-                    ref={documentViewRef}
+                    ref={setDocumentViewEl}
                     content={currentDoc.content}
                     dirPath={currentDoc.dirPath}
                     filePath={currentDoc.filePath}
                     onOpenLocalFile={handleOpenLocalFile}
-                    onNavigate={scrollToHeader}
                     onToggleBookmark={toggleBookmark}
                     isBookmarked={isBookmarked}
                     fontSize={fontSize}
                     onDocInfo={setDocInfo}
                     editMode={editMode}
                     onContentChange={handleContentChange}
-                    onOpenFlashcards={() => setShowFlashcards(true)}
-                    onShowApiKeys={() => setShowApiKeys(true)}
                     onTasksChanged={() => rappels.actualiser(rootDirPathRef.current)}
                   />
+                </Suspense>
               </ErrorBoundary>
           ) : (
             <div className="empty-content"><p style={{ color: 'var(--text-muted)', textAlign: 'center', marginTop: 80 }}>{t('source.subtitle')}</p></div>
@@ -1502,158 +1423,64 @@ function App() {
               }}
             />
             <ErrorBoundary>
-              <RightSidebar
-                headers={docInfo.headers}
-                metadata={docInfo.metadata}
-                onKeywordClick={docInfo.handleKeywordClick}
-                currentFilePath={currentDoc?.filePath}
-                onOpenFile={handleOpenLocalFile}
-                knowledgeLinks={[]}
-                onGenerate={() => docInfo.onGenerate?.()}
-                isGenerating={docInfo.isGenerating}
-                onReviewAll={handleReviewAll}
-              />
+              <RightSidebar headers={docInfo.headers} />
             </ErrorBoundary>
           </div>
         )}
 
-        {/* Highlights Panel */}
-        {showHighlightsPanel && (
-            <HighlightsPanel
-              highlights={highlights}
-              onSelectHighlight={(h) => {
-                // Scroll to highlight in document
-                const mark = document.querySelector(`mark[data-highlight-id="${h.id}"]`);
-                if (mark) {
-                  mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  mark.classList.add('pulse');
-                  setTimeout(() => mark.classList.remove('pulse'), 1000);
-                }
-              }}
-              onEditNote={(h) => setEditingHighlight(h)}
-              onClose={() => setShowHighlightsPanel(false)}
-            />
-        )}
       </div>
-
-      {/* Highlights System */}
-      <Highlights
-        filePath={currentDoc?.filePath}
-        onHighlightsChange={setHighlights}
-        editingHighlight={editingHighlight}
-        setEditingHighlight={setEditingHighlight}
-      />
-
-      {/* Progress Bar */}
-      <ProgressBar />
-
-      {/* AutoScroll Control */}
-      <AutoScroll
-        enabled={autoScrollEnabled}
-        onClose={() => setAutoScrollEnabled(false)}
-        speed={autoScrollSpeed}
-        setSpeed={setAutoScrollSpeed}
-      />
-
-      {/* Tag Manager */}
-      {showTagManager && currentDoc && (
-        <TagManager
-          filePath={currentDoc.filePath}
-          onClose={() => setShowTagManager(false)}
-        />
-      )}
-
-      {/* Flashcards: mode document ou cross-docs */}
-      {showFlashcards && (crossDocDueCards || currentDoc) && (
-          <Flashcards
-            content={currentDoc?.content}
-            filePath={currentDoc?.filePath}
-            dueCards={crossDocDueCards}
-            onClose={() => { setShowFlashcards(false); setCrossDocDueCards(null); setStreak(getStreak()); }}
-          />
-      )}
 
       {/* Quick Open (Cmd+P) */}
       {showQuickOpen && (
-        <QuickOpen
-          rootDirPath={rootDirPath}
-          onClose={() => setShowQuickOpen(false)}
-          onFocusFolder={(path) => {
-            setFocusFolderPath(path);
-            setShowSidebar(true);
-          }}
-        />
+        <Suspense fallback={null}>
+          <QuickOpen
+            rootDirPath={rootDirPath}
+            onClose={() => setShowQuickOpen(false)}
+            onFocusFolder={(path) => {
+              setFocusFolderPath(path);
+              setShowSidebar(true);
+            }}
+          />
+        </Suspense>
       )}
 
       {/* Command Palette (Cmd+Shift+P) */}
       {showCommandPalette && (
-        <CommandPalette
-          onClose={() => setShowCommandPalette(false)}
-          onCommand={(id) => {
-            switch (id) {
-              case 'autoscroll': setAutoScrollEnabled(prev => !prev); break;
-              case 'focus': setFocusMode(prev => !prev); break;
-              case 'ruler': setShowRuler(prev => !prev); break;
-              case 'highlights': setShowHighlightsPanel(prev => !prev); break;
-              case 'flashcards': if (currentDoc) setShowFlashcards(true); break;
-              case 'share': if (PARTAGE_POSSIBLE && currentDoc) setShowShare(true); break;
-              case 'search': if (currentDoc) setShowSearch(true); break;
-              case 'sidebar': setShowSidebar(prev => !prev); break;
-              case 'right-sidebar': setShowRightSidebar(prev => !prev); break;
-              case 'export-pdf':
-                if (currentDoc) fileSystem.exportPdf(currentDoc.fileName);
-                break;
-              case 'export-folder-pdf':
-                if (rootDirPath) handleExportFolderPdf();
-                break;
-              case 'api-keys': setShowApiKeys(true); break;
-              case 'about': setShowAbout(true); break;
-              case 'cloud': setShowCloudPanel(true); break;
-              case 'youtube': setShowYouTubeImport(true); break;
-              case 'tts': if (currentDoc) setShowTTS(true); break;
-              case 'new-file': handleNewFile(); break;
-              case 'new-task': handleNewTask(); break;
-              case 'today': openToday(); break;
-              case 'learn': setShowChatPanel(true); break;
-            }
-          }}
-        />
+        <Suspense fallback={null}>
+          <CommandPalette
+            onClose={() => setShowCommandPalette(false)}
+            onCommand={(id) => {
+              switch (id) {
+                case 'focus': setFocusMode(prev => !prev); break;
+                case 'share': if (PARTAGE_POSSIBLE && currentDoc) setShowShare(true); break;
+                case 'search': if (currentDoc) setShowSearch(true); break;
+                case 'sidebar': setShowSidebar(prev => !prev); break;
+                case 'right-sidebar': setShowRightSidebar(prev => !prev); break;
+                case 'export-pdf':
+                  if (currentDoc) fileSystem.exportPdf(currentDoc.fileName);
+                  break;
+                case 'export-folder-pdf':
+                  if (rootDirPath) handleExportFolderPdf();
+                  break;
+                case 'about': setShowAbout(true); break;
+                case 'cloud': setShowCloudPanel(true); break;
+                case 'new-file': handleNewFile(); break;
+                case 'new-task': handleNewTask(); break;
+                case 'today': openToday(); break;
+              }
+            }}
+          />
+        </Suspense>
       )}
 
-      {/* Chat Panel : desktop overlay (global + contextuel) */}
-      {showChatPanel && !isMobile && (
-          <div className="chat-overlay-backdrop" onClick={() => setShowChatPanel(false)}>
-            <div className="chat-overlay" onClick={(e) => e.stopPropagation()}>
-              <ChatPanel
-                documentContent={currentDoc?.content || null}
-                filePath={currentDoc?.filePath || null}
-                onClose={() => setShowChatPanel(false)}
-                onNavigateToLine={handleNavigateToLine}
-                rootDirPath={rootDirPath || currentDoc?.dirPath}
-                onOpenFile={handleOpenLocalFile}
-                onShowApiKeys={() => setShowApiKeys(true)}
-              />
-            </div>
-          </div>
-      )}
-
-      {/* Text-to-Speech */}
-      {showTTS && currentDoc && (
-        <TextToSpeech
-          content={currentDoc.content}
-          onClose={() => setShowTTS(false)}
-          onShowApiKeys={() => setShowApiKeys(true)}
-        />
-      )}
-
-      {/* Clés API personnelles */}
-      {showApiKeys && <ApiKeysPanel onClose={() => setShowApiKeys(false)} />}
       {showShare && currentDoc && (
-        <SharePanel filePath={currentDoc.filePath} content={currentDoc.content} onClose={() => setShowShare(false)} />
+        <Suspense fallback={null}>
+          <SharePanel filePath={currentDoc.filePath} content={currentDoc.content} onClose={() => setShowShare(false)} />
+        </Suspense>
       )}
 
       {/* À propos */}
-      {showAbout && <AboutPanel onClose={() => setShowAbout(false)} />}
+      {showAbout && <Suspense fallback={null}><AboutPanel onClose={() => setShowAbout(false)} /></Suspense>}
 
       {/* Synchronisation */}
       {panneauSynchro}
@@ -1690,31 +1517,6 @@ function App() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* YouTube Import */}
-      {showYouTubeImport && (
-        <YouTubeImport
-          onClose={() => setShowYouTubeImport(false)}
-          onImport={async ({ content, fileName }) => {
-            // Sauvegarder le fichier dans le dossier courant et l'ouvrir
-            const safeName = fileName.replace(/[/\\?%*:|"<>]/g, '-').replace(/\s+/g, ' ').trim()
-            if (rootDirPath) {
-              const filePath = cheminDans(rootDirPath, safeName)
-              try {
-                await fileSystem.writeFile(filePath, content)
-              } catch (err) {
-                alert(messageChaine(err))
-                return
-              }
-              await fileSystem.openFileByPath(filePath)
-            } else {
-              // Fallback : ouvrir en mémoire
-              setCurrentDoc({ content, fileName: safeName, filePath: null, dirPath: null, type: 'markdown' })
-            }
-            setShowYouTubeImport(false)
-          }}
-        />
       )}
 
       {/* ====== FAB + POPOVER SYSTEM ====== */}
@@ -1761,7 +1563,7 @@ function App() {
                 }}
               >
                 <span className="mobile-popover-title">
-                  {mobilePopover === 'files' ? t('app.files') : mobilePopover === 'tools' ? t('app.tools') : mobilePopover === 'chat' ? t('app.chat') : t('app.info')}
+                  {mobilePopover === 'files' ? t('app.files') : mobilePopover === 'tools' ? t('app.tools') : t('app.info')}
                 </span>
                 <button className="mobile-popover-close" onClick={closeMobilePopover}>
                   <X size={14} />
@@ -1821,36 +1623,6 @@ function App() {
                       </button>
                     </Tooltip>
 
-                    <Tooltip text={t('tooltip.ruler')} position="bottom">
-                      <button
-                        className={`mobile-tool-btn ${showRuler ? 'active' : ''}`}
-                        onClick={() => { setShowRuler(prev => !prev); closeMobilePopover(); }}
-                      >
-                        <span className="tool-icon"><Ruler size={20} /></span>
-                        <span className="tool-label">{t('app.ruler')}</span>
-                      </button>
-                    </Tooltip>
-
-                    <Tooltip text={t('tooltip.autoscroll')} position="bottom">
-                      <button
-                        className={`mobile-tool-btn ${autoScrollEnabled ? 'active' : ''}`}
-                        onClick={() => { setAutoScrollEnabled(prev => !prev); closeMobilePopover(); }}
-                      >
-                        <span className="tool-icon">{autoScrollEnabled ? <Pause size={20} /> : <Play size={20} />}</span>
-                        <span className="tool-label">{t('app.reading')}</span>
-                      </button>
-                    </Tooltip>
-
-                    <Tooltip text={t('tooltip.notes')} position="bottom">
-                      <button
-                        className={`mobile-tool-btn ${showHighlightsPanel ? 'active' : ''}`}
-                        onClick={() => { setShowHighlightsPanel(prev => !prev); closeMobilePopover(); }}
-                      >
-                        <span className="tool-icon"><Highlighter size={20} /></span>
-                        <span className="tool-label">{t('app.notes')}</span>
-                      </button>
-                    </Tooltip>
-
                     <Tooltip text={t('tooltip.export')} position="bottom">
                       <button
                         className="mobile-tool-btn"
@@ -1886,85 +1658,6 @@ function App() {
                       </button>
                     </Tooltip>
 
-                    {/* Section assistant : groupe visuel distinct */}
-                    <div className="mobile-tools-ai-section">
-                      <div className="mobile-tools-ai-label">
-                        <Sparkles size={12} />
-                        <span>{t('app.ai')}</span>
-                      </div>
-                      <div className="mobile-tools-ai-grid">
-                        <Tooltip text={t('tooltip.flashcards')} position="bottom">
-                          <button
-                            className="mobile-tool-btn mobile-tool-btn-ai"
-                            style={{ position: 'relative' }}
-                            onClick={() => { setShowFlashcards(true); closeMobilePopover(); }}
-                          >
-                            <span className="tool-icon"><GraduationCap size={20} /></span>
-                            <span className="tool-label">{t('flash.title')}</span>
-                            {mobileDueCount > 0 && <span className="tool-badge">{mobileDueCount > 99 ? '99+' : mobileDueCount}</span>}
-                          </button>
-                        </Tooltip>
-
-                        {currentDoc && (
-                          <Tooltip text={t('tooltip.audio')} position="bottom">
-                            <button
-                              className={`mobile-tool-btn mobile-tool-btn-ai ${showTTS ? 'active' : ''}`}
-                              onClick={() => { setShowTTS(true); closeMobilePopover(); }}
-                            >
-                              <span className="tool-icon"><Volume2 size={20} /></span>
-                              <span className="tool-label">{t('app.aiVoice')}</span>
-                            </button>
-                          </Tooltip>
-                        )}
-
-                        <Tooltip text={t('tooltip.chat')} position="bottom">
-                          <button
-                            className={`mobile-tool-btn mobile-tool-btn-ai ${isMobile ? (mobilePopover === 'chat' ? 'active' : '') : (showChatPanel ? 'active' : '')}`}
-                            onClick={() => { isMobile ? toggleMobilePopover('chat') : setShowChatPanel(prev => !prev); }}
-                          >
-                            <span className="tool-icon"><MessageCircle size={20} /></span>
-                            <span className="tool-label">{t('app.chat')}</span>
-                          </button>
-                        </Tooltip>
-                      </div>
-                    </div>
-
-                    {/* Streak + Mastery */}
-                    {streak > 0 && (
-                      <div className="mobile-mastery-row">
-                        <span>🔥</span>
-                        <span className="mastery-label">{t('app.streak')}</span>
-                        <span className="mastery-value mastery-high">{streak} {streak === 1 ? t('app.day') : t('app.days')}</span>
-                      </div>
-                    )}
-                    {currentDoc && masteryScore !== null && (
-                      <div className="mobile-mastery-row">
-                        <GraduationCap size={14} />
-                        <span className="mastery-label">{t('app.mastery')}</span>
-                        <span className={`mastery-value ${masteryScore <= 33 ? 'mastery-low' : masteryScore <= 66 ? 'mastery-mid' : 'mastery-high'}`}>
-                          {masteryScore}%
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Tags du fichier */}
-                    {currentDoc && (
-                      <div className="mobile-tags-row">
-                        {fileTags.map(tag => (
-                          <span key={tag.name} className="mobile-tag" style={{ backgroundColor: tag.color }}>
-                            {tag.name}
-                          </span>
-                        ))}
-                        <button
-                          className="mobile-tag-manage-btn"
-                          onClick={() => { setShowTagManager(true); closeMobilePopover(); }}
-                        >
-                          <Tag size={14} />
-                          <span>{t('app.manageTags')}</span>
-                        </button>
-                      </div>
-                    )}
-
                     <div className="mobile-font-group">
                       <button className="font-btn" onClick={() => setFontSize(prev => Math.max(prev - 2, 12))}>
                         <Minus size={16} />
@@ -1975,55 +1668,16 @@ function App() {
                       </button>
                     </div>
 
-                    {fileSystem.isElectron() && (
-                      <div className="mobile-opacity-group">
-                        <Blend size={14} className="opacity-icon" />
-                        <input
-                          type="range"
-                          min="0.3"
-                          max="1"
-                          step="0.05"
-                          value={windowOpacity}
-                          onChange={(e) => handleOpacityChange(e.target.value)}
-                          className="opacity-slider-popover"
-                          title={t('app.opacity', { percent: Math.round(windowOpacity * 100) })}
-                        />
-                        <span className="opacity-value">{Math.round(windowOpacity * 100)}%</span>
-                      </div>
-                    )}
                   </div>
                 )}
 
                 {/* INFO PANEL: with inline file search */}
                 {mobilePopover === 'info' && currentDoc && (
                   <ErrorBoundary>
-                    <RightSidebar
-                      headers={docInfo.headers}
-                      metadata={docInfo.metadata}
-                      onKeywordClick={docInfo.handleKeywordClick}
-                      currentFilePath={currentDoc?.filePath}
-                      onOpenFile={handleOpenLocalFile}
-                      knowledgeLinks={[]}
-                      onGenerate={() => docInfo.onGenerate?.()}
-                      isGenerating={docInfo.isGenerating}
-                      onReviewAll={handleReviewAll}
-                      showInlineSearch
-                    />
+                    <RightSidebar headers={docInfo.headers} showInlineSearch />
                   </ErrorBoundary>
                 )}
 
-                {/* CHAT PANEL: global + contextuel */}
-                {mobilePopover === 'chat' && (
-                  <ChatPanel
-                    documentContent={currentDoc?.content || null}
-                    filePath={currentDoc?.filePath || null}
-                    onClose={closeMobilePopover}
-                    onNavigateToLine={handleNavigateToLine}
-                    rootDirPath={rootDirPath || currentDoc?.dirPath}
-                    onOpenFile={handleOpenLocalFile}
-                    onShowApiKeys={() => setShowApiKeys(true)}
-                  />
-                )}
               </div>
             </div>
           )}
@@ -2047,15 +1701,6 @@ function App() {
               title={t('app.toolsBar')}
             >
               <Sliders size={19} />
-            </button>
-            {/* Chat FAB : outil local ou clé API de l'utilisateur */}
-            <button
-              className={`mobile-fab mobile-fab-chat ${isMobile ? (mobilePopover === 'chat' ? 'active' : '') : (showChatPanel ? 'active' : '')}`}
-              onClick={() => { isMobile ? toggleMobilePopover('chat') : setShowChatPanel(prev => !prev) }}
-              aria-label={t('app.chat')}
-              title={t('app.chatPanel')}
-            >
-              <MessageCircle size={19} />
             </button>
             <button
               className={`mobile-fab mobile-fab-right ${isMobile ? (mobilePopover === 'info' ? 'active' : '') : (showRightSidebar ? 'active' : '')}`}

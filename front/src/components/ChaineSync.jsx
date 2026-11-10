@@ -531,17 +531,13 @@ export default function ChaineSync({ onClose, onVaultActivated, onChainEnded, ra
     setConfirmation('')
     // Navigateur et mobile : le stockage local vient d'être vidé (effacementLocal.js).
     // Ordinateur, dossier mis à la corbeille : on vide aussi le stockage de la page
-    // (surlignages, fiches, conversations, session). Puis on repart d'une app neuve.
+    // (historique, favoris, réglages, session). Puis on repart d'une app neuve.
     if (isWeb || r.trashed) {
       if (!isWeb) {
         try { await (await import('../services/effacementLocal')).effacerDonneesLocales() } catch { /* rien à vider */ }
       }
       window.location.reload()
       return
-    }
-    // Les clés API de l'ordinateur sont vidées aussi : les écrans qui les montrent se mettent à jour.
-    for (const service of ['anthropic', 'elevenlabs']) {
-      try { window.dispatchEvent(new CustomEvent('lector-keys-changed', { detail: { service } })) } catch { /* hors navigateur */ }
     }
     creeIci.current = false
     await rafraichir()

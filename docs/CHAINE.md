@@ -52,11 +52,11 @@ Rien à réinitialiser, rien à facturer, rien qui relie le casier à une person
 - au passage, l'adresse IP des requêtes (limiteurs anti-abus en mémoire, journaux d'accès du proxy) et l'identifiant aléatoire d'appareil (`X-Lector-Device`), qui n'est pas stocké ;
 - en mémoire seulement, pendant 24 heures, l'empreinte salée du préfixe réseau de chaque appareil qui lit la chaîne (§ 13.1).
 
-**Il ne voit pas** : le contenu, les chemins, les titres, les noms de dossiers, l'arborescence, les extensions, `S`, les 12 mots, les clés. Les surlignages et fiches vivent dans le `.md` (bloc `<!-- lector-generated -->`), donc dans le bloc chiffré.
+**Il ne voit pas** : le contenu, les chemins, les titres, les noms de dossiers, l'arborescence, les extensions, `S`, les 12 mots, les clés. Un ancien bloc `<!-- lector-generated -->` (résumés et cartes écrits par les versions d'avant la 2.2, jamais affiché) fait partie du `.md`, donc du bloc chiffré.
 
 **Il ne journalise jamais** : la preuve, `pathEnc`, un corps de requête, une IP, un `id` de chaîne complet (8 premiers caractères au plus). Les tests le vérifient dans la sortie du serveur.
 
-**Rien d'autre ne passe par lui.** L'assistant IA et la lecture à voix haute utilisent la clé API personnelle de l'utilisateur et appellent Anthropic ou ElevenLabs directement depuis l'appareil (§ 10). L'export EPUB se fait sur l'appareil.
+**Rien d'autre ne passe par lui.** L'export PDF se fait sur l'appareil (impression). Lector n'envoie le texte d'un document à aucun autre service.
 
 ## 3. Cryptographie
 
@@ -298,8 +298,7 @@ Un seul écran, **Synchronisation** (`ChaineSync.jsx`), textes `sync.*` et codes
 | Opération coupée | Création ou renouvellement interrompu : reprendre ou abandonner. Un renouvellement refusé par `ROTATION_INCOMPLETE` (§ 11.1) liste les documents en cause. |
 | Chaîne inconnue | « Cette chaîne n'existe plus : renouvelée ou effacée depuis un autre appareil. » Rejoindre avec les nouveaux mots ; sur ordinateur, créer une chaîne depuis ce vault. |
 | Nouvelle chaîne | § 11, avec ce que ça garantit et ne garantit pas. Derrière le verrou : tirer les nouveaux mots et lancer le renouvellement. |
-| Tout effacer | Il faut taper le mot affiché (`ERASE` ou `EFFACER`) ; sur ordinateur, verrou ouvert, et une case décochée par défaut « Also move my local folder to the Trash ». Sur le web et le mobile, l'explication dit que le casier est peut-être la seule copie des documents sur cet appareil, et que l'appareil oublie aussi ses clés API et ses données locales. Détail au § 11.2. |
-| Clés API (écran à part) | § 10. |
+| Tout effacer | Il faut taper le mot affiché (`ERASE` ou `EFFACER`) ; sur ordinateur, verrou ouvert, et une case décochée par défaut « Also move my local folder to the Trash ». Sur le web et le mobile, l'explication dit que le casier est peut-être la seule copie des documents sur cet appareil, et que l'appareil oublie aussi ce que Lector y gardait (historique, favoris, réglages). Détail au § 11.2. |
 
 **Kit de secours** (`KitSecours.jsx`, `window.print`, sans dépendance) : les 12 mots numérotés, le QR du code, et une page « Pour un proche » (où est la clé, quelle app, comment récupérer et lire les documents, adresse de ce document sur le site de Lector).
 
@@ -312,14 +311,16 @@ Un seul écran, **Synchronisation** (`ChaineSync.jsx`), textes `sync.*` et codes
 - **Ordinateur** : pas de `PasswordCredential` dans Electron. Le QR, les 12 mots derrière le verrou et le kit de secours ; l'entrée se crée à la main dans le gestionnaire.
 - Jamais de presse-papiers.
 
-## 10. Stockage local du secret et des clés API
+## 10. Stockage local du secret
 
-| Plateforme | Secret de chaîne | Clés API (Anthropic, ElevenLabs) |
-|---|---|---|
-| Ordinateur (Electron) | `S` en hex dans `userData/cloud-secrets.dat` (`{ vaultPath, serverUrl, deviceId, chainSecret, chainId, chainPendingSecret, chainSaved }`), chiffré par `safeStorage` (Trousseau macOS, DPAPI, libsecret). Sans chiffrement système (Linux sans trousseau) : JSON en mode 0600 et avertissement dans l'écran. Le renderer ne reçoit jamais `S` : seulement `hasChain`, et les mots pour affichage, à la création ou verrou ouvert. Nouvelle chaîne (mots et lancement) et Tout effacer exigent aussi le verrou ouvert (`LOCKED` sinon) : un script qui tournerait dans le renderer ne peut ni faire passer la chaîne sur des mots qu'il connaît, ni effacer le casier, sans Touch ID là où il existe. | `userData/api-keys.dat`, `safeStorage`. Sans trousseau : fichier 0600 en clair, et l'écran le dit au lieu d'annoncer un chiffrement (`keys:get` renvoie `secure`). Les appels partent du processus principal (`net.fetch`) : la clé ne va pas au renderer, qui ne voit que les 4 derniers caractères. Le Claude CLI local reste la voie par défaut quand il est installé. |
-| Navigateur, iOS, Android | IndexedDB `lector-chaine` : `{ version, chainId, preuve, cleEnc, cleMac }`, clés `CryptoKey` non exportables ; `S` est effacé de la mémoire après `preparer`. Un script qui s'exécuterait sur la page pourrait utiliser les clés sur place, pas emporter `S`. La preuve est lisible (il faut l'envoyer) : elle permet d'écrire ou d'effacer, pas de lire. | IndexedDB `lector-keys`, chiffrées en AES-GCM par une `CryptoKey` non exportable rangée dans la même base. Appels directs (`anthropic-dangerous-direct-browser-access: true`, `xi-api-key`). L'écran le dit : « Ta clé reste sur cet appareil. Sur le web, elle est lisible par tout script de la page : ne l'utilise que sur un appareil de confiance. » |
+| Plateforme | Secret de chaîne |
+|---|---|
+| Ordinateur (Electron) | `S` en hex dans `userData/cloud-secrets.dat` (`{ vaultPath, serverUrl, deviceId, chainSecret, chainId, chainPendingSecret, chainSaved }`), chiffré par `safeStorage` (Trousseau macOS, DPAPI, libsecret). Sans chiffrement système (Linux sans trousseau) : JSON en mode 0600 et avertissement dans l'écran. Le renderer ne reçoit jamais `S` : seulement `hasChain`, et les mots pour affichage, à la création ou verrou ouvert. Nouvelle chaîne (mots et lancement) et Tout effacer exigent aussi le verrou ouvert (`LOCKED` sinon) : un script qui tournerait dans le renderer ne peut ni faire passer la chaîne sur des mots qu'il connaît, ni effacer le casier, sans Touch ID là où il existe. |
+| Navigateur, iOS, Android | IndexedDB `lector-chaine` : `{ version, chainId, preuve, cleEnc, cleMac }`, clés `CryptoKey` non exportables ; `S` est effacé de la mémoire après `preparer`. Un script qui s'exécuterait sur la page pourrait utiliser les clés sur place, pas emporter `S`. La preuve est lisible (il faut l'envoyer) : elle permet d'écrire ou d'effacer, pas de lire. |
 
 Les anciennes données locales de la version avec compte (jeton, licence, identifiants d'appareil, entrée IndexedDB liée à un compte) sont effacées au premier démarrage de la 2.0. Le vault reste.
+
+Lector 2.2 n'a plus de clés API (assistant et lecture à voix haute retirés). Au démarrage, il efface celles qu'une ancienne version a laissées : `userData/api-keys.dat` sur ordinateur (`front/desktop/cloud-store.js`), la base IndexedDB `lector-keys` sur le web et le mobile, avec les données par document des fonctions retirées dans le stockage de la page (fiches, quiz, surlignages, étiquettes, réponses en cache, conversations, activité ; `front/src/services/nettoyage.js`).
 
 ## 11. Nouvelle chaîne, tout effacer, quitter
 
@@ -348,8 +349,8 @@ Ce qui est effacé, et où, une fois le casier effacé (ou déjà inconnu du ser
 | Où | Effacé | Gardé |
 |---|---|---|
 | Serveur | Ligne `Chain`, lignes `ChainDoc`, dossier des blocs du casier. | Sauvegardes chiffrées (30 jours, archives mensuelles 6 mois). |
-| Ordinateur (Electron), dans l'ordre | 1. `S` et les champs de chaîne de `userData/cloud-secrets.dat` (`chainSecret`, `chainId`, `chainPendingSecret`, `chainSaved`) ; 2. la base de synchro du vault ; 3. les clés API de `userData/api-keys.dat` (tous les services). 4. Seulement si la case « Also move my local folder to the Trash » est cochée (décochée par défaut) : le dossier du vault part à la **corbeille du système** (`shell.trashItem`, jamais de suppression définitive ; refusé pour la racine, le dossier personnel et `userData`), `vaultPath` est retiré, puis la page vide son propre stockage (comme le web, ligne suivante) et repart sur le choix de la source. | Sans la case : le dossier du vault et ses fichiers, intacts, ainsi que le stockage de la page (surlignages, fiches, historique, réglages). Si la corbeille refuse, tout le reste est effacé, le dossier reste le vault et l'écran le dit. Les vaults des autres ordinateurs ne sont jamais touchés. |
-| Navigateur, iOS, Android (vue web) | Tout le stockage de l'origine, par `effacerDonneesLocales` (`front/src/services/effacementLocal.js`) : IndexedDB `lector-chaine` (clés de la chaîne) et `lector-keys` (clés API et leur clé de chiffrement), toute autre base IndexedDB de l'origine, `localStorage` en entier (surlignages, fiches, étiquettes, positions de lecture, historique, favoris, conversations, réglages, session, identifiant d'appareil, `lector-sync-saved`), `sessionStorage`, Cache Storage et service workers. La page se recharge ensuite sur le choix de la source. | Rien de Lector dans la vue web. Hors de la vue web, sur mobile : les fichiers natifs éventuels de l'app (non couverts par cette version). |
+| Ordinateur (Electron), dans l'ordre | 1. `S` et les champs de chaîne de `userData/cloud-secrets.dat` (`chainSecret`, `chainId`, `chainPendingSecret`, `chainSaved`) ; 2. la base de synchro du vault. 3. Seulement si la case « Also move my local folder to the Trash » est cochée (décochée par défaut) : le dossier du vault part à la **corbeille du système** (`shell.trashItem`, jamais de suppression définitive ; refusé pour la racine, le dossier personnel et `userData`), `vaultPath` est retiré, puis la page vide son propre stockage (comme le web, ligne suivante) et repart sur le choix de la source. | Sans la case : le dossier du vault et ses fichiers, intacts, ainsi que le stockage de la page (historique, favoris, réglages, session). Si la corbeille refuse, tout le reste est effacé, le dossier reste le vault et l'écran le dit. Les vaults des autres ordinateurs ne sont jamais touchés. |
+| Navigateur, iOS, Android (vue web) | Tout le stockage de l'origine, par `effacerDonneesLocales` (`front/src/services/effacementLocal.js`) : IndexedDB `lector-chaine` (clés de la chaîne) et `lector-keys` (clés API d'une ancienne version, déjà effacées au démarrage), toute autre base IndexedDB de l'origine, `localStorage` en entier (positions de lecture, historique, favoris, réglages, session, identifiant d'appareil, `lector-sync-saved`), `sessionStorage`, Cache Storage et service workers. La page se recharge ensuite sur le choix de la source. | Rien de Lector dans la vue web. Hors de la vue web, sur mobile : les fichiers natifs éventuels de l'app (non couverts par cette version). |
 
 Le web et le mobile n'ont pas de vault local (§ 6.5) : le casier y est peut-être la seule copie des documents, et l'écran le dit. L'effacement réel des documents en clair restés sur un ordinateur (crypto-shredding) attend le chiffrement local, hors périmètre de la 2.0.
 
@@ -366,7 +367,7 @@ Si plus aucun appareil ne garde `S` et que la fiche est perdue, les blocs sont i
 - Le serveur peut **cacher** un document, **resservir une ancienne version** d'un bloc ou refuser une écriture. Il ne peut ni lire, ni fabriquer, ni modifier un bloc sans que le client le détecte (AES-GCM authentifié), ni déplacer un bloc d'un document à un autre (AAD), ni faire supprimer un fichier local (marque `tombEnc`, § 6.2). Un manifeste authentifié contre le retour en arrière n'existe pas encore.
 - Le `docId` étant stable, le serveur sait que « le même document » a été modifié dix fois, sans savoir lequel. La taille des blocs et des `pathEnc` n'est pas masquée.
 - Qui obtient `P` (sans `S`) peut écrire, supprimer ou effacer le casier, pas le lire. Les clients détectent un bloc ou une marque fabriqués.
-- Le web garde des clés utilisables sur place par un script de la page (pas exportables). Les clés API y sont lisibles par un tel script.
+- Le web garde des clés utilisables sur place par un script de la page (pas exportables).
 - Les sauvegardes du serveur gardent les blocs (chiffrés) et les métadonnées du § 2 jusqu'à 30 jours sur le serveur, et jusqu'à 6 mois dans les archives mensuelles, hors de la machine. La politique de confidentialité le dit.
 - Les journaux d'accès du proxy gardent l'IP et le chemin des requêtes (des `docId`, jamais la preuve ni l'`id`) 7 jours au plus.
 - Un appareil compromis lit tout ce qu'il voit passer.
