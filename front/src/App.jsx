@@ -44,6 +44,9 @@ const NewTask = lazy(() => import('./components/NewTask'));
 // Co-écriture : chargée à l'ouverture du panneau seulement (Yjs hors du paquet principal).
 const SharePanel = lazy(() => import('./components/collab/SharePanel'));
 const Historique = lazy(() => import('./components/Historique'));
+// Navigateur : la clé de 12 mots tient lieu de compte (créer ou se connecter).
+const EntreeWeb = lazy(() => import('./components/EntreeWeb'));
+const ESTWEB = !fileSystem.isElectron() && !fileSystem.isCapacitor();
 // Partage en temps réel : version web d'abord. Sur ordinateur et mobile, le
 // document partagé doit encore être relié au fichier .md du vault (docs/collab-design.md § 9).
 const PARTAGE_POSSIBLE = typeof window !== 'undefined' && !window.electron && !window.Capacitor?.isNativePlatform?.();
@@ -364,6 +367,12 @@ function App() {
 
         // Une source choisie pendant les attentes ci-dessus reste affichée.
         if (sourceChoisie.current) return;
+
+        // Navigateur sans clé : on se connecte ou on crée sa clé, jamais d'entrée ambiguë.
+        if (ESTWEB) {
+          setShowSourcePicker(true);
+          return;
+        }
 
         const sourceType = localStorage.getItem(SOURCE_TYPE_KEY);
 
@@ -1008,6 +1017,24 @@ function App() {
     if (welcome) fileSystem.openFileByPath(welcome).catch(() => {});
   }, []);
 
+  // Navigateur : clé créée ou retrouvée. Les notes déjà écrites dans ce
+  // navigateur (avant la clé) suivent dans la chaîne, sans rien écraser.
+  const entrerWeb = useCallback(async ({ nouvelle }) => {
+    try {
+      const bv = await import('./services/browserVault');
+      if (await bv.connu().catch(() => null) && await bv.ouvrir()) copieVersChaine.current = bv.RACINE;
+    } catch { /* pas de notes locales */ }
+    localStorage.removeItem(ONBOARDING_KEY);
+    localStorage.setItem(ONBOARDING_DONE_KEY, '1');
+    await ouvrirVaultSynchronise('cloud://');
+    if (nouvelle) {
+      const { bienvenue } = await import('./services/vaultSetup');
+      const welcome = await bienvenue('cloud://');
+      setSidebarRefreshKey(k => k + 1);
+      if (welcome) fileSystem.openFileByPath(welcome).catch(() => {});
+    }
+  }, [ouvrirVaultSynchronise]);
+
   // Écran 2 : réponse à « Sync your devices? ».
   const terminerOnboarding = useCallback((synchro) => {
     const welcome = onboarding?.welcome;
@@ -1106,6 +1133,16 @@ function App() {
     printWin.document.close();
     setTimeout(() => printWin.print(), 500);
   }, [currentDoc?.dirPath, rootDirPath]);
+
+  if (showSourcePicker && ESTWEB) {
+    return (
+      <div className="app">
+        <Suspense fallback={<div className="onboarding" aria-busy="true" />}>
+          <EntreeWeb onPret={entrerWeb} />
+        </Suspense>
+      </div>
+    );
+  }
 
   if (showSourcePicker) {
     return (

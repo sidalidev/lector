@@ -284,7 +284,7 @@ Le serveur ne peut pas faire ce contrôle : chemins et contenus sont chiffrés. 
 
 ## 8. Écrans
 
-Un seul écran, **Synchronisation** (`ChaineSync.jsx`), textes `sync.*` et codes `cloud.chain.err.*` en anglais et en français. Chaque vue a une explication courte, un « Pourquoi ? » et un lien « Détails techniques » vers ce document, publié par le site de Lector (https://lector.dockerbop.fr/sync/, page `front/landing/sync/index.html` produite par `node tools/page-sync.mjs`).
+Un seul écran, **Synchronisation** (`ChaineSync.jsx`), textes `sync.*` et codes `cloud.chain.err.*` en anglais et en français. Chaque vue a une explication courte, un « Pourquoi ? » et un lien « Détails techniques » vers ce document, publié par le site de Lector (https://lector.sidali.dev/sync/, page `front/landing/sync/index.html` produite par `node tools/page-sync.mjs`).
 
 | Vue | Contenu |
 |---|---|

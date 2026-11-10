@@ -35,6 +35,6 @@ test.describe('Mode démo', () => {
     )
     expect(leaked).toEqual([])
     await page.goto('/')
-    await expect(page.getByRole('heading', { name: 'Your notes, yours' })).toBeVisible()
+    await expect(page.getByTestId('entree-connexion')).toBeVisible()
   })
 })

@@ -162,6 +162,11 @@ export async function bienvenue(rootDirPath) {
     const arbre = await fileSystem.listDirectoryFiles(rootDirPath)
     if (contientMarkdown(arbre)) return null
     const nom = `${t('welcome.fileName')}.md`
+    // Vault de la chaîne (navigateur) : écrire le document, c'est le créer.
+    if (rootDirPath === 'cloud://') {
+      await fileSystem.writeFile(`cloud://${nom}`, t('welcome.content'))
+      return `cloud://${nom}`
+    }
     const r = await fileSystem.createNewFile(rootDirPath, nom, t('welcome.content'))
     if (r?.uri) return r.uri
     if (rootDirPath === 'icloud://') return `icloud://${nom}`

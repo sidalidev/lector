@@ -1,57 +1,53 @@
 import { test, expect } from '@playwright/test'
+import { relierApi, navigateurVierge, nouvelleCle, seConnecter } from './entree.js'
 
-// Premier lancement : un seul écran, la note d'accueil s'ouvre tout de suite,
-// et un utilisateur qui a déjà une source ne voit jamais l'onboarding.
+// Entrée de l'app web : on se connecte avec ses 12 mots ou on crée sa clé.
+// Jamais d'entrée ambiguë dans des notes sans clé, jamais de prénom demandé.
 
 test.use({ locale: 'en-US' })
 
-async function appareilVierge(page) {
-  await page.goto('/')
-  await page.evaluate(async () => {
-    localStorage.clear()
-    const opfs = await navigator.storage.getDirectory()
-    try { await opfs.removeEntry('Lector Vault', { recursive: true }) } catch {}
-    await new Promise((resolve) => {
-      const req = indexedDB.deleteDatabase('lector-browser-vault')
-      req.onsuccess = req.onerror = req.onblocked = () => resolve()
-    })
-  })
-  await page.reload()
-}
+test.beforeEach(async ({ page }) => { await relierApi(page) })
 
-test('Start : dossier créé, note de bienvenue ouverte, aucun écran de synchro', async ({ page }) => {
-  await appareilVierge(page)
-  await expect(page.getByRole('heading', { name: 'Your notes, yours' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'I already use Lector' })).toBeVisible()
-  await page.getByRole('button', { name: 'Start' }).click()
-  await expect(page.getByRole('heading', { name: 'Sync your devices?' })).toHaveCount(0)
+test('premier passage : créer sa clé, la note de bienvenue s\'ouvre, puis on entre directement', async ({ page }) => {
+  await navigateurVierge(page)
+  await expect(page.getByRole('heading', { name: 'Lector' })).toBeVisible()
+  await expect(page.getByTestId('entree-connexion')).toHaveText('Sign in')
+  await expect(page.getByTestId('entree-creer')).toContainText('Create my key')
+
+  await page.getByTestId('entree-creer').click()
+  await expect(page.getByTestId('entree-mots').locator('.chaine-mot')).toHaveCount(12)
+  // Formulaire repris par les gestionnaires de mots de passe (Proton Pass, Bitwarden…).
+  const mots = await page.getByTestId('entree-mots').locator('.chaine-mot').allTextContents()
+  await expect(page.locator('input[autocomplete="username"]')).toHaveValue('lector-sync-chain')
+  await expect(page.locator('input[autocomplete="new-password"]')).toHaveValue(mots.join(' '))
+  // Continuer seulement une fois la clé gardée (gestionnaire, copie ou écrite).
+  await expect(page.getByTestId('entree-continuer')).toBeDisabled()
+  await page.getByRole('button', { name: 'I wrote them down' }).click()
+  await page.getByTestId('entree-continuer').click()
 
   await expect(page.locator('.cm-lp-h1').first()).toContainText('Welcome to Lector')
+  await page.reload()
+  await expect(page.locator('.titlebar')).toBeVisible()
+  await expect(page.locator('.onboarding')).toHaveCount(0)
+  await expect(page.locator('.file-tree-item', { hasText: 'Welcome to Lector' })).toBeVisible()
+})
+
+test('des notes locales sans clé ne suffisent pas : l\'écran d\'entrée s\'affiche', async ({ page }) => {
+  await navigateurVierge(page)
+  await page.evaluate(() => localStorage.setItem('lector-source-type', 'browser'))
+  await page.reload()
+  await expect(page.getByTestId('entree-connexion')).toBeVisible()
+  await expect(page.locator('.titlebar')).toHaveCount(0)
+})
+
+test('un autre navigateur se connecte avec les 12 mots et retrouve les notes', async ({ page, browser }) => {
+  const mots = await nouvelleCle(page)
   await expect(page.locator('.file-tree-item', { hasText: 'Welcome to Lector' })).toBeVisible()
 
-  // Ensuite, plus jamais d'onboarding.
-  await page.reload()
-  await expect(page.locator('.cm-lp-h1').first()).toContainText('Welcome to Lector')
-  await expect(page.locator('.onboarding')).toHaveCount(0)
-})
-
-test('un dossier Lector Vault existant est proposé', async ({ page }) => {
-  await appareilVierge(page)
-  await page.getByRole('button', { name: 'Start' }).click()
-  await expect(page.locator('.cm-lp-h1').first()).toContainText('Welcome to Lector')
-
-  await page.evaluate(() => { localStorage.removeItem('lector-source-type'); localStorage.removeItem('lector-last-session') })
-  await page.reload()
-  await page.getByRole('button', { name: 'Open Lector Vault' }).click()
-  // Le premier lancement est passé : pas de second écran, le dossier s'ouvre.
-  await expect(page.locator('.titlebar')).toBeVisible()
-  await expect(page.locator('.file-tree-item', { hasText: 'Welcome to Lector' })).toHaveCount(1)
-})
-
-test("un utilisateur d'avant l'onboarding ne le voit pas", async ({ page }) => {
-  await appareilVierge(page)
-  await page.evaluate(() => localStorage.setItem('lector-source-type', 'file'))
-  await page.reload()
-  await expect(page.locator('.titlebar')).toBeVisible()
-  await expect(page.locator('.onboarding')).toHaveCount(0)
+  const autre = await (await browser.newContext()).newPage()
+  await relierApi(autre)
+  await autre.goto('/')
+  await seConnecter(autre, mots)
+  await expect(autre.locator('.titlebar')).toBeVisible()
+  await expect(autre.locator('.file-tree-item', { hasText: 'Welcome to Lector' })).toBeVisible()
 })

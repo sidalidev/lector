@@ -30,7 +30,7 @@ function autresPersonnes(presence, moi) {
  * le texte partagé et de quoi suivre les présents. `fermer()` à la fin.
  */
 export async function relier(enregistrement, { onStatut, onPersonnes } = {}) {
-  const profil = stockage.lireProfil() || stockage.ecrireProfil('Owner')
+  const profil = stockage.profil()
   const session = await ouvrirSession(enregistrement, { profil, onStatut })
   const annuler = new Y.UndoManager(session.texte)
   const majPersonnes = () => onPersonnes?.(autresPersonnes(session.presence, session.doc.clientID))

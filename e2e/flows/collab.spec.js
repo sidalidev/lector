@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import fs from 'fs'
 import path from 'path'
 import { DONNEES } from '../back-test.js'
+import { relierApi, nouvelleCle } from './entree.js'
 
 // Co-écriture dans le navigateur (docs/collab-design.md § 8), contre le relais
 // de l'API de test (proxy /v1 de Vite, WebSocket compris) : deux contextes de
@@ -23,11 +24,15 @@ async function creerPartage(page) {
   }, TEXTE)
 }
 
+// Personne ne tape son prénom : un nom est donné d'office. Ici on le change
+// (clic sur son propre nom) pour reconnaître chacun dans les tests.
 async function entrer(page, lien, nom) {
   await page.goto(lien)
-  await page.getByTestId('collab-nom').fill(nom)
-  await page.getByRole('button', { name: 'Continue' }).click()
   await expect(page.getByTestId('collab-statut')).toHaveAttribute('data-statut', 'en-ligne')
+  await page.getByTestId('collab-moi').click()
+  await page.getByTestId('collab-nom').fill(nom)
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByTestId('collab-personnes')).toContainText(nom)
 }
 
 const editeur = (page) => page.locator('.cm-content')
@@ -127,8 +132,6 @@ test('deux navigateurs écrivent ensemble, survivent à une coupure, puis le par
 
   const tom = await (await browser.newContext()).newPage()
   await tom.goto(lien)
-  await tom.getByTestId('collab-nom').fill('Tom')
-  await tom.getByRole('button', { name: 'Continue' }).click()
   await expect(tom.getByTestId('collab-bandeau')).toContainText('The owner stopped sharing')
   await expect(editeur(tom)).toHaveText('')
 
@@ -143,11 +146,11 @@ test('un lien abîmé est refusé sans rien charger', async ({ page }) => {
 
 test("Partager depuis l'app web : lien, QR, ouverture par l'invité, arrêt", async ({ browser }) => {
   const app = await (await browser.newContext()).newPage()
-  await app.goto('/')
-  await app.locator('.onboarding-primary').first().click()
+  await relierApi(app)
+  await nouvelleCle(app)
+  await app.evaluate(() => localStorage.setItem('lector-collab-profil', JSON.stringify({ nom: 'Sid', couleur: '#3b7ea1' })))
   await app.locator('.file-tree-item').first().click()
   await app.getByTestId('collab-partager').click()
-  await app.getByTestId('collab-nom-proprietaire').fill('Sid')
   await app.getByTestId('collab-creer').click()
   const lien = await app.getByTestId('collab-lien').inputValue()
   expect(lien).toMatch(/\/d\/[0-9a-f]{32}#[A-Za-z0-9_-]{43}$/)

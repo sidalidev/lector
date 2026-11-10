@@ -1,14 +1,11 @@
 import { test, expect } from '@playwright/test'
+import { relierApi, nouvelleCle } from './entree.js'
 
 test.use({ locale: 'en-US' })
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/')
-  await page.evaluate(() => {
-    localStorage.setItem('lector-source-type', 'file')
-  })
-  await page.reload()
-  await page.waitForSelector('.titlebar', { timeout: 5000 })
+  await relierApi(page)
+  await nouvelleCle(page)
 })
 
 test.describe('Command Palette', () => {

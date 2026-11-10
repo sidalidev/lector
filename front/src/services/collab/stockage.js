@@ -85,6 +85,18 @@ const CLE_PROFIL = "lector-collab-profil";
 /** Couleurs de la charte (miel, sapin, lac, lavande, or) et deux de plus pour les grands groupes. */
 export const COULEURS = ["#d9a43b", "#2f6b4f", "#3b7ea1", "#8b7bb8", "#b8912a", "#c8553d", "#4a8f8c"];
 
+// Noms donnés d'office (personne n'a à taper son prénom) ; chacun peut le changer.
+const NOMS = ["Fox", "Owl", "Heron", "Lynx", "Otter", "Wren", "Ibex", "Marten", "Robin", "Hare", "Badger", "Swift"];
+
+/** Le profil de ce navigateur, créé au besoin avec un nom et une couleur au hasard. */
+export function profil() {
+  const p = lireProfil();
+  if (p) return p;
+  const n = new Uint32Array(1);
+  crypto.getRandomValues(n);
+  return ecrireProfil(NOMS[n[0] % NOMS.length]);
+}
+
 export function lireProfil() {
   try {
     const p = JSON.parse(localStorage.getItem(CLE_PROFIL) || "null");

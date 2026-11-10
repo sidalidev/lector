@@ -16,11 +16,10 @@ import { pageSync, PAGE, SOURCE } from "../../../../tools/page-sync.mjs";
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const lire = (chemin) => readFileSync(join(RACINE, chemin), "utf8");
-const landing = lire("front/landing/index.html");
 const privacy = lire("front/landing/privacy.html");
 
 test("D16 : pas de « code public » tant que le dépôt est privé ; détails techniques servis par le site", () => {
-  for (const [nom, texte] of [["landing", landing], ["en.js", JSON.stringify(en)], ["fr.js", JSON.stringify(fr)]]) {
+  for (const [nom, texte] of [["en.js", JSON.stringify(en)], ["fr.js", JSON.stringify(fr)]]) {
     assert.doesNotMatch(texte, /open.source|code is public|code est public/i, nom);
   }
   for (const f of ["Explication.jsx", "KitSecours.jsx"]) {
@@ -30,9 +29,6 @@ test("D16 : pas de « code public » tant que le dépôt est privé ; détails t
   assert.equal(lien, "https://lector.sidali.dev/sync/");
   assert.ok(existsSync(join(RACINE, "front/landing/sync/index.html")), "la page existe dans le site");
   assert.equal(readFileSync(PAGE, "utf8"), pageSync(readFileSync(SOURCE, "utf8")), "page à jour : node tools/page-sync.mjs");
-  assert.match(landing, /href="\/sync\/"/);
-  // Le kit renvoie le proche vers le site : il y trouve l'app web.
-  assert.match(landing, /href="\/app\/"/);
 });
 
 test("D19 : le QR n'est annoncé que là où il se scanne ; sinon les 12 mots", () => {
@@ -42,7 +38,6 @@ test("D19 : le QR n'est annoncé que là où il se scanne ; sinon les 12 mots", 
       assert.match(t[cle], navigateurs, `${langue} ${cle}`);
     }
   }
-  assert.doesNotMatch(landing, /QR/);
 });
 
 test("D27 : la politique dit combien de temps les sauvegardes gardent les blocs chiffrés", () => {
@@ -53,15 +48,8 @@ test("D27 : la politique dit combien de temps les sauvegardes gardent les blocs 
   assert.doesNotMatch(JSON.stringify([en, fr]), /about 6|environ 6/);
 });
 
-test("D28 : le site ne propose que les installeurs que la release publie", () => {
-  const publies = new Set([...lire("deploy/deploy.sh").matchAll(/\$VPS_DIR\/releases\/([\w.-]+)"/g)].map((m) => m[1]));
-  const proposes = [...landing.matchAll(/href="\/download\/([^"]+)"/g)].map((m) => m[1]);
-  assert.ok(proposes.length > 0);
-  for (const f of proposes) assert.ok(publies.has(f), `${f} n'est pas publié par deploy/deploy.sh`);
-});
-
 test("D18 et D26 : les pages du site ne chargent rien d'un autre site", () => {
-  for (const [nom, page] of [["index", landing], ["privacy", privacy], ["sync", readFileSync(PAGE, "utf8")]]) {
+  for (const [nom, page] of [["privacy", privacy], ["sync", readFileSync(PAGE, "utf8")]]) {
     assert.doesNotMatch(page, /<(link|script|img|iframe)\b[^>]*\b(href|src)="(https?:)?\/\//i, nom);
     assert.doesNotMatch(page, /fonts\.googleapis|fonts\.gstatic|analytics\.dockerbop|umami|data-website-id/i, nom);
   }

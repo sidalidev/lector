@@ -1,13 +1,10 @@
 import { test, expect } from '@playwright/test'
+import { relierApi, nouvelleCle } from './entree.js'
 
-// Bypass le source picker pour tous les tests
+// Chaque test entre avec une clé neuve (écran d'entrée).
 test.beforeEach(async ({ page }) => {
-  await page.goto('/')
-  await page.evaluate(() => {
-    localStorage.setItem('lector-source-type', 'file')
-  })
-  await page.reload()
-  await page.waitForSelector('.titlebar', { timeout: 5000 })
+  await relierApi(page)
+  await nouvelleCle(page)
 })
 
 test.describe('Lector : bases de l\'app', () => {

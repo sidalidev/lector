@@ -131,7 +131,7 @@ export default function SharedDoc() {
   const id = useMemo(() => idSalonDuChemin(location.pathname), [])
   const [phase, setPhase] = useState('chargement') // chargement | abime | nom | pret | arrete-local
   const [enregistrement, setEnregistrement] = useState(null)
-  const [profil, setProfil] = useState(() => stockage.lireProfil())
+  const [profil, setProfil] = useState(() => stockage.profil())
   const [session, setSession] = useState(null)
   const [statut, setStatut] = useState(STATUTS.CONNEXION)
   const [personnes, setPersonnes] = useState([])
@@ -163,14 +163,16 @@ export default function SharedDoc() {
         setTitre(e.titre || titreDu(texteLocalRef.current))
         return setPhase('arrete-local')
       }
-      setPhase(stockage.lireProfil() ? 'pret' : 'nom')
+      setPhase('pret')
     })()
     return () => { annule = true }
   }, [id])
 
   // 2. Session : connexion, présence, titre
   useEffect(() => {
-    if (phase !== 'pret' || !enregistrement || !profil) return
+    if (phase !== 'pret' || !enregistrement) return
+    // Le profil du moment ; un renommage passe par la présence, sans reconnecter.
+    const profil = stockage.profil()
     let s = null
     let annule = false
     ;(async () => {
@@ -202,7 +204,7 @@ export default function SharedDoc() {
       window.removeEventListener('pagehide', auRevoir)
       s?.fermer()
     }
-  }, [phase, enregistrement, profil])
+  }, [phase, enregistrement])
 
   useEffect(() => {
     document.title = titre ? `${titre} · Lector` : 'Lector'
@@ -282,9 +284,9 @@ export default function SharedDoc() {
                   <button
                     type="button"
                     className={`collab-personne ${suivi === p.client ? 'suivi' : ''}`}
-                    disabled={p.moi}
-                    aria-pressed={suivi === p.client}
-                    onClick={() => basculerSuivi(p.client)}
+                    aria-pressed={p.moi ? undefined : suivi === p.client}
+                    onClick={() => (p.moi ? setPanneau(panneau === 'nom' ? null : 'nom') : basculerSuivi(p.client))}
+                    data-testid={p.moi ? 'collab-moi' : undefined}
                   >
                     <span className="collab-avatar" aria-hidden="true">{p.nom.slice(0, 1).toUpperCase()}</span>
                     <span className="collab-nom">{suivi === p.client ? t('collab.following', { name: p.nom }) : p.nom}</span>
@@ -313,6 +315,28 @@ export default function SharedDoc() {
           )}
         </div>
         {panneau === 'vie-privee' && <Confidentialite onFermer={() => setPanneau(null)} />}
+        {panneau === 'nom' && (
+          <form
+            className="collab-popover"
+            aria-label={t('collab.name.title')}
+            onSubmit={(e) => {
+              e.preventDefault()
+              const nom = new FormData(e.currentTarget).get('nom')?.toString().trim()
+              if (nom) {
+                const p = stockage.ecrireProfil(nom)
+                setProfil(p)
+                session?.presence.setLocalStateField('user', { name: p.nom, color: p.couleur, colorLight: `${p.couleur}33` })
+                // Le curseur se redessine avec le nouveau nom chez les autres (il revient à la prochaine frappe).
+                session?.presence.setLocalStateField('cursor', null)
+              }
+              setPanneau(null)
+            }}
+          >
+            <h2>{t('collab.name.title')}</h2>
+            <input className="collab-champ" name="nom" autoFocus maxLength={40} defaultValue={profil?.nom || ''} data-testid="collab-nom" />
+            <button type="submit" className="collab-btn collab-btn-plein">{t('collab.name.save')}</button>
+          </form>
+        )}
         {panneau === 'partage' && lien && (
           <div className="collab-popover" role="dialog" aria-label={t('collab.share.title')}>
             <button type="button" className="collab-icone collab-fermer" onClick={() => setPanneau(null)} aria-label="Close"><X size={16} /></button>
