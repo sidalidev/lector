@@ -2,7 +2,7 @@ import { t } from '../services/i18n'
 
 // Documentation technique de la synchronisation (docs/CHAINE.md), servie par
 // le site de Lector (front/landing/sync/, produite par tools/page-sync.mjs).
-export const DOC_TECHNIQUE = 'https://lector.dockerbop.fr/sync/'
+export const DOC_TECHNIQUE = 'https://lector.sidali.dev/sync/'
 
 /**
  * Explication en trois étages des écrans de sécurité : une phrase simple,

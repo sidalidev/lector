@@ -5,7 +5,7 @@ import ChaineQR from './ChaineQR'
 import { DOC_TECHNIQUE } from './Explication'
 import './KitSecours.css'
 
-const SITE = 'https://lector.dockerbop.fr'
+const SITE = 'https://lector.sidali.dev'
 
 /**
  * Kit de secours imprimable : les 12 mots numérotés, le code en QR, et une

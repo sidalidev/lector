@@ -1,6 +1,6 @@
 # Privacy
 
-Lector is a free Markdown editor made by Sid (https://sidali.dev). This page says, in plain words, what leaves your device and what happens to it. The detailed record, with legal bases, is in [`docs/legal/REGISTRE.md`](docs/legal/REGISTRE.md). The website version is at https://lector.dockerbop.fr/privacy.
+Lector is a free Markdown editor made by Sid (https://sidali.dev). This page says, in plain words, what leaves your device and what happens to it. The detailed record, with legal bases, is in [`docs/legal/REGISTRE.md`](docs/legal/REGISTRE.md). The website version is at https://lector.sidali.dev/privacy.
 
 ## The short version
 
@@ -66,7 +66,7 @@ Only when you use them, directly from your device, never through our server:
 
 ## Updates
 
-- Desktop and iOS apps ask `lector.dockerbop.fr` for updates. The Android app asks GitHub (`github.com`). These requests carry no identifier.
+- Desktop and iOS apps ask `lector.sidali.dev` (also reachable as `lector.dockerbop.fr`) for updates. The Android app asks GitHub (`github.com`). These requests carry no identifier.
 - The web app is downloaded from our server at each visit.
 
 ## The website

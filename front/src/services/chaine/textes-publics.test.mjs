@@ -27,7 +27,7 @@ test("D16 : pas de « code public » tant que le dépôt est privé ; détails t
     assert.doesNotMatch(lire(`front/src/components/${f}`), /github\.com/, f);
   }
   const lien = /DOC_TECHNIQUE = '([^']+)'/.exec(lire("front/src/components/Explication.jsx"))[1];
-  assert.equal(lien, "https://lector.dockerbop.fr/sync/");
+  assert.equal(lien, "https://lector.sidali.dev/sync/");
   assert.ok(existsSync(join(RACINE, "front/landing/sync/index.html")), "la page existe dans le site");
   assert.equal(readFileSync(PAGE, "utf8"), pageSync(readFileSync(SOURCE, "utf8")), "page à jour : node tools/page-sync.mjs");
   assert.match(landing, /href="\/sync\/"/);

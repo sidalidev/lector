@@ -18,7 +18,7 @@ No account, no email address or name, no password, no analytics, no crash report
 
 | Server | Role | Host | Country |
 |---|---|---|---|
-| `lector.dockerbop.fr` (also answers on `lector.sidali.dev`) | Sync relay (`back/`), website, web app, desktop and iOS update files | Hetzner Online GmbH, VPS (hosting contract, outside this repository) | Germany |
+| `lector.sidali.dev` (also answers on `lector.dockerbop.fr`) | Sync relay (`back/`), website, web app, desktop and iOS update files | Hetzner Online GmbH, VPS (hosting contract, outside this repository) | Germany |
 
 Both the relay (`lector-api`) and the web server (`lector-landing`) sit behind the Traefik reverse proxy of the same machine (`deploy/docker-compose.yml`).
 

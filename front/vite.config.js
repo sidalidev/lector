@@ -22,6 +22,7 @@ const POLITIQUE = {
   'connect-src': [
     "'self'",
     'https://lector.dockerbop.fr',
+    'https://lector.sidali.dev',
     // Co-écriture : relais WebSocket (docs/collab-design.md). 'self' couvre la
     // même origine dans les navigateurs récents ; écrit en clair pour les autres.
     'wss://lector.dockerbop.fr',

@@ -9,8 +9,8 @@
 //   'none'     no document content; the site sees the IP address and what is requested
 
 export const FLUX_SORTANTS = [
-  { id: 'sync', destinations: ['lector.dockerbop.fr'], protection: 'e2e' },
-  { id: 'updates', destinations: ['lector.dockerbop.fr', 'github.com'], protection: 'none' },
+  { id: 'sync', destinations: ['lector.sidali.dev'], protection: 'e2e' },
+  { id: 'updates', destinations: ['lector.sidali.dev', 'github.com'], protection: 'none' },
   { id: 'media', destinations: ['YouTube', 'Vimeo', 'Rumble'], protection: 'none' },
   { id: 'search', destinations: ['Google'], protection: 'none' },
 ]

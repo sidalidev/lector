@@ -14,7 +14,7 @@ const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '
 
 const PRINCIPES = ['about.p1', 'about.p2', 'about.p3', 'about.p4']
 const LIENS = [
-  { cle: 'about.privacy', href: 'https://lector.dockerbop.fr/privacy' },
+  { cle: 'about.privacy', href: 'https://lector.sidali.dev/privacy' },
   { cle: 'about.howSync', href: DOC_TECHNIQUE },
   { cle: 'about.site', href: 'https://sidali.dev' },
 ]

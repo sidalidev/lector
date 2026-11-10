@@ -74,7 +74,7 @@ test.describe('Synchronisation dans le navigateur', () => {
     await expect(page.getByRole('button', { name: 'Join', exact: true })).toBeVisible()
     await expect(page.locator('.panel-explication summary')).toHaveText('Why?')
     // Détails techniques : la page du site de Lector (docs/CHAINE.md), pas un dépôt encore privé.
-    await expect(page.locator('.panel-explication a')).toHaveAttribute('href', 'https://lector.dockerbop.fr/sync/')
+    await expect(page.locator('.panel-explication a')).toHaveAttribute('href', 'https://lector.sidali.dev/sync/')
   })
 
   test('créer : 12 mots, formulaire du gestionnaire, vérification, puis les documents', async ({ page }) => {
