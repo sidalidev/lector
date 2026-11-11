@@ -30,8 +30,52 @@ function surveillerReseau(vault) {
   const envoyer = () => { vault.envoyerEnAttente().catch(() => {}) }
   surveillance = { envoyer, minuteur: setInterval(envoyer, 30_000) }
   window.addEventListener('online', envoyer)
-  envoyer()
+  // Au démarrage, on retente aussi les notes refusées faute de place (place libérée ailleurs ?).
+  vault.envoyerEnAttente({ refus: true }).catch(() => {})
 }
+
+/**
+ * Événement window : un autre appareil a écrit ou supprimé un document
+ * (detail.docId). La note ouverte, la barre latérale et Today se relisent.
+ */
+export const EVENEMENT_CHANGEMENT = 'lector-chaine-change'
+
+function annoncer(docId) {
+  window.dispatchEvent(new CustomEvent(EVENEMENT_CHANGEMENT, { detail: { docId } }))
+}
+
+// Direct : le flux du casier (docs/CHAINE.md § 7), comme sur l'ordinateur. Le
+// téléphone en veille ou une coupure font manquer des événements : au retour
+// au premier plan et du réseau, le manifeste est comparé au précédent.
+let direct = null
+function arreterDirect() {
+  if (!direct) return
+  direct.arret.abort()
+  window.removeEventListener('online', direct.rattraper)
+  document.removeEventListener('visibilitychange', direct.auPremierPlan)
+  direct = null
+}
+
+function suivreLeDirect(vault) {
+  if (typeof window === 'undefined') return
+  arreterDirect()
+  const arret = new AbortController()
+  const rattraper = () => {
+    vault.changementsManques().then((ids) => ids.forEach(annoncer)).catch(() => {})
+  }
+  const auPremierPlan = () => { if (document.visibilityState === 'visible') rattraper() }
+  direct = { arret, rattraper, auPremierPlan }
+  window.addEventListener('online', rattraper)
+  document.addEventListener('visibilitychange', auPremierPlan)
+  vault.client.flux((evt) => {
+    if (!evt?.docId) return
+    vault.oublierVersion(evt.docId)
+    annoncer(evt.docId)
+  }, { signal: arret.signal, onErreur: (err) => { traiterErreurChaine(err) } }).catch(() => {})
+}
+
+// Identifiant de cette page, pour ne pas recevoir l'écho de ses propres écritures.
+const APPAREIL = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : null
 
 const BASE = 'lector-chaine'
 const MAGASIN = 'cles'
@@ -113,10 +157,11 @@ async function enregistrer(cles) {
 async function oublierCles() {
   cache = null
   session = null
+  arreterDirect()
   try { await transaction('readwrite', (s) => s.delete(ENTREE)) } catch { /* rien à effacer */ }
 }
 
-const client = (cles) => clientDe(cles, { serverUrl: SERVER })
+const client = (cles) => clientDe(cles, { serverUrl: SERVER, deviceId: APPAREIL })
 
 /** Signale à l'application qu'il faut ouvrir l'écran de la chaîne. */
 export function signalerChaine(code) {
@@ -230,6 +275,7 @@ export async function vaultWebChaine() {
     const vault = new VaultWebChaine({ client: client(cles), cles, attente: fileDAttente(cles.id) })
     session = { chainId: cles.id, vault }
     surveillerReseau(vault)
+    suivreLeDirect(vault)
   }
   return session.vault
 }
@@ -264,5 +310,23 @@ export async function traiterErreurChaine(err) {
 }
 
 let dernierSignalLimite = 0
+
+/**
+ * Note cloud:// ouverte : renvoie la dernière version du casier si le
+ * changement annoncé la concerne, sinon null. Ne touche pas à la base des
+ * écritures : l'appelant fait adopterCloud() s'il affiche ce texte.
+ */
+export async function relireSiConcerne(filePath, docId) {
+  if (!filePath?.startsWith('cloud://')) return null
+  const vault = await vaultWebChaine()
+  const chemin = filePath.slice('cloud://'.length)
+  if ((await vault.docIdDe(chemin)) !== docId) return null
+  return vault.relire(chemin)
+}
+
+export async function adopterCloud(filePath, sha256) {
+  const vault = await vaultWebChaine()
+  return vault.adopter(filePath.slice('cloud://'.length), sha256)
+}
 
 export { construireArbre }

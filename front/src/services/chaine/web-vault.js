@@ -7,7 +7,7 @@
 //
 // Module ES pur (client et clés injectés), testé dans synchro.test.mjs.
 
-import { ErreurChaine, MAX_DOC_BYTES_DEFAUT } from "./client.js";
+import { ErreurChaine, MAX_DOC_BYTES_DEFAUT, estQuota } from "./client.js";
 import {
   SURCOUT_ENVELOPPE,
   chiffrerCheminAvec,
@@ -19,13 +19,18 @@ import {
   estDocIdValide,
   sha256Hex,
 } from "./crypto.js";
-import { estMarkdown } from "./synchro.js";
+import { estMarkdown, nomDeConflit } from "./synchro.js";
 import { estErreurReseau } from "./attente.js";
 
 /** Prévient l'interface du nombre de notes qui attendent le réseau. */
 function signalerAttente(n) {
   if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("lector-attente", { detail: { n } }));
 }
+
+/** Notes qui attendent le réseau (pas celles refusées faute de place, qui attendent l'utilisateur). */
+const attendentLeReseau = (entrees) => entrees.filter((e) => !e.refus).length;
+
+const egaux = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
 
 export class VaultWebChaine {
   /**
@@ -138,42 +143,165 @@ export class VaultWebChaine {
   }
 
   /**
-   * Chiffre et dépose. Lève ErreurChaine 400 NOT_MARKDOWN pour un autre type de
-   * fichier, 413 DOC_TOO_LARGE au-delà de la limite du serveur, 412 si le
-   * document a changé ailleurs depuis sa lecture.
+   * Dernière version du casier, SANS en faire la base des écritures : la note
+   * affichée ne la prend que si rien n'attend d'être enregistré (voir adopter).
+   * null si une version d'ici attend encore d'être envoyée.
    */
-  async ecrire(chemin, contenu) {
+  async relire(chemin) {
+    const docId = await docIdAvec(this.cles, chemin);
+    if (this.attente && (await this.attente.lire(docId).catch(() => null))) return null;
+    const r = await this.client.lire(docId);
+    const clair = await dechiffrerContenuAvec(this.cles, docId, r.bloc);
+    const sha256 = await sha256Hex(r.bloc);
+    this.connus.set(docId, sha256);
+    this.clairs.set(docId, { sha256, clair });
+    return { texte: new TextDecoder("utf-8").decode(clair), sha256 };
+  }
+
+  /** La note affichée repart de cette version du casier : les écritures suivantes la remplacent. */
+  async adopter(chemin, sha256) {
+    this.lus.set(await docIdAvec(this.cles, chemin), sha256);
+  }
+
+  /** Le casier a changé pour ce document (flux) : la prochaine lecture le retélécharge. */
+  oublierVersion(docId) {
+    this.connus.delete(docId);
+  }
+
+  /**
+   * Relit le manifeste et renvoie les docId dont le bloc a changé depuis le
+   * précédent (événements du flux manqués pendant une veille ou une coupure).
+   */
+  async changementsManques() {
+    const avant = new Map(this.connus);
+    if (!avant.size) return [];
+    await this.lister();
+    const changes = [];
+    for (const [docId, sha] of this.connus) if (avant.get(docId) !== sha) changes.push(docId);
+    for (const docId of avant.keys()) if (!this.connus.has(docId)) changes.push(docId);
+    return changes;
+  }
+
+  async docIdDe(chemin) {
+    return docIdAvec(this.cles, chemin);
+  }
+
+  /**
+   * Empreinte sur laquelle repose une écriture gardée sur l'appareil : celle de
+   * la version précédente gardée, sinon celle lue ou vue par cette session.
+   * undefined = inconnue (relue au moment de l'envoi).
+   */
+  _base(docId, avant) {
+    if (avant) return avant.inconnu ? undefined : avant.attendu;
+    if (this.lus.has(docId)) return this.lus.get(docId);
+    if (this.connus.has(docId)) return this.connus.get(docId);
+    return undefined;
+  }
+
+  /** Garde une version chiffrée sur l'appareil (file d'attente), relue par lire() et lister(). */
+  async _garder({ docId, chemin, bloc, pathEnc, mtime, sha256, clair }, base, refus = null) {
+    await this.attente.garder({ docId, chemin, bloc, pathEnc, mtime, attendu: base ?? null, inconnu: base === undefined, date: Date.now(), ...(refus ? { refus } : {}) });
+    this.clairs.set(docId, { sha256, clair });
+    // Refusée : le casier garde l'ancienne version, qui reste la base de la prochaine écriture.
+    if (!refus) this.connus.set(docId, sha256);
+    signalerAttente(attendentLeReseau(await this.attente.toutes()));
+  }
+
+  /**
+   * Chiffre et dépose. Lève ErreurChaine 400 NOT_MARKDOWN pour un autre type de
+   * fichier, 413 (DOC_TOO_LARGE, QUOTA_EXCEEDED, TOO_MANY_DOCS) quand le casier
+   * refuse la place : avec une file d'attente, la note reste alors sur
+   * l'appareil (relue, listée) jusqu'à sa prochaine écriture ou au prochain
+   * démarrage, jamais perdue.
+   *
+   * 412 (modifiée ailleurs depuis sa lecture) : levée telle quelle, sauf avec
+   * { surConflit: "copie" } : la version d'ici part dans « nom (conflict …).md »,
+   * la note garde celle du casier, et la réponse vaut { conflit: { copie, texte } }
+   * (texte = version du casier, à afficher).
+   */
+  async ecrire(chemin, contenu, { surConflit = null } = {}) {
     if (!estMarkdown(chemin)) throw new ErreurChaine(400, "NOT_MARKDOWN", "");
     const docId = await docIdAvec(this.cles, chemin);
     const clair = typeof contenu === "string" ? new TextEncoder().encode(contenu) : new Uint8Array(contenu);
     // maxDocBytes limite le clair (le bloc fait SURCOUT_ENVELOPPE octets de plus).
     const max = typeof this.serveur?.maxDocBytes === "number" ? this.serveur.maxDocBytes : MAX_DOC_BYTES_DEFAUT;
-    if (clair.length > max) throw new ErreurChaine(413, "DOC_TOO_LARGE", "");
+    if (clair.length > max && !this.attente) throw new ErreurChaine(413, "DOC_TOO_LARGE", "");
     const bloc = await chiffrerContenuAvec(this.cles, docId, clair);
     const pathEnc = await chiffrerCheminAvec(this.cles, docId, chemin);
     const mtime = new Date().toISOString();
     const sha256 = await sha256Hex(bloc);
-    // Une version plus ancienne attend déjà : on essaie d'abord de la faire partir.
-    if (this.attente && (await this.attente.lire(docId))) await this.envoyerEnAttente().catch(() => {});
+    const version = { docId, chemin, bloc, pathEnc, mtime, sha256, clair };
+    // Une version refusée faute de place est remplacée par celle-ci ; une version
+    // plus ancienne qui attend le réseau, on essaie d'abord de la faire partir.
+    let avant = this.attente ? await this.attente.lire(docId) : null;
+    const remplaceRefus = !!avant?.refus;
+    if (remplaceRefus) await this.attente.oublier(docId);
+    else if (avant) {
+      await this.envoyerEnAttente().catch(() => {});
+      avant = await this.attente.lire(docId);
+    }
+    if (clair.length > max) {
+      await this._garder(version, this._base(docId, avant), "DOC_TOO_LARGE");
+      throw new ErreurChaine(413, "DOC_TOO_LARGE", "");
+    }
     try {
-      if (this.attente && (await this.attente.lire(docId))) throw Object.assign(new TypeError("toujours hors ligne"), {});
-      const r = await this.client.deposer(docId, { bloc, pathEnc, mtime, attendu: (await this._attendu(docId)) || null });
+      if (avant && !remplaceRefus) throw new TypeError("toujours hors ligne");
+      let attendu = remplaceRefus ? this._base(docId, avant) : undefined;
+      if (attendu === undefined) attendu = await this._attendu(docId);
+      const r = await this.client.deposer(docId, { bloc, pathEnc, mtime, attendu: attendu || null });
       this.lus.set(docId, sha256);
       this.connus.set(docId, sha256);
       this.clairs.set(docId, { sha256, clair });
       return r;
     } catch (err) {
+      if (err?.status === 412 && surConflit === "copie") return this._conflit(chemin, docId, clair);
+      if (this.attente && estQuota(err)) {
+        // Casier plein ou note trop grosse pour le serveur : gardée ici, pas perdue.
+        await this._garder(version, this._base(docId, avant), err.code || "QUOTA_EXCEEDED");
+        throw err;
+      }
       if (!this.attente || !estErreurReseau(err)) throw err;
       // Hors ligne : gardé chiffré sur l'appareil, envoyé au retour du réseau.
       // La base reste la version lue avant la coupure (If-Match au moment de l'envoi).
-      const avant = await this.attente.lire(docId);
-      const base = avant ? (avant.inconnu ? undefined : avant.attendu)
-        : this.lus.has(docId) ? this.lus.get(docId) : this.connus.has(docId) ? this.connus.get(docId) : undefined;
-      await this.attente.garder({ docId, chemin, bloc, pathEnc, mtime, attendu: base ?? null, inconnu: base === undefined, date: Date.now() });
-      this.clairs.set(docId, { sha256, clair });
-      this.connus.set(docId, sha256);
-      signalerAttente((await this.attente.toutes()).length);
+      await this._garder(version, this._base(docId, avant));
       return { enAttente: true };
+    }
+  }
+
+  /**
+   * 412 sur la note ouverte : la version d'ici devient une copie de conflit,
+   * la note reprend celle du casier. Supprimée ailleurs : la note est recréée.
+   */
+  async _conflit(chemin, docId, clair) {
+    let distant = null;
+    try {
+      const r = await this.client.lire(docId);
+      distant = { clair: await dechiffrerContenuAvec(this.cles, docId, r.bloc), sha256: await sha256Hex(r.bloc) };
+    } catch (err) {
+      if (!(err instanceof ErreurChaine) || (err.status !== 404 && err.status !== 410)) throw err;
+    }
+    if (!distant) {
+      this.lus.set(docId, "");
+      this.connus.set(docId, "");
+      return this.ecrire(chemin, clair);
+    }
+    this.lus.set(docId, distant.sha256);
+    this.connus.set(docId, distant.sha256);
+    this.clairs.set(docId, distant);
+    const texte = new TextDecoder("utf-8").decode(distant.clair);
+    if (egaux(distant.clair, clair)) return { conflit: null };
+    const copie = await this._nomLibre(nomDeConflit(chemin));
+    await this.ecrire(copie, clair);
+    return { conflit: { copie, texte } };
+  }
+
+  /** Premier nom libre : « x.md », sinon « x 2.md », « x 3.md »… */
+  async _nomLibre(chemin) {
+    await this.lister().catch(() => {});
+    const tige = chemin.replace(/\.md$/i, "");
+    for (let n = 1; ; n++) {
+      const essai = n === 1 ? chemin : `${tige} ${n}.md`;
+      if (!this.connus.get(await docIdAvec(this.cles, essai))) return essai;
     }
   }
 
@@ -182,12 +310,14 @@ export class VaultWebChaine {
    * coupure n'est jamais écrasée : la version d'ici devient « … (offline copy).md ».
    * Renvoie le nombre de notes envoyées ; lève une erreur réseau si la connexion manque encore.
    */
-  envoyerEnAttente() {
+  envoyerEnAttente({ refus = false } = {}) {
     if (!this.attente) return Promise.resolve(0);
     if (this.envoi) return this.envoi;
     this.envoi = (async () => {
       let envoyes = 0;
       for (const e of await this.attente.toutes()) {
+        // Refusée faute de place : retentée au démarrage ou à sa prochaine écriture.
+        if (e.refus && (!refus || e.refus === "DOC_TOO_LARGE")) continue;
         let attendu = e.inconnu ? undefined : e.attendu;
         try {
           if (attendu === undefined) {
@@ -201,7 +331,7 @@ export class VaultWebChaine {
           this.connus.set(e.docId, sha);
         } catch (err) {
           if (estErreurReseau(err)) throw err;
-          if (err?.status !== 412 && err?.status !== 409) continue; // refus (place, taille) : la note reste en attente
+          if (err?.status !== 412 && err?.status !== 409) continue; // refus (place, taille) : la note reste sur l'appareil
           const clair = await dechiffrerContenuAvec(this.cles, e.docId, e.bloc);
           await this.attente.oublier(e.docId);
           this.clairs.delete(e.docId);
@@ -215,7 +345,7 @@ export class VaultWebChaine {
       return envoyes;
     })().finally(async () => {
       this.envoi = null;
-      signalerAttente((await this.attente.toutes().catch(() => [])).length);
+      signalerAttente(attendentLeReseau(await this.attente.toutes().catch(() => [])));
     });
     return this.envoi;
   }

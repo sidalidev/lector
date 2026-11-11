@@ -340,20 +340,21 @@ class FileSystemService {
     }
   }
 
-  async writeFile(filePath, content) {
+  async writeFile(filePath, content, options = {}) {
     await this.ensurePlatform();
     if (filePath?.startsWith('browser://')) {
       const bv = await import('./browserVault');
       return bv.ecrire(filePath, content);
     }
     // Lector Vault (navigateur) : chiffré ici, déposé avec If-Match (412 si
-    // modifié ailleurs). Markdown seulement : un autre type est refusé
-    // (ErreurChaine 400 NOT_MARKDOWN), comme un document trop gros (413).
+    // modifié ailleurs ; { surConflit: 'copie' } en fait une copie de conflit).
+    // Markdown seulement : un autre type est refusé (ErreurChaine 400
+    // NOT_MARKDOWN) ; un document trop gros (413) reste sur l'appareil.
     if (filePath?.startsWith('cloud://')) {
       const chaine = await import('./chaineWeb');
       try {
         const vault = await chaine.vaultWebChaine();
-        return await vault.ecrire(filePath.replace('cloud://', ''), content);
+        return await vault.ecrire(filePath.replace('cloud://', ''), content, options);
       } catch (err) {
         await chaine.traiterErreurChaine(err);
         console.error('writeFile cloud error:', err);

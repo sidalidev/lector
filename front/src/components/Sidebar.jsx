@@ -109,9 +109,16 @@ function Sidebar({ dirPath, rootDirPath, currentFilePath, focusFolderPath, onFoc
     // Polling fallback : vérifier la structure toutes les 30s (pas 5s: ça bloque le main process)
     const pollInterval = setInterval(() => loadFiles(), 30000)
 
+    // Lector Vault (navigateur, Android) : un autre appareil a écrit ou supprimé une note.
+    let minuteur = null
+    const surChaine = () => { clearTimeout(minuteur); minuteur = setTimeout(() => loadFiles(), 300) }
+    window.addEventListener('lector-chaine-change', surChaine)
+
     return () => {
       if (handler) window.electron?.removeDirChangedListener?.(handler)
       clearInterval(pollInterval)
+      clearTimeout(minuteur)
+      window.removeEventListener('lector-chaine-change', surChaine)
     }
   }, [loadFiles]);
 

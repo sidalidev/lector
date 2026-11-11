@@ -23,6 +23,33 @@
   font-size: 13px;
 }
 
+/* Modifiée ailleurs : la version d'ici est dans une copie */
+.doc-conflit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  width: calc(100% - 32px);
+  margin: 12px auto 0;
+  max-width: 720px;
+  padding: 8px 8px 8px 12px;
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.doc-conflit span { flex: 1; }
+.doc-conflit button {
+  border: none;
+  border-radius: 8px;
+  padding: 4px 10px;
+  background: var(--bg-tertiary, var(--bg-primary));
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+.doc-conflit .doc-conflit-fermer { background: none; padding: 4px 8px; color: var(--text-secondary); }
+
 /* L'éditeur grandit avec la note : c'est .document-view qui défile. */
 .document-view-edit .markdown-editor-container {
   display: block;

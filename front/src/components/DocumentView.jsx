@@ -33,6 +33,8 @@ const DocumentView = memo(function DocumentView({
   const minuteurRef = useRef(null);
   const ouvertureRef = useRef({ chemin: filePath, texte: content }); // texte à l'ouverture : première version
   const [saveError, setSaveError] = useState(null);
+  // Modifiée sur un autre appareil pendant la frappe : { copie } (cloud://…), la version d'ici.
+  const [conflit, setConflit] = useState(null);
   // Notes gardées sur l'appareil faute de réseau (envoyées au retour).
   const [enAttente, setEnAttente] = useState(0);
   useEffect(() => {
@@ -47,8 +49,27 @@ const DocumentView = memo(function DocumentView({
   const enregistrer = useCallback(async (chemin, texte, { propager = true } = {}) => {
     if (!ecrivable(chemin) || texte === enregistreRef.current) return;
     try {
-      await fileSystem.writeFile(chemin, texte);
+      const r = await fileSystem.writeFile(chemin, texte, { surConflit: 'copie' });
       setSaveError(null);
+      if (r?.conflit) {
+        // Rien n'est perdu : la version d'ici part dans une copie, la note
+        // reprend celle de l'autre appareil (comme au retour du hors-ligne).
+        const copie = `cloud://${r.conflit.copie}`;
+        if (propager && texteRef.current !== texte) {
+          // Frappé pendant l'envoi : la copie garde aussi ces derniers mots.
+          await fileSystem.writeFile(copie, texteRef.current).catch(() => {});
+        }
+        noter(copie, propager ? texteRef.current : texte, { auteurs: [], avant: null });
+        window.dispatchEvent(new CustomEvent('lector-chaine-change', { detail: { docId: null } }));
+        if (propager) {
+          texteRef.current = r.conflit.texte;
+          enregistreRef.current = r.conflit.texte;
+          setValeur({ chemin, texte: r.conflit.texte });
+          onContentChangeRef.current?.(r.conflit.texte);
+          setConflit({ copie });
+        }
+        return;
+      }
       if (propager) {
         enregistreRef.current = texte;
         onContentChangeRef.current?.(texte);
@@ -69,6 +90,7 @@ const DocumentView = memo(function DocumentView({
     ouvertureRef.current = { chemin: filePath, texte: content };
     setValeur({ chemin: filePath, texte: content });
     setSaveError(null);
+    setConflit(null);
     return () => {
       clearTimeout(minuteurRef.current);
       if (texteRef.current !== enregistreRef.current) {
@@ -151,6 +173,33 @@ const DocumentView = memo(function DocumentView({
     setValeur({ chemin: filePath, texte: content });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [content]);
+
+  // Direct : un autre appareil a écrit cette note. Prise seulement si rien
+  // n'attend d'être enregistré ici ; sinon l'enregistrement en cours tombera
+  // sur le conflit et gardera la version d'ici en copie.
+  useEffect(() => {
+    if (!filePath?.startsWith('cloud://')) return undefined;
+    let actif = true;
+    const surChangement = async (e) => {
+      const docId = e.detail?.docId;
+      if (!docId || liaisonRef.current || texteRef.current !== enregistreRef.current) return;
+      try {
+        const chaine = await import('../services/chaineWeb');
+        const v = await chaine.relireSiConcerne(filePath, docId);
+        if (!actif || !v || texteRef.current !== enregistreRef.current) return;
+        await chaine.adopterCloud(filePath, v.sha256);
+        if (v.texte === texteRef.current) return;
+        texteRef.current = v.texte;
+        enregistreRef.current = v.texte;
+        setValeur({ chemin: filePath, texte: v.texte });
+        onContentChangeRef.current?.(v.texte);
+      } catch {
+        // Supprimée ailleurs ou réseau coupé : la note reste telle quelle.
+      }
+    };
+    window.addEventListener('lector-chaine-change', surChangement);
+    return () => { actif = false; window.removeEventListener('lector-chaine-change', surChangement); };
+  }, [filePath]);
 
   const handleChange = useCallback((texte) => {
     texteRef.current = texte;
@@ -240,6 +289,13 @@ const DocumentView = memo(function DocumentView({
   return (
     <div ref={internalRef} className="document-view document-view-edit">
       {saveError && <div className="doc-save-error" role="alert">{saveError}</div>}
+      {conflit && (
+        <div className="doc-conflit" role="status" data-testid="conflit">
+          <span>{t('doc.conflict.text')}</span>
+          <button type="button" onClick={() => fileSystem.openFileByPath(conflit.copie)}>{t('doc.conflict.open')}</button>
+          <button type="button" className="doc-conflit-fermer" aria-label={t('doc.conflict.dismiss')} onClick={() => setConflit(null)}>×</button>
+        </div>
+      )}
       {enAttente > 0 && (
         <div className="doc-hors-ligne" role="status" data-testid="hors-ligne">
           {t(enAttente === 1 ? 'offline.one' : 'offline.other', { n: enAttente })}

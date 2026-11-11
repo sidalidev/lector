@@ -568,7 +568,11 @@ function App() {
     document.addEventListener('visibilitychange', auPremierPlan);
     const offSync = window.electron?.cloud?.onEvent?.((evt) => { if (evt?.type === 'sync-complete') relire(); });
     const surDisque = window.electron?.onDirChanged?.(() => rappels.actualiserBientot(rootDirPathRef.current));
+    // Lector Vault : une note écrite sur un autre appareil peut changer Today.
+    const surChaine = () => rappels.actualiserBientot(rootDirPathRef.current);
+    window.addEventListener('lector-chaine-change', surChaine);
     return () => {
+      window.removeEventListener('lector-chaine-change', surChaine);
       window.removeEventListener('focus', relire);
       document.removeEventListener('visibilitychange', auPremierPlan);
       offSync?.();
