@@ -16,7 +16,7 @@ Lector is a light Markdown editor and viewer for your own `.md` files: write, re
 
 ## Install
 
-- **macOS**: download the universal DMG from the [GitHub releases page](https://github.com/sidalidev/lector/releases), where each new version is published.
+- **macOS**: download the universal DMG from the [GitHub releases page](https://github.com/sidalidev/lector/releases). The window shows the web app, and a folder of `.md` files on your Mac stays in sync in the background, like a cloud drive (Sync menu). The app updates itself.
 - **Android**: install the APK from [GitHub Releases](https://github.com/sidalidev/lector/releases), or add Lector to [Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/sidalidev/lector). The app also updates itself: it checks a signed manifest on GitHub Releases and asks Android to install the new version. Android 7.0 or later; saving the 12 words to your password manager needs Android 14 or later.
 - **iOS**: the App Store release of 2.0 is pending. Until then, build it from source with Xcode (see [CONTRIBUTING.md](CONTRIBUTING.md)). iOS 15 or later.
 - **Web**: open [lector.sidali.dev](https://lector.sidali.dev/). Nothing to install. Once visited, it also opens offline.

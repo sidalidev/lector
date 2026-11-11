@@ -25,7 +25,7 @@ function echec(err) {
 }
 
 // Champs de chaîne effacés quand cet appareil quitte sa chaîne.
-const SANS_CHAINE = { chainSecret: undefined, chainId: undefined, chainPendingSecret: undefined, chainSaved: undefined }
+const SANS_CHAINE = { chainSecret: undefined, chainId: undefined, chainPendingSecret: undefined, chainSaved: undefined, interfaceChainId: undefined }
 
 const verrouille = () => ({ ok: false, code: 'LOCKED', error: 'Locked' })
 
@@ -206,6 +206,86 @@ class ChaineDesktop {
       if (c.vaultPath) await this.d.demarrerSynchro()
       return { ok: true, chainId: id }
     })
+  }
+
+  // --- Lien avec l'interface (la web app chargée dans la fenêtre, main.js) ---
+
+  /**
+   * Les 12 mots de la chaîne de cet ordinateur, pour que l'interface se
+   * connecte toute seule : une seule fois par chaîne. Rien si l'interface est
+   * déjà connectée à cette chaîne, ou s'il n'y a pas de chaîne.
+   */
+  async motsPourInterface() {
+    try {
+      const c = this._creds()
+      if (!c.chainSecret || c.chainPendingSecret) return { ok: false, code: 'NO_SECRET' }
+      if (c.interfaceChainId && c.interfaceChainId === c.chainId) return { ok: false, code: 'ALREADY_CONNECTED' }
+      const { service } = await chargerChaine()
+      const S = service.hexVersSecret(c.chainSecret)
+      try {
+        const { mots } = await service.exporterChaine(S)
+        return { ok: true, mots: mots.join(' '), chainId: c.chainId }
+      } finally { S.fill(0) }
+    } catch (err) { return echec(err) }
+  }
+
+  /** L'interface s'est connectée à la chaîne de cet ordinateur : ses mots ne lui seront plus donnés. */
+  marquerInterfaceConnectee(chainId) {
+    const c = this._creds()
+    if (!c.chainId || chainId !== c.chainId) return { ok: false, code: 'OTHER_CHAIN' }
+    this._sauver({ interfaceChainId: chainId })
+    return { ok: true }
+  }
+
+  /**
+   * L'utilisateur a créé sa clé ou s'est connecté dans l'interface : cet
+   * ordinateur garde la même chaîne (rejoindre), sans rien demander. S'il a
+   * déjà cette chaîne, rien ne change ; s'il en a une autre, il la garde et
+   * renvoie HAS_CHAIN (l'utilisateur peut passer le dossier sur la clé de
+   * l'interface depuis le menu : passerSurChaine).
+   */
+  async garderDepuisInterface(saisie) {
+    const c = this._creds()
+    if (c.chainSecret) {
+      let id
+      try {
+        const { service } = await chargerChaine()
+        const lu = await service.lireSaisie(saisie)
+        lu.S.fill(0)
+        id = lu.id
+      } catch (err) { return echec(err) }
+      if (id === c.chainId) {
+        this._sauver({ interfaceChainId: id })
+        return { ok: true, chainId: id, memeChaine: true }
+      }
+      return { ok: false, code: 'HAS_CHAIN', chainId: id }
+    }
+    const r = await this.rejoindre(saisie)
+    if (r.ok) this._sauver({ interfaceChainId: r.chainId })
+    return r
+  }
+
+  /**
+   * Le dossier passe sur la clé de l'interface : cet ordinateur quitte sa
+   * chaîne (son casier n'est pas effacé) et rejoint celle-ci ; la première
+   * synchro adopte le dossier et y envoie toutes ses notes. Les mots et le
+   * casier sont vérifiés avant de quitter l'ancienne chaîne.
+   */
+  async passerSurChaine(saisie) {
+    try {
+      const { service } = await chargerChaine()
+      const { S, id } = await service.lireSaisie(saisie)
+      const hex = service.secretVersHex(S)
+      S.fill(0)
+      if (id === this._creds().chainId) return { ok: true, chainId: id, memeChaine: true }
+      const { client } = await this._chaine(hex)
+      await client.etat()
+    } catch (err) { return echec(err) }
+    const q = await this.quitter()
+    if (!q.ok) return q
+    const r = await this.rejoindre(saisie)
+    if (r.ok) this._sauver({ interfaceChainId: r.chainId })
+    return r
   }
 
   /** L'utilisateur a confirmé avoir sauvegardé ses 12 mots (quiz réussi). */

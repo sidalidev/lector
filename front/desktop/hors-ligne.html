@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<title>Lector</title>
+<style>
+  :root { color-scheme: light dark; --fond: #FBF7EF; --texte: #1F2A22; --doux: #5F6B62; --miel: #E8A33C; }
+  @media (prefers-color-scheme: dark) { :root { --fond: #12201A; --texte: #EEF2EC; --doux: #A9B5AC; } }
+  html, body { height: 100%; margin: 0; }
+  body { display: flex; align-items: center; justify-content: center; background: var(--fond); color: var(--texte);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, sans-serif; text-align: center; -webkit-app-region: drag; }
+  main { max-width: 360px; padding: 24px; }
+  h1 { font-size: 22px; margin: 0 0 8px; }
+  p { color: var(--doux); margin: 0 0 20px; }
+  a { -webkit-app-region: no-drag; display: inline-block; padding: 10px 22px; border-radius: 12px; background: var(--miel);
+    color: #1F2A22; font-weight: 600; text-decoration: none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>You are offline</h1>
+  <p>Lector opens without a connection once it has been opened online. Your synced folder keeps working in the meantime.</p>
+  <a id="reessayer" href="#">Try Again</a>
+</main>
+<script>
+  const url = new URLSearchParams(location.search).get('url')
+  const lien = document.getElementById('reessayer')
+  if (url) lien.href = url
+  window.addEventListener('online', () => { if (url) location.href = url })
+</script>
+</body>
+</html>

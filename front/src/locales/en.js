@@ -41,6 +41,7 @@ const en = {
 
   // Onboarding (first launch): two screens at most
   'entry.title': 'Lector',
+  'entry.desktopConnecting': 'Connecting with the key of this Mac…',
   'entry.body': 'Your notes, end-to-end encrypted. No email and no password: 12 words are your key.',
   'entry.signIn': 'Sign in',
   'entry.create': 'Create my key',

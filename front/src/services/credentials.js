@@ -42,6 +42,8 @@ async function chargerNatif() {
 /** Vrai si le navigateur sait enregistrer un mot de passe par l'API (Chromium). */
 export function estDisponible() {
   if (estNatif()) return true
+  // App Mac : la fenêtre n'a aucun gestionnaire de mots de passe (pas d'enregistrement possible).
+  if (typeof window !== 'undefined' && window.lectorDesktop) return false
   return typeof window !== 'undefined'
     && typeof window.PasswordCredential === 'function'
     && typeof navigator !== 'undefined'

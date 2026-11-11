@@ -13,7 +13,7 @@ front/                     everything the user sees
 │   ├── components/collab/ shared document page (/d/), Share panel
 │   ├── services/          file access, tasks and reminders (taches/), outgoing flows list, updates
 │   └── locales/           interface text (en.js)
-├── desktop/               Electron: main.js, preload.js, sync-manager.js, vault/
+├── desktop/               Mac app: window on the web app, folder sync in the background (main.js, sync-manager.js, vault/)
 ├── mobile/                Capacitor wrappers: android/ (update, password manager plugins), ios/
 └── landing/               static site: privacy policy, sync/ (protocol page)
 back/                      relay: Express + Prisma + SQLite, routes/chain.js, services/ (collab/: WebSocket relay)

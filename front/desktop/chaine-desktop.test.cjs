@@ -284,6 +284,58 @@ test('Quitter : S oublié, vault et casier intacts', async (t) => {
   assert.equal(lire(dA, 'a.md'), 'A')
 })
 
+test('Lien avec l\'interface : mots donnés une fois par chaîne ; chaîne reçue de l\'interface sans dossier imposé', async (t) => {
+  const serveur = await serveurSimule()
+  const dA = dossier({ 'a.md': 'A' })
+  t.after(() => fs.rmSync(dA, { recursive: true, force: true }))
+  const A = poste(serveur, dA)
+  // Sans chaîne : rien à donner.
+  assert.equal((await A.chaine.motsPourInterface()).code, 'NO_SECRET')
+  await A.chaine.preparer()
+  await A.chaine.creer()
+  const r = await A.chaine.motsPourInterface()
+  assert.equal(r.ok, true)
+  assert.equal(r.chainId, A.creds.chainId)
+  assert.equal(r.mots.split(' ').length, 12)
+  // Une autre chaîne ne marque rien ; la bonne, oui : les mots ne sont plus donnés.
+  assert.equal(A.chaine.marquerInterfaceConnectee('autre').ok, false)
+  assert.equal(A.chaine.marquerInterfaceConnectee(A.creds.chainId).ok, true)
+  assert.equal((await A.chaine.motsPourInterface()).code, 'ALREADY_CONNECTED')
+  // Un Mac neuf, sans dossier, reçoit la chaîne de l'interface : il la garde, sans synchroniser.
+  const B = poste(serveur, undefined)
+  delete B.creds.vaultPath
+  const g = await B.chaine.garderDepuisInterface(r.mots)
+  assert.equal(g.ok, true)
+  assert.equal(B.creds.chainId, A.creds.chainId)
+  assert.equal(B.creds.interfaceChainId, A.creds.chainId)
+  assert.equal(B.demarrages, 0)
+  assert.equal((await B.chaine.motsPourInterface()).code, 'ALREADY_CONNECTED')
+  // Un Mac qui a déjà cette chaîne : rien ne change.
+  assert.equal((await A.chaine.garderDepuisInterface(r.mots)).memeChaine, true)
+  // Une autre chaîne : il garde la sienne et le signale ; passerSurChaine l'adopte, sans effacer l'ancien casier.
+  const D = poste(serveur, undefined)
+  delete D.creds.vaultPath
+  await D.chaine.preparer()
+  D.creds.vaultPath = dossier({})
+  await D.chaine.creer()
+  delete D.creds.vaultPath
+  const motsD = (await D.chaine.motsPourInterface()).mots
+  const idA = A.creds.chainId
+  const h = await A.chaine.garderDepuisInterface(motsD)
+  assert.deepEqual([h.ok, h.code, h.chainId], [false, 'HAS_CHAIN', D.creds.chainId])
+  assert.equal(A.creds.chainId, idA)
+  assert.equal((await A.chaine.passerSurChaine('pas des mots')).ok, false)
+  assert.equal(A.creds.chainId, idA)
+  const p = await A.chaine.passerSurChaine(motsD)
+  assert.equal(p.ok, true)
+  assert.deepEqual([A.creds.chainId, A.creds.interfaceChainId, A.creds.vaultPath], [D.creds.chainId, D.creds.chainId, dA])
+  assert.equal(serveur.etat.chaines.has(idA), true)
+  // Mots invalides : rien n'est gardé.
+  const C = poste(serveur, undefined)
+  assert.equal((await C.chaine.garderDepuisInterface('pas des mots')).ok, false)
+  assert.equal(C.creds.chainSecret, undefined)
+})
+
 test('SyncManager : markdown seulement, casier plein signalé une fois, flux temps réel, casier disparu', async (t) => {
   const dA = dossier({ 'a.md': 'a'.repeat(100), 'b.md': 'b'.repeat(100), 'photo.png': PNG })
   const dB = dossier()

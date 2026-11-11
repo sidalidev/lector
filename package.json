@@ -1,6 +1,6 @@
 {
   "name": "lector",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "description": "Markdown editor: plain notes, beautifully rendered, edited in real time, synced end to end encrypted",
   "license": "MIT",
   "main": "front/desktop/main.js",
@@ -11,11 +11,8 @@
     "dev": "cd front && vite",
     "build": "cd front && vite build",
     "electron": "electron .",
-    "start": "concurrently \"npm:dev\" \"wait-on http://localhost:5173 && electron .\"",
-    "dist": "npm run build && electron-builder",
-    "dist:win": "npm run build && electron-builder --win --x64",
-    "install-app": "npm run build && electron-builder && rm -rf /Applications/Lector.app && cp -R release/mac-universal/Lector.app /Applications/",
-    "release": "npm run build && LECTOR_RELEASE=1 electron-builder --publish always",
+    "start": "concurrently \"npm:dev\" \"wait-on http://localhost:5173 && LECTOR_APP_URL=http://localhost:5173/ electron .\"",
+    "dist": "electron-builder --mac",
     "deploy": "bash deploy/deploy.sh",
     "cap:ios": "npm run build && cd front && npx cap sync ios",
     "cap:android": "npm run build && cd front && npx cap sync android",
@@ -39,7 +36,7 @@
     "productName": "Lector",
     "publish": {
       "provider": "generic",
-      "url": "https://lector.dockerbop.fr/releases"
+      "url": "https://lector.sidali.dev/releases"
     },
     "afterSign": "front/desktop/build/notarize.js",
     "mac": {
@@ -63,128 +60,35 @@
           ]
         }
       ],
-      "icon": "front/desktop/build/icon.icns",
-      "fileAssociations": [
-        {
-          "ext": "md",
-          "name": "Markdown Document",
-          "role": "Editor",
-          "icon": "front/desktop/build/icon.icns"
-        },
-        {
-          "ext": "markdown",
-          "name": "Markdown Document",
-          "role": "Editor",
-          "icon": "front/desktop/build/icon.icns"
-        }
-      ],
-      "extendInfo": {
-        "CFBundleDocumentTypes": [
-          {
-            "CFBundleTypeName": "Markdown Document",
-            "CFBundleTypeRole": "Editor",
-            "LSHandlerRank": "Default",
-            "LSItemContentTypes": [
-              "net.daringfireball.markdown",
-              "public.plain-text"
-            ],
-            "CFBundleTypeExtensions": [
-              "md",
-              "markdown"
-            ]
-          }
-        ],
-        "NSDocumentsFolderUsageDescription": "Lector needs access to open your documents."
-      }
-    },
-    "linux": {
-      "target": [
-        {
-          "target": "deb",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "AppImage",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "icon": "front/desktop/build/Lector.iconset",
-      "category": "Office",
-      "fileAssociations": [
-        {
-          "ext": "md",
-          "name": "Markdown Document",
-          "mimeType": "text/markdown"
-        }
-      ]
-    },
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "icon": "front/desktop/build/icon.ico",
-      "fileAssociations": [
-        {
-          "ext": "md",
-          "name": "Markdown Document"
-        }
-      ]
+      "icon": "front/desktop/build/icon.icns"
     },
     "files": [
-      "front/dist/**/*",
-      "front/desktop/**/*",
+      "front/desktop/*.js",
       "!front/desktop/*.test.cjs",
-      "front/src/services/chaine/**/*",
+      "front/desktop/hors-ligne.html",
+      "front/public/icon-512.png",
+      "front/desktop/vault/**/*",
+      "front/src/services/chaine/*.js",
       "!front/src/services/chaine/*.test.mjs",
-      "!front/src/services/chaine/serveur-simule.mjs",
-      "!front/src/services/chaine/generer-vecteurs.mjs",
+      "front/src/services/chaine/package.json",
       "!node_modules",
       "node_modules/chokidar/**/*",
       "node_modules/readdirp/**/*",
-      "node_modules/picomatch/**/*",
-      "node_modules/normalize-path/**/*",
-      "node_modules/anymatch/**/*",
-      "node_modules/braces/**/*",
-      "node_modules/fill-range/**/*",
-      "node_modules/to-regex-range/**/*",
-      "node_modules/is-number/**/*",
-      "node_modules/binary-extensions/**/*",
-      "node_modules/is-binary-path/**/*",
-      "node_modules/is-extglob/**/*",
-      "node_modules/is-glob/**/*",
-      "node_modules/glob-parent/**/*",
-      "node_modules/fsevents/**/*",
       "node_modules/electron-updater/**/*",
       "node_modules/builder-util-runtime/**/*",
-      "node_modules/lazy-val/**/*",
-      "node_modules/semver/**/*",
-      "node_modules/js-yaml/**/*",
       "node_modules/argparse/**/*",
-      "node_modules/tiny-typed-emitter/**/*",
-      "node_modules/sax/**/*",
-      "node_modules/fs-extra/**/*",
+      "node_modules/debug/**/*",
+      "node_modules/ms/**/*",
       "node_modules/graceful-fs/**/*",
-      "node_modules/jsonfile/**/*",
-      "node_modules/universalify/**/*",
+      "node_modules/js-yaml/**/*",
+      "node_modules/lazy-val/**/*",
       "node_modules/lodash.escaperegexp/**/*",
       "node_modules/lodash.isequal/**/*",
-      "node_modules/debug/**/*",
-      "node_modules/ms/**/*"
+      "node_modules/sax/**/*",
+      "node_modules/tiny-typed-emitter/**/*"
+    ],
+    "asarUnpack": [
+      "front/public/icon-512.png"
     ],
     "directories": {
       "output": "release"

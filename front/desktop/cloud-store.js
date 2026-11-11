@@ -3,17 +3,19 @@
 // système (Linux sans libsecret), le JSON est écrit en clair en mode 0600 et un
 // avertissement est journalisé ; l'interface le signale (isEncrypted).
 //
-// Forme : { vaultPath, serverUrl, deviceId, chainSecret, chainId, chainPendingSecret, chainSaved }
+// Forme : { vaultPath, serverUrl, deviceId, chainSecret, chainId, chainPendingSecret, chainSaved, interfaceChainId }
 //   deviceId            UUID tiré au hasard, sert seulement à reconnaître ses propres échos
 //   chainSecret         S en hex (jamais envoyé au renderer)
 //   chainPendingSecret  S d'une création ou d'un renouvellement en cours, pour reprendre après une coupure
 //   chainSaved          vrai quand l'utilisateur a confirmé avoir sauvegardé ses 12 mots
+//   interfaceChainId    chaîne à laquelle l'interface (la web app dans la fenêtre) est déjà connectée :
+//                       ses 12 mots ne lui sont donnés qu'une fois
 
 const fs = require('fs')
 const path = require('path')
 const { randomUUID } = require('crypto')
 
-const CHAMPS = ['vaultPath', 'serverUrl', 'deviceId', 'chainSecret', 'chainId', 'chainPendingSecret', 'chainSaved']
+const CHAMPS = ['vaultPath', 'serverUrl', 'deviceId', 'chainSecret', 'chainId', 'chainPendingSecret', 'chainSaved', 'interfaceChainId']
 // Fichiers des versions précédentes : identifiants d'appareils, drapeau « compte vu en chaîne »,
 // préférences d'envoi (versions avec compte), clés API personnelles (fonctions retirées).
 const ANCIENS_FICHIERS = ['cloud-device-ids.json', 'cloud-chaine-vue.json', 'reader-prefs.json', 'api-keys.dat']

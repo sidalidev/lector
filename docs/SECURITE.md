@@ -25,17 +25,13 @@ En développement seulement, les scripts en ligne de Vite passent par un nonce t
 
 `front/src/utils/schemaMarkdown.js` : la liste blanche de GitHub (`rehype-sanitize`), plus ce que Lector écrit lui-même avant le rendu (titres annotés, repères de ligne) et quelques balises de mise en forme. Jamais de script, d'iframe, de feuille de style, d'objet, de formulaire, de `<base>`, de `<link>` ni de gestionnaire d'événement ; les liens et les sources n'acceptent que `http`, `https`, `mailto` et les chemins relatifs. Le style en ligne est gardé sauf ce qui pourrait recouvrir l'interface ou charger une ressource.
 
-## 3. Ordinateur : accès du renderer au disque
+## 3. Mac : la fenêtre affiche la web app, la synchro reste dans le processus principal
 
-`front/desktop/acces.js` : le renderer ne lit et n'écrit que dans les dossiers que l'utilisateur a ouverts lui-même (boîte de dialogue, double-clic, menu, glisser-déposer), retenus dans `userData/acces.json`, et dans le vault de la synchro. Le renderer ne peut jamais ajouter un dossier. Les chemins sont comparés après résolution des liens symboliques. Par type :
+La fenêtre charge `https://lector.sidali.dev/` dans sa propre session (`persist:lector`), avec `sandbox: true`, `contextIsolation: true`, `nodeIntegration: false` et sans outils de développement dans l'app installée. Elle n'a plus aucun accès au disque : seule la synchro du dossier (`front/desktop/sync-manager.js`, `vault/`) lit et écrit le dossier choisi dans le menu, depuis le processus principal. Tout autre site s'ouvre dans le navigateur du système. Permissions accordées à la seule origine de l'app : presse-papiers et notifications.
 
-- markdown (`.md`, `.markdown`) pour lire et écrire un document ;
-- images (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.svg`) et vidéos (`.mp4`, `.webm`, `.mov`) pour les médias d'un document ;
-- pages HTML locales, servies par le protocole `lector-local:` depuis ces seuls dossiers.
+## 4. Mac : le pont avec la web app
 
-## 4. Ordinateur : fenêtre en bac à sable
-
-La fenêtre principale tourne avec `sandbox: true`, `contextIsolation: true` et `nodeIntegration: false` ; le pont `preload.js` n'expose que des appels précis. L'ancien `electron.fetchUrl` (requête réseau quelconque depuis le processus principal) est supprimé. Afficher les 12 mots, renouveler la chaîne et tout effacer exigent le verrou ouvert (Touch ID ; sans Touch ID, une confirmation dans l'écran).
+`preload.js` expose `window.lectorDesktop` à la seule origine de l'app, et `main.js` revérifie l'origine et le cadre principal à chaque appel. Trois appels : les 12 mots de la chaîne du Mac, donnés une seule fois par chaîne pour que l'interface se connecte seule (`interfaceChainId` dans `cloud-secrets.dat`) ; « l'interface est connectée » ; la clé créée ou saisie dans l'interface, que le Mac garde s'il n'a pas de chaîne. S'il en a une autre, il garde la sienne et les mots de l'interface restent en mémoire jusqu'au choix « Use the Key of This Window for the Folder… », qui demande confirmation et n'efface jamais l'ancien casier. S reste chiffré par safeStorage (`cloud-secrets.dat`), comme avant.
 
 ## 5. Taille des documents synchronisés
 
@@ -50,8 +46,7 @@ Ce que l'hébergeur peut faire : supprimer le casier chiffré de cette chaîne, 
 ## Tests
 
 - `e2e/flows/securite-rendu.spec.js` : un document piégé (HTML brut, liens `javascript:`) ne lance aucun script et garde ce que Lector affiche ; la CSP est en place.
-- `e2e/flows/electron-acces.spec.js` et `front/desktop/acces.test.cjs` : vrai processus principal, bac à sable, lectures et écritures refusées hors des dossiers ouverts et pour un autre type de fichier, liens symboliques.
-- `e2e/flows/impression.spec.js` : l'export en fenêtre d'impression échappe le texte des documents.
+- `e2e/flows/electron-mac.spec.js` : vrai processus principal sur des données jetables ; interface connectée avec la chaîne du Mac, chaîne transmise par l'interface, synchro du dossier dans les deux sens (fenêtre fermée comprise), liens externes hors de l'app, pont absent ailleurs que sur l'interface.
 - `front/desktop/verrou.test.cjs` : nouvelle chaîne et tout effacer refusés verrou fermé.
 
 Résultats : `docs/CHAINE-TESTS.md`.

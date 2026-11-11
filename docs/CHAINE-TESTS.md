@@ -22,7 +22,7 @@ Les suites ne dépendent d'aucun service externe : l'API tourne en local sur une
 - **Serveur** : le vrai `back/` (Express, Prisma, SQLite), lancé par `back/scripts/serveur-test.js` sur le port 3457. Le script refuse de tourner hors de `back/.test-data/`, recrée la base à chaque lancement (`prisma db push`) et recopie sa sortie dans `back/.test-data/serveur.log`, où les tests cherchent ce qui ne doit jamais y être.
 - **Limites de test** (`e2e/back-test.js`) : 64 Kio de clair par document, 256 Kio et 20 documents par casier, anti-abus coupé (`CHAIN_RATE_LIMITS=off`).
 - **Serveurs à part** dans `chain.spec.js` : les tests anti-abus démarrent un second serveur (port 3458, limiteurs actifs, `CHAIN_MAX_CHAINS=30`) ; les deux tests à écritures en rafale (tout effacer pendant des dépôts, plafond des pierres tombales) tournent sur un troisième (port 3459, dossier `back/.test-data/rafale`), pour ne pas gêner le scénario de bout en bout qui parcourt le dossier du serveur principal.
-- **Playwright** démarre l'API de test et Vite (:5173). Le projet `flows` utilise le Chrome installé (`channel: 'chrome'`) : aucun navigateur à télécharger. Les specs `electron-*` lancent le vrai processus principal (`e2e/flows/electron-harnais.cjs`) sur un dossier de données jetable.
+- **Playwright** démarre l'API de test et Vite (:5173). Le projet `flows` utilise le Chrome installé (`channel: 'chrome'`) : aucun navigateur à télécharger. `electron-mac.spec.js` lance le vrai processus principal (`electron .`) sur un dossier de données jetable, un dossier synchronisé temporaire et un trousseau simulé, la fenêtre sur Vite et la synchro sur l'API de test ; il est exclu des suites habituelles (`--grep-invert electron`) et se lance seul : `npx playwright test --config e2e/playwright.config.js --project=flows e2e/flows/electron-mac.spec.js`.
 
 ## Unitaires (`npm run test:chaine`, sans réseau)
 
@@ -74,7 +74,7 @@ Le scénario 9 ne parcourt que le dossier de ce casier : les tests de l'API, en 
 - `sync.spec.js` : créer, 12 mots, formulaire du gestionnaire, kit de secours, vérification, quitter, rejoindre, tout effacer, erreurs de saisie. Le lien « Détails techniques » vise la page du site ; sur le web, « Tout effacer » dit que le casier est peut-être la seule copie des documents.
 - `securite-rendu.spec.js` : documents piégés (HTML brut, CSP, polices et scripts tiers), `docs/SECURITE.md`.
 - `hors-ligne.spec.js` : construit l'app et la sert comme nginx ; après une première visite, le service worker rouvre l'app hors ligne (et `/d/<id>`) ; ni `/v1` ni `/d/<id>` dans le cache. Règles testées aussi sous Node (`front/src/utils/swRegles.test.mjs`).
-- `electron-acces.spec.js` : vrai processus principal en bac à sable, accès au disque limité aux dossiers ouverts.
+- `electron-mac.spec.js` : app Mac (interface web, synchro du dossier, pont, liens, ouverture à la connexion, page hors ligne).
 - `choix-source.spec.js` : la démo choisie pendant une restauration de session lente (module de la chaîne retardé) reste affichée.
 - `impression.spec.js` : l'export d'un dossier en fenêtre d'impression échappe le texte des documents (balises, liens `javascript:`, guillemets).
 - `collab.spec.js` : co-écriture dans deux navigateurs, coupure réseau, lien abîmé refusé, partage depuis l'app web puis arrêt.

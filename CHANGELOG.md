@@ -4,6 +4,14 @@
 
 Lector stays a light Markdown editor: everything not about writing or viewing Markdown is gone, so the app starts fast and stays fast while you type. Details and reasons in [docs/REMOVED.md](docs/REMOVED.md).
 
+### Mac
+- The window is the web app (lector.sidali.dev): the same Lector everywhere, opening instantly and offline once visited. A short "You are offline" page offers to try again if the very first opening has no connection.
+- A folder of `.md` files stays in sync in the background, like a cloud drive, even with the window closed; only Quit stops it. Sync menu: folder and last sync, Show the Folder in Finder, Keep a Folder in Sync…, Stop Syncing This Folder. The folder gets the Lector icon unless it already has one of its own.
+- Open at Login (Lector menu): on by default once a folder is in sync; Lector then starts without a window.
+- No more typing the 12 words twice: the window signs in with the key of this Mac, or gives the Mac the key you create or enter in it. Use the Key of This Window for the Folder… moves the folder to the key of the window (the previous storage is not erased).
+- Updates are checked at launch and every 6 hours, downloaded in the background and installed when you quit, with a quiet notification.
+- Removed from the Mac app: opening `.md` files from the Finder, the separate desktop screens and file dialogs, PDF export, the old iCloud Drive settings sync.
+
 ### Removed
 - Sheet music and music: ABC notation, chord, tab and strum blocks, MIDI and Guitar Pro playback, MusicXML.
 - Study tools: flashcards, spaced repetition review, quizzes, mastery scores, streaks and activity tracking.
