@@ -538,8 +538,11 @@ function App() {
   }, [goBack, goForward]);
 
   const handleOpenLocalFile = async (relativePath) => {
-    if (currentDoc?.dirPath) {
-      await fileSystem.openLocalMdFile(relativePath, currentDoc.dirPath);
+    // Vaults du navigateur : dirPath vaut la racine, le dossier vient du chemin de la note.
+    const virtuel = /^(cloud|browser):\/\//.test(currentDoc?.filePath || '');
+    const base = virtuel ? currentDoc.filePath.replace(/[^/]*$/, '') : currentDoc?.dirPath;
+    if (base) {
+      await fileSystem.openLocalMdFile(relativePath, base);
     }
   };
 

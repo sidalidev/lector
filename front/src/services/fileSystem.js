@@ -237,6 +237,17 @@ class FileSystemService {
   }
 
   async openLocalMdFile(relativePath, basePath) {
+    // Vaults du navigateur (cloud://, browser://) : basePath est le dossier de la note.
+    const schema = basePath?.match(/^(cloud|browser):\/\//)?.[0];
+    if (schema) {
+      const parts = basePath.slice(schema.length).split('/').filter(Boolean);
+      if (relativePath.startsWith('/')) parts.length = 0;
+      for (const part of relativePath.split('/')) {
+        if (part === '..') parts.pop();
+        else if (part && part !== '.') parts.push(part);
+      }
+      return this.openFileByPath(schema + parts.join('/'));
+    }
     if (this.isElectron()) {
       return window.electron.openLocalMdFile(relativePath, basePath);
     }
