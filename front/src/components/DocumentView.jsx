@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo, lazy, Suspense } from 'react';
 import fileSystem from '../services/fileSystem';
-import syncService from '../services/syncService';
 import storage from '../services/storage';
 import { allerALigne, allerAPosition, ligneEnHaut, titresDe } from '../services/editeurCourant';
 import { noter } from '../services/historique';
@@ -218,7 +217,6 @@ const DocumentView = memo(function DocumentView({
       if (scrollHeight <= clientHeight) return;
       dernier = { ratio: scrollTop / (scrollHeight - clientHeight), line: ligneEnHaut(), timestamp: Date.now() };
       storage.set(`scroll-${filePath}`, dernier);
-      syncService.markDirty(filePath);
     };
     const surDefilement = () => { clearTimeout(minuteur); minuteur = setTimeout(sauver, 400); };
     vue.addEventListener('scroll', surDefilement, { passive: true });

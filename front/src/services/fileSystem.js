@@ -42,11 +42,14 @@ class FileSystemService {
       return 'electron';
     }
 
-    const { Capacitor: Cap } = await initCapacitor();
-
-    if (Cap && Cap.isNativePlatform()) {
-      this.platform = 'capacitor';
-      return 'capacitor';
+    // Navigateur : rien de natif n'est importé (@capacitor/core, iCloud). Le
+    // pont natif de Capacitor pose window.Capacitor avant le code de l'app.
+    if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) {
+      const { Capacitor: Cap } = await initCapacitor();
+      if (Cap && Cap.isNativePlatform()) {
+        this.platform = 'capacitor';
+        return 'capacitor';
+      }
     }
 
     this.platform = 'web';
@@ -133,56 +136,6 @@ class FileSystemService {
       return await iCloud.isAvailable();
     }
     return false;
-  }
-
-  async openFileDialog() {
-    await this.ensurePlatform();
-    if (this.isElectron()) {
-      return window.electron.openFileDialog();
-    }
-    if (this.isCapacitor()) {
-      const { FilePickerPlugin: picker } = await initCapacitor();
-      if (!picker) return null;
-      try {
-        const result = await picker.pickFile();
-        if (result.cancelled) return null;
-        // Emit fileOpened event so App.jsx receives it
-        this._emit('fileOpened', result);
-        return result;
-      } catch (err) {
-        console.error('openFileDialog error:', err);
-        return null;
-      }
-    }
-  }
-
-  async openFolderDialog() {
-    await this.ensurePlatform();
-    if (this.isElectron()) {
-      return window.electron.openFolderDialog();
-    }
-    if (this.isCapacitor()) {
-      // Android : SAF folder picker via FilePickerPlugin
-      const { FilePickerPlugin: picker, iCloudService: iCloud } = await initCapacitor();
-      if (picker) {
-        try {
-          const result = await picker.pickFolder();
-          if (result.cancelled) return null;
-          // result.path = content:// URI du dossier
-          this._emit('rootDirSet', result.path);
-          return { success: true, path: result.path };
-        } catch (err) {
-          console.error('openFolderDialog Android error:', err);
-          // Fallback iOS : iCloud
-        }
-      }
-      // iOS avec iCloud
-      const available = await iCloud.isAvailable();
-      if (available) {
-        this._emit('rootDirSet', 'icloud://');
-        return { success: true, path: 'icloud://' };
-      }
-    }
   }
 
   async openFileByPath(filePath) {
@@ -345,33 +298,6 @@ class FileSystemService {
     return [];
   }
 
-  async getFileTree(dirPath = '') {
-    await this.ensurePlatform();
-    if (this.isElectron()) {
-      // Electron n'a pas cette méthode, on utilise listDirectoryFiles récursivement
-      return this._buildTreeElectron(dirPath);
-    }
-    if (this.isCapacitor()) {
-      const { iCloudService: iCloud } = await initCapacitor();
-      return iCloud.getFileTree(dirPath);
-    }
-    return [];
-  }
-
-  async _buildTreeElectron(dirPath) {
-    const files = await window.electron.listDirectoryFiles(dirPath);
-    const tree = [];
-    for (const file of files) {
-      if (file.isDirectory) {
-        const children = await this._buildTreeElectron(file.path);
-        tree.push({ ...file, children });
-      } else if (file.name.endsWith('.md')) {
-        tree.push(file);
-      }
-    }
-    return tree;
-  }
-
   async readFile(filePath) {
     await this.ensurePlatform();
     if (filePath?.startsWith('browser://')) {
@@ -492,52 +418,10 @@ class FileSystemService {
     return null
   }
 
-  async deleteFile(filePath) {
-    await this.ensurePlatform();
-    if (filePath?.startsWith('browser://')) {
-      const bv = await import('./browserVault');
-      return bv.supprimer(filePath);
-    }
-    if (this.isElectron()) {
-      return window.electron.deleteFile?.(filePath);
-    }
-    if (this.isCapacitor()) {
-      const { iCloudService: iCloud } = await initCapacitor();
-      return iCloud.deleteFile(filePath);
-    }
-  }
-
-  async createFolder(folderPath) {
-    await this.ensurePlatform();
-    if (folderPath?.startsWith('browser://')) {
-      const bv = await import('./browserVault');
-      return bv.creerDossier(folderPath);
-    }
-    if (this.isElectron()) {
-      return window.electron.createFolder?.(folderPath);
-    }
-    if (this.isCapacitor()) {
-      const { iCloudService: iCloud } = await initCapacitor();
-      return iCloud.createFolder(folderPath);
-    }
-  }
-
   /**
    * Read a local media file (image/video) relative to a base path.
    * Returns a data URI string (data:mime;base64,...) or null.
    */
-  /**
-   * Resolve a local HTML file to a lector-local:// URL for iframe embedding.
-   * Returns a URL string or null.
-   */
-  async resolveLocalHtml(relativePath, basePath) {
-    await this.ensurePlatform();
-    if (this.isElectron()) {
-      return window.electron.resolveLocalHtml(relativePath, basePath);
-    }
-    return null;
-  }
-
   async readLocalMedia(relativePath, basePath) {
     await this.ensurePlatform();
     // Lector Vault (navigateur) : seuls les fichiers markdown voyagent entre
@@ -558,118 +442,6 @@ class FileSystemService {
       }
     }
     return null;
-  }
-
-  // ========== Sync Operations (.lector/ directory) ==========
-
-  /**
-   * Get the base path for the .lector sync directory.
-   * On Electron: iCloud container / Documents / .lector /
-   * On Capacitor: .lector/ relative to iCloud root
-   */
-  _getSyncBasePath() {
-    if (this.isElectron()) {
-      const homePath = window.electron?.getHomePath();
-      if (homePath) {
-        return `${homePath}/Library/Mobile Documents/iCloud~com~lector~app/Documents/.lector`;
-      }
-      return null;
-    }
-    if (this.isCapacitor()) {
-      return '.lector';
-    }
-    return null;
-  }
-
-  /**
-   * Ensure the .lector sync directory (and documents/ sub-directory) exist.
-   */
-  async createSyncDir() {
-    await this.ensurePlatform();
-
-    if (this.isElectron()) {
-      const basePath = this._getSyncBasePath();
-      if (basePath) {
-        await window.electron.createSyncDir(basePath);
-      }
-      return;
-    }
-
-    if (this.isCapacitor()) {
-      const { iCloudService: iCloud } = await initCapacitor();
-      try {
-        await iCloud.createFolder('.lector');
-        await iCloud.createFolder('.lector/documents');
-      } catch (err) {
-        // Might already exist
-      }
-    }
-  }
-
-  /**
-   * Read a file from the .lector sync directory.
-   * @param {string} relativePath - Path relative to .lector/ (e.g., 'global.json' or 'documents/abc123.json')
-   */
-  async readSyncFile(relativePath) {
-    await this.ensurePlatform();
-
-    if (this.isElectron()) {
-      const basePath = this._getSyncBasePath();
-      if (!basePath) return null;
-      return window.electron.readSyncFile(`${basePath}/${relativePath}`);
-    }
-
-    if (this.isCapacitor()) {
-      const { iCloudService: iCloud } = await initCapacitor();
-      return iCloud.readFile(`.lector/${relativePath}`);
-    }
-
-    return null;
-  }
-
-  /**
-   * Write a file to the .lector sync directory.
-   * @param {string} relativePath - Path relative to .lector/
-   * @param {string} content - JSON string to write
-   */
-  async writeSyncFile(relativePath, content) {
-    await this.ensurePlatform();
-
-    if (this.isElectron()) {
-      const basePath = this._getSyncBasePath();
-      if (!basePath) return;
-      return window.electron.writeSyncFile(`${basePath}/${relativePath}`, content);
-    }
-
-    if (this.isCapacitor()) {
-      const { iCloudService: iCloud } = await initCapacitor();
-      return iCloud.writeFile(`.lector/${relativePath}`, content);
-    }
-  }
-
-  /**
-   * List files in a .lector sync sub-directory.
-   * @param {string} relativePath - Path relative to .lector/ (e.g., 'documents')
-   */
-  async listSyncFiles(relativePath) {
-    await this.ensurePlatform();
-
-    if (this.isElectron()) {
-      const basePath = this._getSyncBasePath();
-      if (!basePath) return [];
-      return window.electron.listSyncFiles(`${basePath}/${relativePath}`);
-    }
-
-    if (this.isCapacitor()) {
-      const { iCloudService: iCloud } = await initCapacitor();
-      try {
-        return iCloud.listFiles(`.lector/${relativePath}`);
-      } catch {
-        return [];
-      }
-    }
-
-    return [];
   }
 
   // ========== Utility ==========

@@ -1,7 +1,15 @@
+# Copie de référence de /home/sid/apps/lector/docker-compose.yml sur le serveur.
+# Disposition sur le serveur (deploy/deploy.sh) :
+#   repo/      clone du dépôt, construit pour lector-api (repo/back)
+#   webapp/    l'app web construite (front/dist)
+#   landing/   privacy.html, sync/, fonts/ (front/landing)
+#   releases/  fichiers de mise à jour et de téléchargement
+#   nginx.conf deploy/nginx.conf
+# Les valeurs ${…} viennent du .env du serveur, jamais du dépôt.
 name: lector
 services:
   lector-landing:
-    image: nginx:alpine
+    image: nginx:1.30-alpine
     container_name: lector-landing
     restart: unless-stopped
     logging:
@@ -9,8 +17,22 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /var/run
     volumes:
-      - ./front/landing:/usr/share/nginx/html:ro
+      - ./landing:/usr/share/nginx/html:ro
       - ./releases:/data/releases:ro
       - ./webapp:/data/webapp:ro
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
@@ -19,18 +41,13 @@ services:
       - "traefik.http.routers.lector.rule=(Host(`lector.dockerbop.fr`) || Host(`lector.sidali.dev`)) && !PathPrefix(`/v1`) && !Path(`/.well-known/security.txt`)"
       - "traefik.http.routers.lector.entrypoints=websecure"
       - "traefik.http.routers.lector.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.lector-http.rule=(Host(`lector.dockerbop.fr`) || Host(`lector.sidali.dev`)) && !PathPrefix(`/v1`) && !Path(`/.well-known/security.txt`)"
-      - "traefik.http.routers.lector-http.entrypoints=web"
-      - "traefik.http.routers.lector-http.middlewares=redirect-to-https"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
       - "traefik.http.services.lector.loadbalancer.server.port=80"
     networks:
       - traefik_web
 
   lector-api:
     build:
-      context: ./back
+      context: ./repo/back
       dockerfile: Dockerfile
     container_name: lector-api
     restart: unless-stopped
@@ -39,6 +56,16 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    pids_limit: 200
     environment:
       - DATABASE_URL=file:/data/lector.db
       - CHAIN_FILES_ROOT=/data/chain
@@ -52,26 +79,11 @@ services:
       - RELEASE_NOTIFY_TOKEN=${RELEASE_NOTIFY_TOKEN}
     volumes:
       - lector-data:/data
-    # Durcissement : utilisateur node (Dockerfile), aucune capacité, système de
-    # fichiers en lecture seule hors du volume et de /tmp, mémoire bornée.
-    init: true
-    read_only: true
-    tmpfs:
-      - /tmp
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    mem_limit: 512m
-    pids_limit: 200
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.lector-api.rule=(Host(`lector.dockerbop.fr`) || Host(`lector.sidali.dev`)) && (PathPrefix(`/v1`) || Path(`/.well-known/security.txt`))"
       - "traefik.http.routers.lector-api.entrypoints=websecure"
       - "traefik.http.routers.lector-api.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.lector-api-http.rule=(Host(`lector.dockerbop.fr`) || Host(`lector.sidali.dev`)) && (PathPrefix(`/v1`) || Path(`/.well-known/security.txt`))"
-      - "traefik.http.routers.lector-api-http.entrypoints=web"
-      - "traefik.http.routers.lector-api-http.middlewares=redirect-to-https"
       - "traefik.http.services.lector-api.loadbalancer.server.port=3456"
     networks:
       - traefik_web

@@ -25,7 +25,6 @@ contextBridge.exposeInMainWorld('electron', {
   listDirectoryFiles: (dirPath) => ipcRenderer.invoke('list-directory-files', dirPath),
   searchAllFiles: (dirPath, query) => ipcRenderer.invoke('search-all-files', dirPath, query),
   openFileByPath: (filePath) => ipcRenderer.invoke('open-file-by-path', filePath),
-  exportPdf: (fileName) => ipcRenderer.invoke('export-pdf', fileName),
   readFileSilent: (filePath) => ipcRenderer.invoke('read-file-silent', filePath),
   saveFile: (filePath, content) => ipcRenderer.invoke('save-file', filePath, content),
   onFileOpened: (callback) => {

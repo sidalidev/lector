@@ -21,11 +21,12 @@ Lector stays a light Markdown editor: everything not about writing or viewing Ma
 - "Show Markdown syntax" (raw source mode): the formatted editor is the only mode, the syntax shows on the line you edit.
 - Favorites and recent files in the sidebar. The file tree, quick open (⌘P) and search remain.
 - Text size (⌘+, ⌘−, ⌘0): use the browser or system zoom.
+- Syntax colors in code blocks: notes open in the formatted editor, where code blocks use a monospace font without colors.
+- On a computer, the old sync of reading positions and settings through iCloud Drive (`.lector/` in the iCloud container). Reading positions stay on each device.
 
 ### Improved
 - The web app shows your notes much sooner: its startup JavaScript went from about 1.3 MB to about 80 KB (gzip), where the page used to stay blank for about 4 seconds. A shared document (`/d/`) went from about 320 KB to about 185 KB. A test now fails if the startup of the web app grows past 150 KB.
 - The app runs on Preact, a much smaller engine with the same components.
-- Code highlighting loads only when the note you open contains code. Code highlighting now uses highlight.js, one language at a time.
 - Lighter fonts: Figtree and Bricolage Grotesque as compressed Latin subsets; other fonts load only when a note needs them.
 - A lighter editor: no bracket matching, auto-closed brackets or auto-indent, which served code, not Markdown. Lists still continue on Enter.
 - Opening a note no longer waits for the editor to download step by step: as soon as your notes folder is known, or while you create or enter your key, the note view and the editor download together.

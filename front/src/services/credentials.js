@@ -12,7 +12,7 @@
 // plugin natif Credentials passe par le Credential Manager du système, qui
 // transmet au gestionnaire choisi (Proton Pass, Bitwarden...).
 
-import { registerPlugin } from '@capacitor/core'
+// @capacitor/core n'est importé qu'en natif : le navigateur ne le télécharge pas.
 
 /** Identifiant de l'entrée, le même partout (formulaire compris) pour que le gestionnaire la retrouve. */
 export const ID_CHAINE = 'lector-sync-chain'
@@ -30,9 +30,13 @@ export function estNatif() {
     && window.Capacitor?.getPlatform?.() === 'android'
 }
 
-function natif() {
-  if (!pluginNatif) pluginNatif = registerPlugin('Credentials')
-  return pluginNatif
+// Ne rend rien : une promesse résolue avec un plugin Capacitor (un Proxy) le
+// prendrait pour un « thenable » et ne se résoudrait jamais.
+async function chargerNatif() {
+  if (!pluginNatif) {
+    const { registerPlugin } = await import('@capacitor/core')
+    pluginNatif = registerPlugin('Credentials')
+  }
 }
 
 /** Vrai si le navigateur sait enregistrer un mot de passe par l'API (Chromium). */
@@ -54,7 +58,8 @@ export async function enregistrerDansGestionnaire(mots) {
   const password = Array.isArray(mots) ? mots.join(' ') : String(mots || '')
   if (estNatif()) {
     try {
-      const r = await natif().store({ password })
+      await chargerNatif()
+      const r = await pluginNatif.store({ password })
       return r?.saved === true
     } catch {
       return false
@@ -75,7 +80,8 @@ export async function enregistrerDansGestionnaire(mots) {
 export async function recupererDepuisGestionnaire() {
   if (estNatif()) {
     try {
-      const r = await natif().get()
+      await chargerNatif()
+      const r = await pluginNatif.get()
       if (r?.cancelled) return ANNULE
       return typeof r?.password === 'string' && r.password ? r.password : null
     } catch {

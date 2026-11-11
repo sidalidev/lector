@@ -37,7 +37,7 @@ router.get('/stream', (req, res) => {
   })
 })
 
-// POST /v1/releases/notify: called by deploy.sh after a release.
+// POST /v1/releases/notify: called by hand after a desktop release.
 // Body: { version, platform?, channel? }
 // Broadcasts a "release" event to all connected SSE clients.
 router.post('/notify', (req, res) => {

@@ -27,6 +27,9 @@ const CLES_MORTES = [
   'lector-history',
   'lector-fontSize',
   'lector-show-markdown-syntax',
+  // Ancienne synchro iCloud des réglages (syncService, retirée).
+  'lector-device-id',
+  'lector-sync-migrated',
 ]
 
 // Données par document des fonctions retirées : fiches et révisions, quiz,

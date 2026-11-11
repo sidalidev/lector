@@ -15,14 +15,13 @@ front/                     everything the user sees
 │   └── locales/           interface text (en.js)
 ├── desktop/               Electron: main.js, preload.js, sync-manager.js, vault/
 ├── mobile/                Capacitor wrappers: android/ (update, password manager plugins), ios/
-└── landing/               static site: home, privacy policy, sync/ (protocol page)
+└── landing/               static site: privacy policy, sync/ (protocol page)
 back/                      relay: Express + Prisma + SQLite, routes/chain.js, services/ (collab/: WebSocket relay)
 e2e/                       Playwright: api/, flows/, chaine/ (end-to-end chain scenarios)
 docs/                      protocol (CHAINE.md), test vectors, security reviews
-deploy/                    Docker Compose, nginx, deploy scripts
+deploy/                    Docker Compose and nginx as on the server, deploy.sh (web app, site, API on request)
 tools/                     release signing (sign-ota.mjs, release-android.mjs), sync page generator
 lector-vscode/             VS Code extension: Lector-style Markdown preview
-demo/                      demo documents
 ```
 
 ## Invariants

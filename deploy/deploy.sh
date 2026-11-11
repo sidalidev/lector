@@ -1,107 +1,67 @@
 #!/bin/bash
-# Full release, run by hand: desktop (DMG + ZIP), signed iOS OTA bundle,
-# landing, API and web app. The API container applies the Prisma schema when it
-# starts: on a database that still holds the old tables it refuses (data loss)
-# and keeps restarting, so follow docs/BASCULE-PROD.md for the first 2.0 deploy.
+# Déploiement du site et de l'app web sur le serveur (lancé à la main) :
+#   npm run deploy            app web, pages du site, configuration nginx
+#   npm run deploy -- --api   la même chose, puis le relais (lector-api)
+#
+# Le relais applique lui-même son schéma au démarrage (CMD du Dockerfile) :
+# aucun « prisma db push » n'est lancé d'ici. Les versions ordinateur et
+# Android se publient sur GitHub Releases, pas par ce script.
+#
+# Disposition sur le serveur : deploy/docker-compose.yml.
 set -euo pipefail
 
-VPS_USER="sid"
-VPS_HOST="dockerbop.fr"
-VPS_DIR="/home/sid/apps/lector"
+VPS="sid@dockerbop.fr"
+DIR="/home/sid/apps/lector"
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
-# Load Apple credentials for notarization
-if [ -f "$PROJECT_DIR/.env" ]; then
-    export $(grep -v '^#' "$PROJECT_DIR/.env" | xargs)
-fi
-
-echo "==> Reading version from package.json..."
-VERSION=$(node -p "require('$PROJECT_DIR/package.json').version")
-echo "    Version: $VERSION"
-
-echo "==> Building Lector v$VERSION..."
-cd "$PROJECT_DIR"
-npm run dist
-
-echo "==> Uploading DMG to VPS (first install)..."
-scp "$PROJECT_DIR/release/Lector-${VERSION}-universal.dmg" \
-    "$VPS_USER@$VPS_HOST:$VPS_DIR/releases/Lector.dmg"
-
-echo "==> Uploading ZIP to VPS (auto-update)..."
-scp "$PROJECT_DIR/release/Lector-${VERSION}-universal-mac.zip" \
-    "$VPS_USER@$VPS_HOST:$VPS_DIR/releases/Lector.zip"
-
-# Upload latest-mac.yml for electron-updater (rewrite filenames)
-if [ -f "$PROJECT_DIR/release/latest-mac.yml" ]; then
-    sed 's/Lector-[^ ]*\.zip/Lector.zip/g; s/Lector-[^ ]*\.dmg/Lector.dmg/g' "$PROJECT_DIR/release/latest-mac.yml" > /tmp/latest-mac.yml
-    scp /tmp/latest-mac.yml "$VPS_USER@$VPS_HOST:$VPS_DIR/releases/"
-    rm /tmp/latest-mac.yml
-fi
-
-# --- iOS OTA bundle (same Vite build; the app expects dist/index.html inside the zip) ---
-echo "==> Creating iOS OTA bundle..."
-rm -f "$PROJECT_DIR/release/lector-ios-${VERSION}.zip"
-(cd "$PROJECT_DIR/front" && zip -r "$PROJECT_DIR/release/lector-ios-${VERSION}.zip" dist/ > /dev/null)
-
-echo "==> Uploading iOS OTA bundle to VPS..."
-scp "$PROJECT_DIR/release/lector-ios-${VERSION}.zip" \
-    "$VPS_USER@$VPS_HOST:$VPS_DIR/releases/lector-ios.zip"
-
-echo "==> Uploading iOS OTA manifest..."
-# Signed manifest: the app refuses any bundle whose signature or SHA-256 does not match
-node "$PROJECT_DIR/tools/sign-ota.mjs" "$PROJECT_DIR/release/lector-ios-${VERSION}.zip" "$VERSION" \
-    "https://lector.dockerbop.fr/api/lector-ios.zip" /tmp/latest-ios.json
-scp /tmp/latest-ios.json "$VPS_USER@$VPS_HOST:$VPS_DIR/releases/latest-ios.json"
-rm -f /tmp/latest-ios.json
-
-echo "==> Uploading landing page..."
-scp "$PROJECT_DIR/front/landing/index.html" \
-    "$VPS_USER@$VPS_HOST:$VPS_DIR/landing/"
-scp "$PROJECT_DIR/front/landing/privacy.html" \
-    "$VPS_USER@$VPS_HOST:$VPS_DIR/landing/"
-# Fonts of the landing pages (OFL, licences next to them)
-rsync -a "$PROJECT_DIR/front/landing/fonts" "$VPS_USER@$VPS_HOST:$VPS_DIR/landing/"
-# Technical details opened by the app and the recovery kit (tools/page-sync.mjs)
-rsync -a "$PROJECT_DIR/front/landing/sync" "$VPS_USER@$VPS_HOST:$VPS_DIR/landing/"
-scp "$PROJECT_DIR/front/landing/icon.png" \
-    "$VPS_USER@$VPS_HOST:$VPS_DIR/landing/" 2>/dev/null || true
-scp "$PROJECT_DIR/front/landing/beret.png" \
-    "$VPS_USER@$VPS_HOST:$VPS_DIR/landing/" 2>/dev/null || true
-
-# --- API (encrypted chain storage + release notifications) ---
+API=false
+for arg in "$@"; do
+  case "$arg" in
+    --api) API=true ;;
+    -h|--help) sed -n '2,9p' "$0"; exit 0 ;;
+    *) echo "Option inconnue : $arg (voir --help)" >&2; exit 1 ;;
+  esac
+done
 
 cd "$PROJECT_DIR"
 
-echo "==> Syncing backend code to VPS (rsync)..."
-rsync -a --delete --exclude='node_modules' --exclude='*.db' --exclude='*.db-journal' \
-  --exclude='.env' --exclude='.test-data' --exclude='dev-chain' \
-  "$PROJECT_DIR/back/" "$VPS_USER@$VPS_HOST:$VPS_DIR/server/"
+echo "==> Build de l'app web..."
+npm run build
 
-echo "==> Rebuilding backend (the container applies the schema on start)..."
-ssh "$VPS_USER@$VPS_HOST" "set -e; cd $VPS_DIR && \
-  docker compose up -d --build lector-api lector-landing && \
-  for i in \$(seq 1 30); do \
-    docker compose exec -T lector-api wget -qO- http://localhost:3456/v1/health > /dev/null 2>&1 && exit 0; \
-    sleep 2; \
-  done; \
-  echo 'API not healthy after 60 s: docker compose logs lector-api'; exit 1"
+echo "==> App web -> $DIR/webapp/"
+rsync -a --delete front/dist/ "$VPS:$DIR/webapp/"
 
-# /formation/ is served from files already on the host: keep them.
-echo "==> Syncing webapp build to VPS..."
-rsync -a --delete --exclude='/formation/' "$PROJECT_DIR/front/dist/" "$VPS_USER@$VPS_HOST:$VPS_DIR/webapp/"
+echo "==> Pages du site -> $DIR/landing/"
+rsync -a front/landing/privacy.html front/landing/sync front/landing/fonts "$VPS:$DIR/landing/"
 
-echo ""
-echo "==> Notifying clients (SSE realtime)..."
-if [ -n "${RELEASE_NOTIFY_TOKEN:-}" ]; then
-  curl -fsS -X POST https://lector.dockerbop.fr/v1/releases/notify \
-    -H "Authorization: Bearer $RELEASE_NOTIFY_TOKEN" \
-    -H 'content-type: application/json' \
-    -d "{\"version\":\"$VERSION\"}" || echo "    (notify failed, clients will check next interval)"
-else
-  echo "    Skipped (RELEASE_NOTIFY_TOKEN not set in .env)"
+# nginx.conf est monté seul dans le conteneur : on le réécrit en place (même
+# inode) et on revient à l'ancien si nginx -t le refuse.
+echo "==> Configuration nginx..."
+scp deploy/nginx.conf "$VPS:$DIR/nginx.conf.nouveau"
+ssh "$VPS" "set -e; cd $DIR
+  cp nginx.conf nginx.conf.precedent
+  cat nginx.conf.nouveau > nginx.conf
+  if docker compose exec -T lector-landing nginx -t; then
+    docker compose exec -T lector-landing nginx -s reload
+    rm -f nginx.conf.nouveau
+  else
+    cat nginx.conf.precedent > nginx.conf
+    echo 'nginx -t a refusé la nouvelle configuration : ancienne remise.' >&2
+    exit 1
+  fi"
+
+if [ "$API" = true ]; then
+  echo "==> Relais : mise à jour du dépôt et reconstruction de lector-api..."
+  ssh "$VPS" "set -e; cd $DIR
+    git -C repo pull --ff-only
+    docker compose up -d --build lector-api
+    for i in \$(seq 1 30); do
+      docker compose exec -T lector-api wget -qO- http://localhost:3456/v1/health > /dev/null 2>&1 && exit 0
+      sleep 2
+    done
+    echo 'Relais pas en bonne santé après 60 s : docker compose logs lector-api' >&2
+    exit 1"
 fi
 
 echo ""
-echo "==> Lector v$VERSION deployed!"
-echo "    Landing:    https://lector.dockerbop.fr"
-echo "    Download:   https://lector.dockerbop.fr/download/Lector.dmg"
+echo "==> Déployé : https://lector.sidali.dev/"

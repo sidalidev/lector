@@ -7,11 +7,8 @@ import Sidebar from './components/Sidebar';
 import RightSidebar from './components/FloatingTOC';
 import ErrorBoundary from './components/ErrorBoundary';
 import Tooltip from './components/Tooltip';
-import CloudStatusIndicator from './components/CloudStatusIndicator';
 import fileSystem from './services/fileSystem';
-import syncService from './services/syncService';
 import storage from './services/storage';
-import otaService from './services/otaService';
 import useTranslation from './hooks/useTranslation'
 import { cheminDans } from './utils/chemins'
 import * as rappels from './services/rappels'
@@ -44,6 +41,9 @@ const SharePanel = lazy(() => import('./components/collab/SharePanel'));
 const Historique = lazy(() => import('./components/Historique'));
 // Navigateur : la clé de 12 mots tient lieu de compte (créer ou se connecter).
 const EntreeWeb = lazy(() => import('./components/EntreeWeb'));
+// Ordinateur et mobile seulement : jamais téléchargés par le navigateur.
+const NATIF = typeof window !== 'undefined' && (!!window.electron || !!window.Capacitor?.isNativePlatform?.());
+const CloudStatusIndicator = lazy(() => import('./components/CloudStatusIndicator'));
 // Premier lancement sur ordinateur et mobile : jamais dans le paquet web.
 const OnboardingWhere = lazy(() => import('./components/Onboarding').then((m) => ({ default: m.OnboardingWhere })));
 const ESTWEB = !fileSystem.isElectron() && !fileSystem.isCapacitor();
@@ -181,7 +181,6 @@ function App() {
       for (const [k, v] of Object.entries(prefs)) {
         storage.set(k, v);
       }
-      syncService.markGlobalDirty();
     }, 300);
     return () => clearTimeout(t);
   }, [showSidebar, sidebarWidth, rightSidebarWidth, showRightSidebar]);
@@ -225,21 +224,8 @@ function App() {
 
         // Ordinateur : avec une chaîne, on démarre toujours sur le vault synchronisé.
         if (fileSystem.isElectron() && window.electron?.cloud?.status) {
-          try {
-            const cs = await window.electron.cloud.status();
-            if (cs?.hasChain && cs?.vaultPath && !sourceChoisie.current) {
-              await window.electron.setRootDir(cs.vaultPath);
-              setRootDirPath(cs.vaultPath);
-              setShowSourcePicker(false);
-              try {
-                const session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
-                if (session?.filePath && session.filePath.startsWith(cs.vaultPath)) {
-                  await fileSystem.openFileByPath(session.filePath);
-                }
-              } catch {}
-              return;
-            }
-          } catch {}
+          const { restaurerChaineOrdinateur } = await import('./services/sessionNative');
+          if (await restaurerChaineOrdinateur({ sourceChoisie, setRootDirPath, setShowSourcePicker })) return;
         }
 
         // Navigateur : avec une chaîne, on démarre sur son vault (cloud://).
@@ -263,139 +249,28 @@ function App() {
           return;
         }
 
-        const sourceType = localStorage.getItem(SOURCE_TYPE_KEY);
-
-        // No source type saved → show picker
-        if (!sourceType) {
-          setShowSourcePicker(true);
-          return;
-        }
-
-        // Capacitor/iOS
-        if (fileSystem.isCapacitor()) {
-          if (sourceType === 'icloud') {
-            const available = await fileSystem.isAvailable();
-            if (!available) {
-              // iCloud coupé depuis (déconnexion, réglages) → retour au picker
-              // plutôt qu'un écran vide sans issue
-              localStorage.removeItem(SOURCE_TYPE_KEY);
-              setShowSourcePicker(true);
-              return;
-            }
-            if (available) {
-              setRootDirPath('icloud://');
-              setShowSourcePicker(false);
-
-              // Créer le document de bienvenue au premier lancement
-              if (!localStorage.getItem('lector-welcome-created')) {
-                try {
-                  const welcomePath = `icloud://${t('welcome.fileName')}.md`
-                  await fileSystem.writeFile(welcomePath, t('welcome.content'))
-                  localStorage.setItem('lector-welcome-created', '1')
-                  await fileSystem.openFileByPath(welcomePath)
-                } catch { /* ignore: ne pas bloquer le démarrage */ }
-              } else {
-                try {
-                  const session = JSON.parse(localStorage.getItem(SESSION_KEY));
-                  if (session?.filePath) {
-                    await fileSystem.openFileByPath(session.filePath);
-                  }
-                } catch { /* ignore */ }
-              }
-            }
-          } else if (sourceType === 'folder') {
-            // Android SAF : restaurer le rootDirPath depuis la session
-            try {
-              const session = JSON.parse(localStorage.getItem(SESSION_KEY))
-              // Accès rendu (réglages, autre appareil restauré) : l'écran du dossier revient.
-              const { accesAndroid } = await import('./services/vaultSetup')
-              if (session?.rootDirPath?.startsWith('content://') && !(await accesAndroid(session.rootDirPath))) {
-                localStorage.removeItem(SOURCE_TYPE_KEY)
-                setShowSourcePicker(true)
-                return
-              }
-              if (session?.rootDirPath) {
-                setRootDirPath(session.rootDirPath)
-                setShowSourcePicker(false)
-                if (session?.filePath) {
-                  await fileSystem.openFileByPath(session.filePath)
-                }
-              } else {
-                // Pas de session → re-picker
-                localStorage.removeItem(SOURCE_TYPE_KEY)
-                setShowSourcePicker(true)
-              }
-            } catch {
-              localStorage.removeItem(SOURCE_TYPE_KEY)
-              setShowSourcePicker(true)
-            }
-          }
-          return;
-        }
-
-        // Navigateur : le dossier de notes du navigateur. Un dossier du disque
-        // dont la permission est oubliée attend un clic sur l'écran du dossier.
-        if (!fileSystem.isElectron() && sourceType === 'browser') {
-          const bv = await import('./services/browserVault');
-          if (await bv.ouvrir()) {
-            setRootDirPath(bv.RACINE);
-            setShowSourcePicker(false);
-            try {
-              const session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
-              if (session?.filePath?.startsWith(bv.RACINE)) await fileSystem.openFileByPath(session.filePath);
-            } catch {}
-          } else {
-            setShowSourcePicker(true);
-          }
-          return;
-        }
-
-        // Electron
-        if (fileSystem.isElectron() && window.electron) {
-          if (sourceType === 'icloud') {
-            // Lector Vault is the only desktop source now: drop legacy iCloud auto-open.
-            localStorage.removeItem(SOURCE_TYPE_KEY);
-            setShowSourcePicker(true);
-            return;
-          } else if (sourceType === 'folder') {
-            try {
-              const session = JSON.parse(localStorage.getItem(SESSION_KEY));
-              // IPC sets rootDirPath via onRootDirSet listener + starts watcher.
-              // Refusé si le dossier n'existe plus ou n'a jamais été ouvert par l'utilisateur : on le redemande.
-              if (session?.rootDirPath && await window.electron.setRootDir(session.rootDirPath)) {
-                setShowSourcePicker(false);
-                if (session.filePath) {
-                  await fileSystem.openFileByPath(session.filePath);
-                }
-              } else {
-                setShowSourcePicker(true);
-              }
-            } catch {
-              setShowSourcePicker(true);
-            }
-          } else if (sourceType === 'file') {
-            try {
-              const session = JSON.parse(localStorage.getItem(SESSION_KEY));
-              if (session?.filePath && await fileSystem.openFileByPath(session.filePath)) {
-                setShowSourcePicker(false);
-              } else {
-                setShowSourcePicker(true);
-              }
-            } catch {
-              setShowSourcePicker(true);
-            }
-          }
-        }
+        // Ordinateur et mobile : chargé à la demande, jamais dans le navigateur.
+        const { restaurerSessionNative } = await import('./services/sessionNative');
+        await restaurerSessionNative({ setRootDirPath, setShowSourcePicker });
       } catch { /* ignore */ }
     };
     restoreSession();
   }, []);
 
-  // Listen for auto-update ready (Electron + iOS OTA)
+  // Listen for auto-update ready (Electron + iOS OTA + Android APK). Le
+  // service n'existe que sur ordinateur et mobile : chargé à la demande.
+  const otaRef = useRef(null);
   useEffect(() => {
-    otaService.initialize();
-    const unsub = otaService.onUpdateReady((version) => setUpdateReady(version));
-    return unsub;
+    if (!NATIF) return;
+    let unsub = null;
+    let fini = false;
+    import('./services/otaService').then(({ default: ota }) => {
+      if (fini) return;
+      otaRef.current = ota;
+      ota.initialize();
+      unsub = ota.onUpdateReady((version) => setUpdateReady(version));
+    });
+    return () => { fini = true; unsub?.(); };
   }, []);
 
   // Ordinateur : chaîne renouvelée ou effacée ailleurs (synchro arrêtée sans
@@ -505,30 +380,6 @@ function App() {
         if (p) fileSystem.openFileByPath(p).catch(() => {});
       }
     });
-  }, []);
-
-  // Initialize sync service + focus-triggered pull
-  useEffect(() => {
-    // Init sync
-    syncService.initialize();
-
-    // Pull on window focus/foreground
-    const handleFocus = () => syncService.pullChanged();
-    window.addEventListener('focus', handleFocus);
-
-    // Also handle visibility change (iOS background/foreground)
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        syncService.pullChanged();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-      document.removeEventListener('visibilitychange', handleVisibility);
-      syncService.destroy();
-    };
   }, []);
 
   useEffect(() => {
@@ -686,10 +537,6 @@ function App() {
     };
   }, [goBack, goForward]);
 
-  const handleOpenFile = async () => {
-    await fileSystem.openFileDialog();
-  };
-
   const handleOpenLocalFile = async (relativePath) => {
     if (currentDoc?.dirPath) {
       await fileSystem.openLocalMdFile(relativePath, currentDoc.dirPath);
@@ -804,10 +651,6 @@ function App() {
     setMobilePopover(null);
     if (rootDirPathRef.current) rappels.actualiser(rootDirPathRef.current);
   }, []);
-
-  const handleOpenFolder = async () => {
-    await fileSystem.openFolderDialog();
-  };
 
   // Écran 1 : le dossier des notes est prêt (créé, rouvert ou choisi).
   const handleVaultReady = useCallback(async ({ rootDirPath: dossier, sourceType }, { rejoindre = false } = {}) => {
@@ -936,7 +779,11 @@ function App() {
             {showToday ? t('tasks.today') : (currentDoc?.fileName || 'Lector')}
             <span className="titlebar-version">v{APP_VERSION}</span>
           </div>
-          <CloudStatusIndicator onClick={() => setShowCloudPanel(true)} />
+          {window.electron?.cloud && (
+            <Suspense fallback={null}>
+              <CloudStatusIndicator onClick={() => setShowCloudPanel(true)} />
+            </Suspense>
+          )}
           {currentDoc && !showToday && (
             <button className="titlebar-share titlebar-icone" onClick={() => setShowHistory(true)} title={t('history.title')} aria-label={t('history.title')} data-testid="historique-ouvrir">
               <History size={13} />
@@ -977,10 +824,10 @@ function App() {
       {/* Update banner: Electron + OTA mobile (bundle web) */}
       {updateReady && !updateDismissed && (
         <div className="update-banner">
-          <span>{t(otaService.isAppUpdate ? 'appUpdate.ready' : 'app.updateReady', { version: updateReady })}</span>
-          <button className="update-banner-btn" onClick={() => otaService.installUpdate()}>
+          <span>{t(otaRef.current?.isAppUpdate ? 'appUpdate.ready' : 'app.updateReady', { version: updateReady })}</span>
+          <button className="update-banner-btn" onClick={() => otaRef.current?.installUpdate()}>
             <RefreshCw size={13} />
-            {otaService.isAppUpdate ? t('appUpdate.install') : t('app.restart')}
+            {otaRef.current?.isAppUpdate ? t('appUpdate.install') : t('app.restart')}
           </button>
           <button className="update-banner-dismiss" onClick={() => setUpdateDismissed(true)}>
             <X size={14} />

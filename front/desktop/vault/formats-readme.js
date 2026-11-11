@@ -21,48 +21,28 @@ ships a new format spec.
 
 ---
 
-## Markdown (everything standard works)
+## Formatted as you write
 
-- Headings (\`#\` to \`######\`), used to build the table of contents
-- Bold \`**text**\`, italic \`*text*\`, strikethrough \`~~text~~\`
-- Lists, ordered and unordered, nested
-- Blockquotes \`>\`, styled with the warm accent color
-- Inline code \`\` \`like this\` \`\` and fenced code blocks with language hints
-- Tables (GFM)
-- Task lists \`- [ ]\` and \`- [x]\` with rendered checkboxes
-- Footnotes
-- Internal links \`[text](./other-doc.md)\`: clickable, opens in Lector
+Lector opens each note in one formatted editor: the Markdown syntax shows only
+on the line you are writing.
 
-## Code with syntax highlighting
+- Headings (\`#\` to \`######\`), at full size, used to build the table of contents
+- Bold \`**text**\`, italic \`*text*\`, strikethrough \`~~text~~\`, inline code
+- Lists, ordered and unordered, nested; Enter continues the list
+- Blockquotes \`>\` and horizontal rules \`---\`
+- Task lists \`- [ ]\` and \`- [x]\` with a checkbox
+- Tables (GFM), shown as a table until you click into them
+- Fenced code blocks, in a monospace font (no syntax colors)
+- Links and bare URLs: a click opens them; \`[text](./other-doc.md)\` opens the note in Lector
+- Images \`![alt](path/to/image.png)\`: relative paths from the note, and \`https:\` URLs
 
-\`\`\`python
-def hello():
-    print("Lector colors the most common languages")
-\`\`\`
+## Shown as plain text
 
-Python, JavaScript, TypeScript, Bash, C, C++, C#, Go, Rust, Java, Kotlin,
-Swift, Ruby, PHP, SQL, HTML/XML, CSS, SCSS, JSON, YAML, Markdown, Diff and a
-few more are colored; any other language shows as plain code. Click the copy icon (top-right of any code block) to copy.
-
-## HTML embeds (sandboxed)
-
-- Local \`.html\` files referenced from your markdown render in a sandboxed iframe
-- YouTube / Vimeo / Rumble URLs auto-embed as players
-- Local \`.mp4\` videos render with native controls
-
-## Images
-
-- Standard \`![alt](path/to/image.png)\`: relative paths from the doc work
-- Hero image: place an image right under the H1 and it spans the column width
-- Click any image to open it fullscreen with pan and zoom
-
-## What's NOT rendered (yet)
-
-- Math: \`$...$\` and \`$$...$$\` stay plain text (no LaTeX / KaTeX rendering)
+- Math: \`$...$\` and \`$$...$$\` (no LaTeX / KaTeX rendering)
 - Diagrams: \`\`\`mermaid blocks show as plain code
-- HTML \`<script>\` or \`<style>\` outside sandboxed iframes
-- Custom fonts in markdown
-- Interactive widgets (sliders, forms) outside iframe embeds
+- Raw HTML: never rendered, scripts and styles included
+- Footnotes, wikilinks \`[[file]]\`, YAML front matter
+- Video links (YouTube, Vimeo, Rumble) stay links
 
 ## File-system conventions
 
@@ -74,9 +54,8 @@ few more are colored; any other language shows as plain code. Click the copy ico
 
 ## Tips
 
-- Keep markdown files under 1 MB for snappy rendering
+- Keep each note under the relay's size limit (512 KB by default): a larger one stays on this device and does not sync
 - Prefer 1 H1 per file (used as title)
-- Put hero images at 1600×640 or similar landscape ratios
 
 ---
 

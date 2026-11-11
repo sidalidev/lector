@@ -16,10 +16,10 @@ Lector is a light Markdown editor and viewer for your own `.md` files: write, re
 
 ## Install
 
-- **macOS**: download the [DMG](https://lector.dockerbop.fr/download/Lector.dmg) (universal, signed with an Apple Developer ID, team AFZ3KWB56Q, and notarized by Apple). Once it is copied to Applications, `spctl -a -vv /Applications/Lector.app` should answer `accepted` and `source=Notarized Developer ID`. The app updates itself.
+- **macOS**: download the universal DMG from the [GitHub releases page](https://github.com/sidalidev/lector/releases), where each new version is published.
 - **Android**: install the APK from [GitHub Releases](https://github.com/sidalidev/lector/releases), or add Lector to [Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/sidalidev/lector). The app also updates itself: it checks a signed manifest on GitHub Releases and asks Android to install the new version. Android 7.0 or later; saving the 12 words to your password manager needs Android 14 or later.
 - **iOS**: the App Store release of 2.0 is pending. Until then, build it from source with Xcode (see [CONTRIBUTING.md](CONTRIBUTING.md)). iOS 15 or later.
-- **Web**: open [lector.dockerbop.fr/app](https://lector.dockerbop.fr/app/). Nothing to install.
+- **Web**: open [lector.sidali.dev](https://lector.sidali.dev/). Nothing to install. Once visited, it also opens offline.
 
 Windows and Linux builds can be made with electron-builder (`npm run dist:win` for Windows, `npm run dist -- --linux` for Linux, since electron-builder otherwise builds for the current platform only) but are not published yet.
 
@@ -55,7 +55,7 @@ Known issue: a reminder written on another device is scheduled on your phone onl
 3. Other devices join with the same 12 words (or a QR code, in browsers that can scan one). Only `.md` and `.markdown` files travel; images and other files stay where they are.
 4. Each chain gets 20 MB in total, 512 KB per document and 5,000 documents. A chain with no activity for 6 months is deleted from the relay.
 
-The full protocol, with test vectors: [docs/CHAINE.md](docs/CHAINE.md) (in French for now, also served at [lector.dockerbop.fr/sync](https://lector.dockerbop.fr/sync/)). In English: [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) and [PRIVACY.md](PRIVACY.md).
+The full protocol, with test vectors: [docs/CHAINE.md](docs/CHAINE.md) (in French for now, also served at [lector.sidali.dev/sync](https://lector.sidali.dev/sync/)). In English: [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) and [PRIVACY.md](PRIVACY.md).
 
 ## Security and audit
 
@@ -120,7 +120,7 @@ Android release signing: the keystore never lives in the repository. Copy `front
 ## Stack
 
 - **Front**: Preact (with `preact/compat`) + Vite, one codebase for the web (PWA), desktop and mobile; CodeMirror 6 editor, Yjs for co-writing
-- **Desktop**: Electron. macOS is published (DMG, automatic updates)
+- **Desktop**: Electron. macOS is published (DMG on the GitHub releases page)
 - **Mobile**: Capacitor 8 (iOS, Android)
 - **Relay**: Node + Express + Prisma + SQLite, a blind `/v1/chain` API (encrypted blocks only)
 

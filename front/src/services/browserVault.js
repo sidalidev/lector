@@ -198,27 +198,6 @@ export async function ecrire(chemin, contenu) {
   return { success: true }
 }
 
-export async function existe(chemin) {
-  try {
-    const parts = segments(chemin)
-    const nom = parts.pop()
-    await (await dossierDe(parts)).getFileHandle(nom)
-    return true
-  } catch { return false }
-}
-
-export async function supprimer(chemin) {
-  const parts = segments(chemin)
-  const nom = parts.pop()
-  await (await dossierDe(parts)).removeEntry(nom)
-  return { success: true }
-}
-
-export async function creerDossier(chemin) {
-  await dossierDe(segments(chemin), true)
-  return { success: true }
-}
-
 /** Dossier parent d'un chemin browser://, racine comprise. */
 export function parent(chemin) {
   const parts = segments(chemin)

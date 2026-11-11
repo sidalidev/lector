@@ -121,7 +121,9 @@ export default defineConfig(({ command }) => {
           // importait alors toujours, même sur la page /d/ d'un invité.
           manualChunks(id) {
             if (id.includes('vite/preload-helper') || id.includes('commonjsHelpers')) return 'vendor';
-            if (/node_modules\/(preact|lucide-react)\//.test(id)) return 'vendor';
+            // Le socle de lucide (Icon, utilitaires) va avec Preact ; chaque icône
+            // suit l'écran qui l'utilise, au lieu d'arriver toutes au démarrage.
+            if (/node_modules\/preact\//.test(id) || /node_modules\/lucide-react\/dist\/esm\/(shared\/|Icon\.js|createLucideIcon\.js|defaultAttributes\.js|context\.js)/.test(id)) return 'vendor';
             // Textes de l'interface : partagés par l'app et la page /d/.
             if (id.includes('/src/services/i18n') || id.includes('/src/locales/')) return 'i18n';
             return undefined;

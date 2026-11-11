@@ -1,23 +1,20 @@
-import { registerPlugin } from '@capacitor/core';
+// Chargé seulement sur ordinateur et mobile (App.jsx) ; @capacitor/core n'est
+// importé que sur mobile.
 import fileSystem from './fileSystem';
 
 let OTAUpdate = null;
 let AppUpdate = null;
 
 // iOS: the web bundle is updated over the air (OTAUpdatePlugin.swift).
-function getPlugin() {
-  if (!OTAUpdate) {
-    OTAUpdate = registerPlugin('OTAUpdate');
-  }
-  return OTAUpdate;
-}
-
 // Android: the whole signed APK, from GitHub Releases (AppUpdatePlugin.java).
-function getAppUpdate() {
-  if (!AppUpdate) {
+// Les plugins restent dans des variables : une promesse résolue avec un plugin
+// Capacitor (un Proxy) le prendrait pour un « thenable » et ne se résoudrait jamais.
+async function chargerPlugins() {
+  if (!OTAUpdate) {
+    const { registerPlugin } = await import('@capacitor/core');
+    OTAUpdate = registerPlugin('OTAUpdate');
     AppUpdate = registerPlugin('AppUpdate');
   }
-  return AppUpdate;
 }
 
 function isAndroid() {
@@ -86,7 +83,8 @@ class OTAService {
     if (!atLaunch && now - readLastCheck() < ANDROID_INTERVAL_MS) return;
     this._androidChecking = true;
     try {
-      const result = await getAppUpdate().checkForUpdate();
+      await chargerPlugins();
+      const result = await AppUpdate.checkForUpdate();
       writeLastCheck(Date.now());
       if (result?.updateAvailable && result.ready && result.version) {
         this._notify(result.version);
@@ -100,7 +98,8 @@ class OTAService {
 
   async _checkForUpdates() {
     try {
-      const plugin = getPlugin();
+      await chargerPlugins();
+      const plugin = OTAUpdate;
       const result = await plugin.checkForUpdate();
 
       if (result.updateAvailable) {
@@ -124,11 +123,13 @@ class OTAService {
     } else if (fileSystem.isCapacitor() && isAndroid()) {
       // Opens the system install screen (or the "Install unknown apps" setting the first time).
       try {
-        await getAppUpdate().installUpdate();
+        await chargerPlugins();
+        await AppUpdate.installUpdate();
       } catch { /* the banner stays, the user can try again */ }
     } else if (fileSystem.isCapacitor()) {
       try {
-        await getPlugin().applyUpdate();
+        await chargerPlugins();
+        await OTAUpdate.applyUpdate();
       } catch (err) {
         console.error('OTA apply failed:', err);
       }
