@@ -1,6 +1,6 @@
 {
   "name": "lector",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "Markdown editor: plain notes, beautifully rendered, edited in real time, synced end to end encrypted",
   "license": "MIT",
   "main": "front/desktop/main.js",
