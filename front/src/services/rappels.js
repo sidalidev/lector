@@ -27,10 +27,12 @@ const android = () => natif() && window.Capacitor?.getPlatform?.() === 'android'
 const electron = () => typeof window !== 'undefined' && !!window.electron?.rappels
 const estMarkdown = (nom) => /\.(md|markdown)$/i.test(nom || '')
 
+// Le plugin est rendu dans un objet : une promesse résolue avec un plugin
+// Capacitor (un Proxy) le prend pour un « thenable » et ne se résout jamais.
 let pluginNotif = null
 async function notifications() {
   if (!pluginNotif) pluginNotif = (await import('@capacitor/local-notifications')).LocalNotifications
-  return pluginNotif
+  return { LN: pluginNotif }
 }
 
 // --- État partagé (vue Today, barre latérale) ---
@@ -177,7 +179,7 @@ export async function etatPermission() {
   if (electron()) return 'granted'
   if (natif()) {
     try {
-      const p = await (await notifications()).checkPermissions()
+      const p = await (await notifications()).LN.checkPermissions()
       return p.display === 'granted' ? 'granted' : p.display === 'denied' ? 'denied' : 'prompt'
     } catch { return 'unsupported' }
   }
@@ -190,7 +192,7 @@ export async function demanderPermission() {
   if (electron()) return 'granted'
   if (natif()) {
     try {
-      const p = await (await notifications()).requestPermissions()
+      const p = await (await notifications()).LN.requestPermissions()
       return p.display === 'granted' ? 'granted' : p.display === 'denied' ? 'denied' : 'prompt'
     } catch { return 'unsupported' }
   }
@@ -204,7 +206,7 @@ export async function etatExact() {
   if (!android()) return 'unsupported'
   try {
     const choisi = localStorage.getItem(CLE_EXACT) === '1'
-    const s = await (await notifications()).checkExactNotificationSetting()
+    const s = await (await notifications()).LN.checkExactNotificationSetting()
     return choisi && s.exact_alarm === 'granted' ? 'granted' : 'off'
   } catch { return 'unsupported' }
 }
@@ -214,7 +216,7 @@ export async function demanderExact() {
   if (!android()) return 'unsupported'
   try { localStorage.setItem(CLE_EXACT, '1') } catch { /* stockage indisponible */ }
   try {
-    const s = await (await notifications()).changeExactNotificationSetting()
+    const s = await (await notifications()).LN.changeExactNotificationSetting()
     return s.exact_alarm === 'granted' ? 'granted' : 'off'
   } catch { return 'off' }
 }
@@ -234,7 +236,7 @@ async function programmer(liste) {
 
 let canalCree = false
 async function programmerNatif(liste) {
-  const LN = await notifications()
+  const { LN } = await notifications()
   // Jamais de demande ici : sans permission, rien n'est programmé.
   if ((await LN.checkPermissions()).display !== 'granted') return
   if (android() && !canalCree) {
@@ -314,7 +316,7 @@ export function ecouterOuverture(fn) {
   ecouteursOuverture.add(fn)
   if (natif() && !ecouteNatifPosee) {
     ecouteNatifPosee = true
-    notifications().then((LN) => LN.addListener('localNotificationActionPerformed', (e) => {
+    notifications().then(({ LN }) => LN.addListener('localNotificationActionPerformed', (e) => {
       const x = e?.notification?.extra || {}
       signalerOuverture({ chemin: x.chemin, ligne: Number(x.ligne) || 1, brut: x.brut })
     })).catch(() => { /* plugin absent (web) */ })

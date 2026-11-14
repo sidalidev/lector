@@ -24,7 +24,8 @@ async function picker() {
     const { registerPlugin } = await import('@capacitor/core')
     pickerAndroid = registerPlugin('FilePicker')
   }
-  return pickerAndroid
+  // Dans un objet : un plugin Capacitor (un Proxy) passe pour un « thenable ».
+  return { p: pickerAndroid }
 }
 
 function erreur(code) {
@@ -34,7 +35,7 @@ function erreur(code) {
 /** Dossiers Android dont Lector garde l'accès (le plus récent d'abord). */
 async function dossiersAndroid() {
   try {
-    const r = await (await picker()).persistedFolders()
+    const r = await (await picker()).p.persistedFolders()
     const liste = Array.isArray(r?.folders) ? r.folders : (typeof r?.folders === 'string' ? JSON.parse(r.folders) : [])
     return liste.sort((a, b) => (b.time || 0) - (a.time || 0))
   } catch { return [] }
@@ -42,7 +43,7 @@ async function dossiersAndroid() {
 
 /** Android : Lector ne garde que le dossier des notes, rend les autres. */
 async function garderSeulement(uri) {
-  const p = await picker()
+  const { p } = await picker()
   for (const d of await dossiersAndroid()) {
     if (d.path !== uri) { try { await p.releaseFolder({ uri: d.path }) } catch { /* déjà rendu */ } }
   }
@@ -100,7 +101,7 @@ export async function creer(sugg) {
     if (sugg?.exists && sugg.path && await accesAndroid(sugg.path)) {
       r = { path: sugg.path, name: sugg.name }
     } else {
-      r = await (await picker()).pickVault({
+      r = await (await picker()).p.pickVault({
         create: true,
         hint: t('onboarding.android.toast'),
         confirmHint: t('onboarding.android.confirmToast'),
@@ -134,7 +135,7 @@ export async function choisir() {
     return { rootDirPath: r.path, sourceType: 'folder', name: r.path.split(/[\\/]/).pop() }
   }
   if (platform === 'android') {
-    const r = await (await picker()).pickVault({ create: false })
+    const r = await (await picker()).p.pickVault({ create: false })
     if (!r || r.cancelled) return null
     await garderSeulement(r.path)
     return { rootDirPath: r.path, sourceType: 'folder', name: r.name }
